@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Dark-only app: the `dark` class is set on <html> in index.html. Tokens are documented in DESIGN.md. */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: dark;
+  --radius: 0.5rem;
+
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #171717; /* every data color is validated against this surface */
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --primary: #e5e5e5;
+  --primary-foreground: #171717;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --destructive: #e5484d;
+  --border: rgb(255 255 255 / 10%);
+  --input: #6e6e6e; /* 3.4:1 on --card: field boundaries must reach 3:1 (WCAG 1.4.11) */
+  --ring: #d4d4d4; /* shadcn draws the ring at 50% alpha: 3.9:1 effective on --card */
+
+  /* Data viz (dataviz skill): categorical slot 1 for sparklines, muted ink for history */
+  --chart-1: #3987e5;
+  --chart-muted: #898781;
+  /* Status colors are for icons only; text stays in normal ink */
+  --status-running: #0ca30c;
+  --status-stopped: #898781;
+  --status-crashed: #d03b3b;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-muted: var(--chart-muted);
+  --color-status-running: var(--status-running);
+  --color-status-stopped: var(--status-stopped);
+  --color-status-crashed: var(--status-crashed);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}

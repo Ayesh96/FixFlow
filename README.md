@@ -1,0 +1,130 @@
+# Errorflow
+
+Self-hosted error tracking, triage and automated fixes. Give it a GitHub repository and point your app's Sentry SDK at it:
+
+1. **Track.** Errors arrive through a Sentry-compatible endpoint and are grouped, so the same error 2,000 times is one issue with a count.
+2. **Triage.** A model (local Ollama, or a rule-based fallback) decides whether the error looks like a small fix.
+3. **File.** One GitHub issue per new error. Errors without a stack trace are kept here but stay off GitHub unless the project asks for them.
+4. **Resolve.** The resolver fetches the latest of your branch, lets a model attempt a fix in a throwaway worktree, runs your project's check command, and opens a pull request against that branch.
+
+Everything runs on your own machine. Your code and tokens never leave it, except to GitHub and the model you choose.
+
+```bash
+npm install     # also installs the UI's dependencies
+npm start       # builds the UI if it is stale, then serves it
+```
+
+`npm start` prints a link like `http://localhost:7420/?token=…`. **Open that link once**; your browser remembers it (see [Security](#security)). Requires Node 24+ (it runs the TypeScript directly, with no compile step for the server, and uses the built-in `node:sqlite`). Nothing in it is specific to one operating system.
+
+## Using it
+
+1. **Projects tab → Add project.** Enter the repository (`owner/name`), a GitHub token, then pick the branch to work on from the repo's own branches. Optionally set a command that checks a fix (for example `npm ci && npm test`). The token and repo are checked with GitHub before anything is saved, and the repository is cloned straight away.
+2. **Point your app at the project's error address**, shown on its row (copy it with the icon): a DSN such as `http://errorflow@localhost:3000/1`.
+3. Errors show up on the **Errors** tab, grouped by project. The **Resolver** tab shows what it tried, skipped, or failed, with links to each issue and pull request.
+
+A project's **gear icon** changes everything except the repository: branch, token, a separate pull-request token, the check command, and whether errors without a stack trace also go to GitHub.
+
+## What a project is
+
+A **project** is a repository, the **branch** to work on, and the **GitHub token** to do it with. Its id is the number at the end of the DSN.
+
+- The **branch is the one you give**, not GitHub's default. Errors are filed against it, fixes are based on its latest commit, and pull requests target it.
+- Tokens are stored **encrypted** (AES-256-GCM) in `projects.db`, never in `.env`, and are never sent to the browser (only the last 4 characters, to tell tokens apart). The key is `secret.key` (mode 0600), beside it.
+- **What that does and does not protect:** a copied database or backup contains no usable token. Someone who can read your user's files can still read the key beside it, so this is the same trust as an SSH private key, not an OS keychain.
+- A project can have a separate token for the resolver (pushing a branch and opening a pull request need more access than filing issues). Without one, the main token is used.
+- Each project's repository is cloned once, when it is added, into `repos/`, and fetched up to date before every fix. One clone serves every branch of a repo.
+- **The check command** runs through a shell, in a throwaway copy of the repository, before and after each fix. If it already fails before the fix, the resolver skips the issue; if it fails after, the pull request says it is unverified. It runs as you, on your machine, so only put commands there that you would run yourself.
+
+All of it lives in one data folder, `~/.errorflow` by default (`ORCH_DATA_DIR`).
+
+## Two listeners
+
+One process, two sockets, and the split matters:
+
+| | Dashboard | Error ingest |
+|---|---|---|
+| Default | `127.0.0.1:7420` | `127.0.0.1:3000` |
+| Auth | token cookie + `Host` allow-list + `Origin` check | optional `sentry_key` only |
+| CORS | none (same-origin only) | `*` |
+| Serves | the UI and the API | the two Sentry endpoints and `/healthz`, nothing else |
+
+Sentry SDKs, browsers included, post cross-origin with no cookie, so none of the dashboard's checks can apply to them. Rather than weaken those checks, ingest gets its own socket with nothing else on it. It still binds loopback by default, so only apps on this machine can report until you set `ORCH_ERRORS_INGEST_HOST=0.0.0.0` (which prints a warning at startup). Set `ORCH_ERRORS_DSN_PUBLIC_KEY` to require a key.
+
+## Security
+
+This server holds your GitHub tokens and can push code, so:
+
+1. It listens on **127.0.0.1 only**.
+2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on our port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
+3. Every `/api` route needs a **secret token**, kept in `<data folder>/token` (mode `0600`). The link printed at startup exchanges it for an `HttpOnly; SameSite=Strict` cookie. Treat the token file like an SSH key.
+4. Strict CSP, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, and `no-store` on API responses.
+5. Git and the model's tools use argument arrays. The only shell is your own check command.
+
+## Configuration
+
+Everything is optional. Copy `.env.example` to `.env`.
+
+| Variable | Default | |
+|---|---|---|
+| `PORT` | `7420` | The dashboard. |
+| `ORCH_DATA_DIR` | `~/.errorflow` | Where the token, databases, key and clones live. |
+| `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
+| `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
+| `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. Unset leaves triage on its rule-based heuristic. |
+| `ORCH_OLLAMA_MODEL` | `qwen2.5-coder:7b` | |
+| `ORCH_ANTHROPIC_API_KEY` | unset | When set, the resolver tries this hosted model first and falls back to Ollama. |
+| `ORCH_ANTHROPIC_MODEL` | `claude-haiku-4-5` | |
+
+### Errors
+
+| Variable | Default | |
+|---|---|---|
+| `ORCH_ERRORS_ENABLED` | on | `0` leaves the workflow out. |
+| `ORCH_ERRORS_INGEST_PORT` | `3000` | |
+| `ORCH_ERRORS_INGEST_HOST` | `127.0.0.1` | |
+| `ORCH_ERRORS_DSN_PUBLIC_KEY` | unset | When set, ingest requests must carry this `sentry_key`. |
+| `ORCH_ERRORS_GITHUB_LABELS` | none | Labels applied to new issues. |
+| `ORCH_ERRORS_MIN_LEVEL` | `error` | |
+| `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the issue. |
+| `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
+| `ORCH_ERRORS_DB` | `<data>/errors.db` | |
+
+**What reaches GitHub.** Every error is kept in the Errors tab. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file and its line, not the message, so an error with changing ids in its text is still one issue.
+
+### Resolver
+
+| Variable | Default | |
+|---|---|---|
+| `ORCH_RESOLVER_ENABLED` | on | `0` leaves the workflow out. |
+| `ORCH_RESOLVER_DB` | `<data>/resolver.db` | |
+| `ORCH_RESOLVER_POLL_INTERVAL_MS` | `300000` | Minimum 30000. |
+| `ORCH_RESOLVER_MAX_CONCURRENT_FIXES` | `3` | |
+| `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
+
+A fix attempt clones a repo, runs a model and may run your check command, so it does real work on your machine as you.
+
+## Development
+
+```
+server/                Express API (TypeScript, run natively by Node)
+  app.ts               the dashboard app (loopback, token-checked)
+  ingest.ts            the public ingest listener: no cookie, no Origin check, ingest routes only
+  projects/            projects, encrypted tokens, repo clones, the GitHub check, and the Projects routes
+  workflows/
+    errors/            Sentry ingest, grouping, triage, GitHub issues
+    resolver/          polls those issues, attempts a fix, opens a PR
+web/                   React + Vite + Tailwind v4 + shadcn/ui (Radix). See DESIGN.md
+test/                  real git and real SQLite; only GitHub's network API and the paid model are faked
+```
+
+The only runtime dependency of the server is `express`; SQLite is Node's built-in `node:sqlite`.
+
+```bash
+npm run dev               # API with auto-restart + Vite hot reload on http://localhost:5173
+npm test                  # server tests + UI unit tests
+npm run typecheck
+```
+
+To add another workflow, implement `Workflow` from `server/workflows/types.ts` (`id`, `title`, `routes(router)`, optional `start`/`stop`, and `ingestRoutes(router)` only if it needs unauthenticated outside traffic), switch it on in `server/workflows/index.ts`, and register a panel for its `id` in `web/src/components/extensions.ts`.
+
+`DESIGN.md` documents the tokens, components, accessibility rules and copy conventions.

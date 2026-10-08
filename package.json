@@ -1,0 +1,27 @@
+{
+  "name": "errorflow",
+  "version": "1.0.0",
+  "description": "Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server/main.ts",
+    "prestart": "node scripts/ensure-build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm --prefix web run build",
+    "postinstall": "npm --prefix web install",
+    "typecheck": "tsc --noEmit && npm --prefix web run typecheck",
+    "test": "node --test \"test/*.test.ts\" \"test/projects/*.test.ts\" \"test/workflows/*.test.ts\" \"test/workflows/*/*.test.ts\" && npm --prefix web test"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.4",
+    "typescript": "^7.0.2"
+  }
+}

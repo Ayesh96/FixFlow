@@ -24,7 +24,7 @@ interface Props {
 export function ProjectSettingsDialog({ project, onClose, onSaved }: Props) {
   return (
     <Dialog open={project !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         {/* Keyed by project so each one starts from its own saved values, and no typed token outlives the dialog. */}
         {project && <SettingsForm key={project.id} project={project} onClose={onClose} onSaved={onSaved} />}
       </DialogContent>

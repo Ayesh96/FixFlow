@@ -44,7 +44,7 @@ export function AddProjectDialog({ open, onOpenChange, onAdded }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+        className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
         // A stray click outside shouldn't throw away a half-filled form (and a pasted token); Esc and the close button still work.
         onInteractOutside={(e) => e.preventDefault()}
       >

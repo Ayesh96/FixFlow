@@ -15,7 +15,7 @@ import { freePort, tempConfig } from '../helpers.ts';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { normalized } from './errors/fixtures.ts';
+import { jsEvent, normalized } from './errors/fixtures.ts';
 import { silentLogger } from './helpers.ts';
 
 const TOKEN = 'T'.repeat(43);
@@ -129,6 +129,18 @@ describe('workflow routes', () => {
     assert.equal(issues.length, 1);
     assert.equal(issues[0]?.fingerprintHash, 'fp-1');
     assert.equal(issues[0]?.count, 1);
+  });
+
+  it('triages an error again on request, and says why when it cannot', async () => {
+    const post = (path: string) => fetch(base + path, { method: 'POST', headers: { ...AUTH, 'content-type': 'application/json' }, body: '{}' });
+    assert.equal((await post('/api/ext/errors/issues/nope/triage')).status, 404);
+
+    errors.store.recordEvent(normalized(jsEvent()), 'fp-triage', '[Error] TypeError: x', '1');
+    const res = await post('/api/ext/errors/issues/fp-triage/triage');
+    assert.equal(res.status, 202);
+    assert.deepEqual(await res.json(), { triage: 'started' });
+    for (let i = 0; i < 50 && errors.store.getIssue('fp-triage')?.triageStatus !== 'COMPLETED'; i++) await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(errors.store.getIssue('fp-triage')?.triageStatus, 'COMPLETED');
   });
 
   it('reports status as healthy with live totals', async () => {

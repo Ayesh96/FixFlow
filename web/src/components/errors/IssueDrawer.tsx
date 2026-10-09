@@ -1,7 +1,11 @@
-import { Check, Circle } from 'lucide-react';
+import { Check, Circle, RotateCw } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { ExternalLink, When } from '@/components/Bits';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, TagChips, TriageBadge } from '@/components/StatusBadge';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { api } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatCount } from '@/lib/format';
 import { lifecycleOf, safeUrl } from '@/lib/lifecycle';
@@ -20,17 +24,33 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /** Detail for one error: what it is, how often, and a timeline of how far the pipeline got with it. */
-export function IssueDrawer({ item, onClose }: { item: InboxItem | null; onClose: () => void }) {
+export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | null; onClose: () => void; onChanged?: () => void }) {
+  const [asking, setAsking] = useState(false);
   const issue = item?.issue;
   const life = issue ? lifecycleOf(issue) : null;
   const issueUrl = safeUrl(issue?.githubIssueUrl);
   const prUrl = safeUrl(issue?.resolverPrUrl);
 
+  const triaged = life !== null && life.reached >= 1;
+  const again = async () => {
+    if (!issue) return;
+    setAsking(true);
+    try {
+      await api.errorTracker.retriage(issue.fingerprintHash);
+      onChanged?.(); // the server has marked it Analyzing; show that now rather than at the next poll
+    } catch (err) {
+      toast.error(copy.triage.againFailed, { description: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setAsking(false);
+    }
+  };
+
   const steps = issue && life && [
     { key: 'reported', done: true, text: c.steps.reported.done, link: null },
-    { key: 'filed', done: life.reached >= 1, text: issue.githubIssueNumber !== null ? c.steps.filed.done(issue.githubIssueNumber) : c.steps.filed.todo, link: issueUrl && { href: issueUrl, label: c.openIssue } },
-    { key: 'fixing', done: life.reached >= 2, text: life.reached >= 2 ? c.steps.fixing.done : c.steps.fixing.todo, link: null },
-    { key: 'review', done: life.reached >= 3, text: life.reached >= 3 ? c.steps.review.done : c.steps.review.todo, link: prUrl && { href: prUrl, label: c.openPr } },
+    { key: 'triaged', done: triaged, text: issue.triageStatus === 'ERRORED' ? c.steps.triaged.failed : triaged ? c.steps.triaged.done : c.steps.triaged.todo, link: null },
+    { key: 'filed', done: life.reached >= 2, text: issue.githubIssueNumber !== null ? c.steps.filed.done(issue.githubIssueNumber) : c.steps.filed.todo, link: issueUrl && { href: issueUrl, label: c.openIssue } },
+    { key: 'fixing', done: life.reached >= 3, text: life.reached >= 3 ? c.steps.fixing.done : c.steps.fixing.todo, link: null },
+    { key: 'review', done: life.reached >= 4, text: life.reached >= 4 ? c.steps.review.done : c.steps.review.todo, link: prUrl && { href: prUrl, label: c.openPr } },
   ];
 
   return (
@@ -56,6 +76,44 @@ export function IssueDrawer({ item, onClose }: { item: InboxItem | null; onClose
                 <When iso={issue.lastSeen} />
               </Fact>
             </dl>
+
+            <section className="space-y-3 border-b p-4" aria-labelledby="triage">
+              <div className="flex items-center justify-between gap-2">
+                <h3 id="triage" className="text-sm font-medium">
+                  {copy.triage.heading}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {issue.triageStatus && <TriageBadge status={issue.triageStatus} />}
+                  <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" disabled={asking || issue.triageStatus === 'PENDING'} onClick={() => void again()}>
+                    <RotateCw className={asking ? 'size-3.5 animate-spin motion-reduce:animate-none' : 'size-3.5'} aria-hidden />
+                    {copy.triage.again}
+                  </Button>
+                </div>
+              </div>
+
+              {issue.triageStatus === 'COMPLETED' && (
+                <>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{copy.triage.message}</p>
+                    <p className="text-sm break-words">{issue.triageMessage}</p>
+                  </div>
+                  <div className="space-y-1 rounded-md border bg-background p-3">
+                    <p className="text-xs text-muted-foreground">{copy.triage.suggestion}</p>
+                    <p className="text-sm break-words">{issue.triageSuggestion}</p>
+                  </div>
+                  <TagChips tags={issue.triageTags ?? []} />
+                  {issue.triageSource && <p className="text-xs text-muted-foreground">{copy.triage.source[issue.triageSource]}</p>}
+                </>
+              )}
+              {issue.triageStatus === 'PENDING' && <p className="text-sm text-muted-foreground">{copy.triage.status.PENDING}…</p>}
+              {issue.triageStatus === 'ERRORED' && (
+                <div className="space-y-1">
+                  <p className="text-sm">{copy.triage.failed}</p>
+                  {issue.triageMessage && <p className="text-xs break-words text-muted-foreground">{issue.triageMessage}</p>}
+                </div>
+              )}
+              {!issue.triageStatus && <p className="text-sm text-muted-foreground">{copy.triage.notYet}</p>}
+            </section>
 
             <section className="space-y-4 p-4" aria-labelledby="journey">
               <div className="flex items-center justify-between gap-2">

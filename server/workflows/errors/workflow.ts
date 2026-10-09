@@ -1,4 +1,5 @@
 import type { Router } from 'express';
+import { HttpError } from '../../errors.ts';
 import type { ProjectStore } from '../../projects/store.ts';
 import type { TrackerIssue, TrackerProjectGroup, TrackerStatus } from '../../types.ts';
 import { prefixedLogger, type Logger, type Workflow } from '../types.ts';
@@ -84,6 +85,15 @@ export class ErrorsWorkflow implements Workflow {
       groups.sort((a, b) => (b.lastSeen ?? '').localeCompare(a.lastSeen ?? '') || (a.repo ?? '').localeCompare(b.repo ?? ''));
       const orphans = issues.filter((issue) => !known.has(issue.projectId));
       res.json({ projects: orphans.length > 0 ? [...groups, group(null, orphans)] : groups });
+    });
+
+    // Reads an error again, e.g. after the model was switched on or its prompt changed. Answers at once; the finding follows.
+    router.post('/issues/:fingerprint/triage', (req, res) => {
+      const outcome = this.ingestor.retriage(req.params.fingerprint as string);
+      if (outcome === 'unknown') throw new HttpError(404, 'No such error');
+      if (outcome === 'busy') throw new HttpError(409, 'This error is already being triaged');
+      if (outcome === 'no-event') throw new HttpError(409, 'The stored events for this error are gone, so there is nothing to read again. It triages again when it next occurs.');
+      res.status(202).json({ triage: 'started' });
     });
 
     // `healthy` is always true: the store is in this process, so there is nothing to be out of reach.

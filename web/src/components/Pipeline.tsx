@@ -12,13 +12,13 @@ import { STAGE_KEYS } from '@/lib/lifecycle';
 export function Pipeline({ counts, compact = false }: { counts: number[]; compact?: boolean }) {
   const top = counts[0] ?? 0;
   const list = (
-      <ol aria-label="Pipeline" className={compact ? 'grid grid-cols-4 gap-3' : 'grid grid-cols-2 divide-border lg:grid-cols-4 lg:divide-x'}>
+      <ol aria-label="Pipeline" className={compact ? 'grid grid-cols-5 gap-3' : 'grid grid-cols-2 divide-border lg:grid-cols-5 lg:divide-x'}>
         {STAGE_KEYS.map((key, i) => {
           const n = counts[i] ?? 0;
           const pct = top > 0 ? Math.round((n / top) * 100) : 0;
           const stage = copy.stages[key];
           return (
-            <li key={key} className={compact ? 'flex min-w-0 flex-col gap-1.5' : 'relative flex flex-col gap-2 border-border p-4 max-lg:odd:border-r max-lg:nth-[n+3]:border-t'}>
+            <li key={key} className={compact ? 'flex min-w-0 flex-col gap-1.5' : 'relative flex flex-col gap-2 border-border p-4 max-lg:odd:border-r max-lg:nth-[n+3]:border-t max-lg:last:col-span-2 max-lg:last:border-r-0'}>
               <p className={compact ? 'truncate text-xs text-muted-foreground' : 'text-sm text-muted-foreground'}>{stage.label}</p>
               <p className={compact ? 'text-xl font-semibold tracking-tight' : 'text-3xl font-semibold tracking-tight'}>{formatCount(n)}</p>
               <div className="h-1.5 rounded-full bg-border" aria-hidden>

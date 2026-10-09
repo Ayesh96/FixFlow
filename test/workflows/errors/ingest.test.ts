@@ -4,6 +4,7 @@ import { silentLogger } from '../helpers.ts';
 import { formatRepo, GitHubError, type CreatedIssue, type IssueTracker } from '../../../server/workflows/errors/github.ts';
 import { computeFingerprint, fingerprintScope } from '../../../server/workflows/errors/grouping.ts';
 import { Ingestor } from '../../../server/workflows/errors/ingest.ts';
+import { rulesTriage, type Triager } from '../../../server/workflows/errors/triage.ts';
 import { Store } from '../../../server/workflows/errors/store.ts';
 import type { NormalizedEvent, RepoRef } from '../../../server/workflows/errors/types.ts';
 import type { Project } from '../../../server/projects/store.ts';
@@ -272,6 +273,124 @@ describe('Ingestor stack-trace gate and bot-safe label', () => {
     ingestor.ingest(uniqueEvent(pyEvent()), P); // KeyError
     await ingestor.drain();
     assert.deepEqual(tracker.created.map((c) => c.labels), [['bot-safe'], []]);
+    store.close();
+  });
+});
+
+describe('Ingestor triage', () => {
+  const setup = (triage?: Triager) => {
+    const store = new Store(':memory:');
+    const tracker = new FakeTracker();
+    const ingestor = new Ingestor(store, () => tracker, { projects: projectsOf(new Map([[P, REPO]])), minIssueLevel: 'error', commentThresholds: [], retryCooldownMs: 0, triage }, log);
+    return { store, tracker, ingestor };
+  };
+  const testMessage = () => normalized({ event_id: `tst${(++n).toString().padStart(29, '0')}`, platform: 'python', level: 'info', message: 'errorflow test from MacRemote' });
+
+  it('triages an error that is never filed, and says why it is not worth reporting', async () => {
+    const { store, tracker, ingestor } = setup();
+    const event = testMessage();
+    ingestor.ingest(event, P);
+    await ingestor.drain();
+    const issue = store.getIssue(fingerprintOf(event));
+    assert.equal(tracker.created.length, 0, 'below the minimum level, so not filed');
+    assert.equal(issue?.triageStatus, 'COMPLETED');
+    assert.deepEqual(issue?.triageTags, ['test-event', 'no-stack-trace']);
+    assert.match(issue?.triageSuggestion ?? '', /^Don't report it/);
+    store.close();
+  });
+
+  it('triages once per error, however often it repeats', async () => {
+    let calls = 0;
+    const { store, ingestor } = setup(async (e) => (calls++, rulesTriage(e)));
+    for (let i = 0; i < 3; i++) ingestor.ingest(uniqueEvent(), P);
+    await ingestor.drain();
+    assert.equal(calls, 1);
+    store.close();
+  });
+
+  it('files an error with no finding when triage fails, and records that it failed', async () => {
+    const { store, tracker, ingestor } = setup(async () => {
+      throw new Error('model fell over');
+    });
+    const event = uniqueEvent();
+    ingestor.ingest(event, P);
+    await ingestor.drain();
+    assert.equal(tracker.created.length, 1, 'a broken triage must not stop an error being reported');
+    assert.deepEqual(tracker.created[0]?.labels, []);
+    const issue = store.getIssue(fingerprintOf(event));
+    assert.deepEqual([issue?.triageStatus, issue?.triageMessage], ['ERRORED', 'model fell over']);
+    store.close();
+  });
+
+  it('shows an error as pending while it is analysed, and files it once the finding is in', async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { store, tracker, ingestor } = setup(async (e) => (await gate, rulesTriage(e)));
+    const event = uniqueEvent();
+    ingestor.ingest(event, P);
+    ingestor.ingest(uniqueEvent(), P); // repeats while still analysing
+    assert.equal(store.getIssue(fingerprintOf(event))?.triageStatus, 'PENDING');
+    assert.equal(tracker.created.length, 0);
+    release();
+    await ingestor.drain();
+    assert.equal(tracker.created.length, 1);
+    assert.deepEqual(tracker.created[0]?.labels, ['bot-safe']);
+    store.close();
+  });
+});
+
+describe('Ingestor triage again', () => {
+  const setup = (triage?: Triager) => {
+    const store = new Store(':memory:');
+    const tracker = new FakeTracker();
+    const ingestor = new Ingestor(store, () => tracker, { projects: projectsOf(new Map([[P, REPO]])), minIssueLevel: 'error', commentThresholds: [], retryCooldownMs: 0, triage }, log);
+    return { store, tracker, ingestor };
+  };
+
+  it('reads the error again, replaces the old finding, and does not file it a second time', async () => {
+    let verdict = 'first';
+    const { store, tracker, ingestor } = setup(async (e) => ({ ...rulesTriage(e), message: verdict }));
+    const event = uniqueEvent();
+    ingestor.ingest(event, P);
+    await ingestor.drain();
+    assert.equal(store.getIssue(fingerprintOf(event))?.triageMessage, 'first');
+
+    verdict = 'second';
+    assert.equal(ingestor.retriage(fingerprintOf(event)), 'started');
+    assert.equal(store.getIssue(fingerprintOf(event))?.triageStatus, 'PENDING', 'shows as analysing at once');
+    await ingestor.drain();
+    assert.equal(store.getIssue(fingerprintOf(event))?.triageMessage, 'second');
+    assert.equal(tracker.created.length, 1, 'already on GitHub, so not filed again');
+    store.close();
+  });
+
+  it('gives an unfiled error another chance to be filed', async () => {
+    const { store, tracker, ingestor } = setup();
+    const lowLevel = uniqueEvent({ ...jsEvent(), level: 'info' }); // below the minimum, so never filed
+    ingestor.ingest(lowLevel, P);
+    await ingestor.drain();
+    assert.equal(tracker.created.length, 0);
+    assert.equal(ingestor.retriage(fingerprintOf(lowLevel)), 'started');
+    await ingestor.drain();
+    assert.equal(tracker.created.length, 0, 'still below the level, so still not filed');
+    assert.equal(store.getIssue(fingerprintOf(lowLevel))?.triageStatus, 'COMPLETED');
+    store.close();
+  });
+
+  it('says why it cannot: no such error, already running, or its events are gone', async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { store, ingestor } = setup(async (e) => (await gate, rulesTriage(e)));
+    assert.equal(ingestor.retriage('nope'), 'unknown');
+
+    const event = uniqueEvent();
+    ingestor.ingest(event, P);
+    assert.equal(ingestor.retriage(fingerprintOf(event)), 'busy');
+    release();
+    await ingestor.drain();
+
+    store.pruneEventsBefore(new Date(Date.now() + 60_000));
+    assert.equal(ingestor.retriage(fingerprintOf(event)), 'no-event');
     store.close();
   });
 });

@@ -27,21 +27,30 @@ type StateFilter = keyof typeof c.states;
 
 const matches: Record<StateFilter, (i: TrackerIssue) => boolean> = {
   all: () => true,
-  unfiled: (i) => lifecycleOf(i).reached === 0,
+  unfiled: (i) => lifecycleOf(i).reached < 2,
   open: (i) => i.resolverStatus === 'PENDING' || i.resolverStatus === 'IN_PROGRESS',
-  pr: (i) => lifecycleOf(i).reached === 3,
+  pr: (i) => lifecycleOf(i).reached === 4,
+  safe: (i) => i.triageTags?.includes('bot-safe') === true,
   stuck: (i) => lifecycleOf(i).ended !== null,
 };
 
 /** The word under each row's track: the resolver's state when it has one, else the furthest stage reached. */
-const stateWord = (i: TrackerIssue) => (i.resolverStatus ? copy.status[i.resolverStatus] : copy.stages[STAGE_KEYS[lifecycleOf(i).reached]!].label);
+const stateWord = (i: TrackerIssue) => {
+  if (i.resolverStatus) return copy.status[i.resolverStatus];
+  if (i.triageStatus === 'PENDING') return copy.triage.status.PENDING;
+  if (i.triageStatus === 'ERRORED' && i.githubIssueNumber === null) return copy.triage.status.ERRORED;
+  return copy.stages[STAGE_KEYS[lifecycleOf(i).reached]!].label;
+};
+
+/** The one-line read shown under a title: triage's message when there is one, else why the resolver stopped. */
+const note = (i: TrackerIssue) => (i.triageStatus === 'COMPLETED' ? i.triageMessage : i.triageStatus === 'PENDING' ? `${copy.triage.status.PENDING}…` : i.resolverReason);
 
 /**
  * Every error across every project in one list, newest activity first, with search and two filters.
  * One flat inbox beats a table per project once there is more than one project: the question is
  * "what needs me", not "which repo".
  */
-export function ErrorInbox({ groups, embedded = false }: { groups: TrackerProjectGroup[]; embedded?: boolean }) {
+export function ErrorInbox({ groups, embedded = false, onChanged }: { groups: TrackerProjectGroup[]; embedded?: boolean; onChanged?: () => void }) {
   const page = embedded ? EMBEDDED_PAGE : PAGE;
   const [query, setQuery] = useState('');
   const [project, setProject] = useState('all');
@@ -152,8 +161,8 @@ export function ErrorInbox({ groups, embedded = false }: { groups: TrackerProjec
                     <span className="block truncate font-mono text-sm font-medium" title={issue.title}>
                       {issue.title}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {[!embedded && project === 'all' ? item.repo ?? copy.errors.other.title : null, issue.service, issue.githubIssueNumber !== null ? `#${issue.githubIssueNumber}` : null, issue.resolverReason].filter(Boolean).join(' · ') || ' '}
+                    <span className="block truncate text-xs text-muted-foreground" title={issue.triageMessage ?? undefined}>
+                      {[!embedded && project === 'all' ? item.repo ?? copy.errors.other.title : null, issue.service, issue.githubIssueNumber !== null ? `#${issue.githubIssueNumber}` : null, note(issue)].filter(Boolean).join(' · ') || ' '}
                     </span>
                   </span>
                   <span className="hidden space-y-1 md:block">
@@ -189,7 +198,7 @@ export function ErrorInbox({ groups, embedded = false }: { groups: TrackerProjec
         </div>
       )}
 
-      <IssueDrawer item={open} onClose={() => setOpenHash(null)} />
+      <IssueDrawer item={open} onClose={() => setOpenHash(null)} onChanged={onChanged} />
     </Wrapper>
   );
 }

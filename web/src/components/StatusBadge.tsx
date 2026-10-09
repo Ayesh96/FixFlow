@@ -1,6 +1,6 @@
-import { CircleDashed, CircleSlash, GitPullRequest, Loader2, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { CircleDashed, CircleSlash, GitPullRequest, Loader2, ScanSearch, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { AttemptStatus } from '@/lib/api';
+import type { AttemptStatus, TrackerIssue } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { cn } from '@/lib/utils';
 
@@ -23,3 +23,37 @@ export function StatusBadge({ status, className }: { status: AttemptStatus; clas
   );
 }
 
+
+type TriageState = NonNullable<TrackerIssue['triageStatus']>;
+const TRIAGE: Record<TriageState, { icon: LucideIcon; tone: string; spin?: boolean }> = {
+  PENDING: { icon: Loader2, tone: 'text-chart-1', spin: true },
+  COMPLETED: { icon: ScanSearch, tone: 'text-status-running' },
+  ERRORED: { icon: TriangleAlert, tone: 'text-status-crashed' },
+};
+
+/** Where triage has got to for an error: Analyzing, Triaged or Couldn't triage. */
+export function TriageBadge({ status, className }: { status: TriageState; className?: string }) {
+  const { icon: Icon, tone, spin } = TRIAGE[status];
+  return (
+    <Badge variant="outline" className={cn('gap-1.5 px-2 py-0.5 text-[13px] font-normal text-foreground', className)} data-triage={status}>
+      <Icon className={cn('size-3.5', tone, spin && 'animate-spin motion-reduce:animate-none')} aria-hidden />
+      {copy.triage.status[status]}
+    </Badge>
+  );
+}
+
+/** Triage's tags as small chips. `bot-safe` is the one the resolver acts on, so it gets the stronger outline. */
+export function TagChips({ tags }: { tags: readonly string[] }) {
+  if (tags.length === 0) return null;
+  return (
+    <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
+      {tags.map((tag) => (
+        <li key={tag}>
+          <Badge variant="outline" className={cn('px-2 py-0.5 text-xs font-normal', tag === 'bot-safe' ? 'border-foreground/60 text-foreground' : 'text-muted-foreground')}>
+            {(copy.triage.tags as Record<string, string>)[tag] ?? tag}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}

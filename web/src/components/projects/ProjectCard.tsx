@@ -49,6 +49,7 @@ interface Props {
   /** The project's errors, when the tracker has any for it. */
   group: TrackerProjectGroup | undefined;
   busy: boolean;
+  onRefreshErrors: () => void;
   onCopyDsn: () => void;
   onRetry: () => void;
   onSettings: () => void;
@@ -56,7 +57,7 @@ interface Props {
 }
 
 /** One project, whole: where its clone is, how its errors are moving through the pipeline, and the latest of them. */
-export function ProjectCard({ project, group, busy, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
+export function ProjectCard({ project, group, busy, onRefreshErrors, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
   const issues = group?.issues ?? [];
   const canRetry = project.branch !== null && (project.setup.state === 'failed' || project.setup.state === 'idle');
   const headingId = `project-${project.id}`;
@@ -104,7 +105,7 @@ export function ProjectCard({ project, group, busy, onCopyDsn, onRetry, onSettin
               <p className="text-xs font-medium text-muted-foreground">{c.card.errors}</p>
               <p className="text-xs text-muted-foreground">{c.card.total(group.issueCount, group.eventCount)}</p>
             </div>
-            <ErrorInbox groups={[group]} embedded />
+            <ErrorInbox groups={[group]} embedded onChanged={onRefreshErrors} />
           </div>
         ) : (
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">

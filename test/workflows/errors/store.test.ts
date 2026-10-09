@@ -34,6 +34,12 @@ describe('Store schema upgrade', () => {
         resolverPrUrl: null,
         resolverReason: null,
         resolverUpdatedAt: null,
+        triageStatus: null,
+        triageMessage: null,
+        triageSuggestion: null,
+        triageTags: [],
+        triageSource: null,
+        triageUpdatedAt: null,
       });
       const fresh = store.recordEvent(normalized(jsEvent()), 'new', 't', '7');
       assert.equal(fresh?.projectId, '7');
@@ -85,6 +91,32 @@ describe('Store.setResolverStatus', () => {
       assert.equal(issue?.resolverStatus, 'PR_OPEN');
       assert.equal(issue?.resolverReason, null);
       assert.equal(issue?.resolverPrNumber, 5);
+    } finally {
+      store.close();
+    }
+  });
+});
+
+describe('Store triage', () => {
+  it('records a finding, replaces it on retry, and keeps what went wrong when triage fails', () => {
+    const store = new Store(':memory:');
+    try {
+      store.recordEvent(normalized(jsEvent()), 'fp', 't', '1');
+      assert.equal(store.getIssue('fp')?.triageStatus, null, 'not triaged until someone starts it');
+
+      store.setTriagePending('fp');
+      assert.equal(store.getIssue('fp')?.triageStatus, 'PENDING');
+
+      store.setTriageResult('fp', { message: 'm', suggestion: 's', tags: ['bot-safe', 'test-event'], source: 'rules' });
+      const done = store.getIssue('fp');
+      assert.deepEqual([done?.triageStatus, done?.triageMessage, done?.triageSuggestion, done?.triageTags, done?.triageSource], ['COMPLETED', 'm', 's', ['bot-safe', 'test-event'], 'rules']);
+
+      store.setTriagePending('fp');
+      assert.deepEqual([store.getIssue('fp')?.triageMessage, store.getIssue('fp')?.triageTags], [null, []], 'a retry never shows the old finding');
+
+      store.setTriageError('fp', 'model fell over');
+      const failed = store.getIssue('fp');
+      assert.deepEqual([failed?.triageStatus, failed?.triageMessage, failed?.triageSuggestion], ['ERRORED', 'model fell over', null]);
     } finally {
       store.close();
     }

@@ -41,22 +41,22 @@ Motion: 150ms ease-out for hover/focus; sheet/dialog use shadcn's enter/exit; ev
 | Pattern | Where | Why |
 |---|---|---|
 | **Full-width canvas** | `App.tsx` | Content spans the screen (cap 2000px, 16/32px gutters) instead of a centred 1152px column. Cards go 1 → 2 → 3 columns at `md` / `2xl`. |
-| **Project card** | `ProjectCard.tsx` | The unit of the product. Header: repo, branch, clone status, actions. Body: that project's pipeline (Tracked → Triaged → Fix tried → PR Open) and its errors with their resolution. Footer: error address, token, fix check. Everything about a project lives in its card; there are no separate Errors or Resolver tabs. |
+| **Project card** | `ProjectCard.tsx` | The unit of the product. Header: repo, branch, clone status, actions. Body: that project's pipeline (Tracked → Triaged → Filed → Fix tried → PR Open) and its errors with their resolution. Footer: error address, token, fix check. Everything about a project lives in its card; there are no separate Errors or Resolver tabs. |
 | **Overview strip** | `Overview.tsx` | Above the cards: tracker health, resolver last poll (and poll error), and the pipeline summed across projects. |
 | **Embedded error list** | `ErrorInbox.tsx` (`embedded`) | Five rows per card, "Show N more"; search and state filter appear only past five errors. Click a row for the detail drawer. |
 | **Detail drawer** | `IssueDrawer.tsx` | Right-hand sheet: counts, and a timeline of how far the error got, with links to the issue and PR and the resolver's reason. |
-| **Lifecycle track** | `LifecycleTrack.tsx` | Four segments per row filled to the furthest stage; the state word beside it carries the meaning. |
+| **Lifecycle track** | `LifecycleTrack.tsx` | Five segments per row filled to the furthest stage; the state word beside it carries the meaning. |
 | **Responsive rows** | `ErrorInbox.tsx` | Under `md` the row's columns collapse into a second line (track, state, count, time) instead of a horizontally scrolling table. |
 | **Progressive disclosure** | inbox | 25 rows, then "Show N more"; detail only on demand. |
 | **Polling, quiet** | `use*` hooks | 5s poll while the tab is visible; the last good data stays on screen if a poll fails. |
 
-Note: the server does not store a triage verdict; "Triaged" means the error passed triage and was filed on GitHub.
+**Triage** is stored per error: a status (`PENDING` / `COMPLETED` / `ERRORED`, shown as *Analyzing* / *Triaged* / *Couldn't triage*), a message (what happened, why, and who or what is the culprit), a suggestion (what to do, including "Don't report it"), and tags (`bot-safe`, `needs-human`, `test-event`, `no-stack-trace`, `third-party`, `infrastructure`). It runs for every new error, before and independent of filing; filing only reads the `bot-safe` tag. The drawer shows all of it; each row shows the message as its second line.
 
 Components: shadcn primitives in `components/ui/`; product components in `components/`. Shared pieces to reuse, not copy: `StatusBadge` (resolver states), `Bits` (`When`, `ExternalLink`), `lib/lifecycle.ts` (stage logic and `safeUrl`).
 
 ## 4. Data visualization (from the `dataviz` procedure)
 
-**Form.** Counts per stage are a funnel of four ordered magnitudes, so they are **stat tiles with a proportion bar**, not a chart. Per-error progress is the lifecycle track. There are no time-series charts because the server stores first/last seen and a count per error, not a series; do not draw a sparkline from two timestamps.
+**Form.** Counts per stage are a funnel of five ordered magnitudes, so they are **stat tiles with a proportion bar**, not a chart. Per-error progress is the lifecycle track. There are no time-series charts because the server stores first/last seen and a count per error, not a series; do not draw a sparkline from two timestamps.
 
 **Color.** The pipeline bars use one hue, categorical slot 1 (`#3987e5`), over a hairline track. Validator on the card surface: lightness band, chroma floor and ≥3:1 contrast PASS. Stage names and percentages are text, so nothing depends on the hue.
 

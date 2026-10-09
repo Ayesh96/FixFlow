@@ -50,6 +50,25 @@ export interface RepoRef {
 export const RESOLVER_STATUSES = ['IN_PROGRESS', 'PR_OPEN', 'SKIPPED', 'FAILED'] as const;
 export type ResolverStatus = (typeof RESOLVER_STATUSES)[number];
 
+/** Where an error's triage has got to: `PENDING` while it is being analysed, then `COMPLETED` or `ERRORED`. */
+export const TRIAGE_STATUSES = ['PENDING', 'COMPLETED', 'ERRORED'] as const;
+export type TriageStatus = (typeof TRIAGE_STATUSES)[number];
+
+/** What triage can say about an error. `bot-safe` is also the GitHub label that lets the resolver act on it. */
+export const TRIAGE_TAGS = ['bot-safe', 'needs-human', 'test-event', 'no-stack-trace', 'third-party', 'infrastructure'] as const;
+export type TriageTag = (typeof TRIAGE_TAGS)[number];
+
+/** Triage's finding: what the error is, what to do about it, and short labels for filtering. */
+export interface TriageResult {
+  /** What this looks like, why it likely happened, and who or what is the culprit. */
+  message: string;
+  /** What to do about it, including "don't report it" when it isn't a valid issue. */
+  suggestion: string;
+  tags: TriageTag[];
+  /** `model` when an LLM answered; `rules` when the rule-based fallback did. */
+  source: 'model' | 'rules';
+}
+
 export interface IssueRecord {
   fingerprintHash: string;
   /** The DSN project the events arrived under; the same error in two projects is two issues. */
@@ -70,6 +89,14 @@ export interface IssueRecord {
   resolverPrUrl: string | null;
   resolverReason: string | null;
   resolverUpdatedAt: string | null;
+  /** Null until triage has been started for this error. */
+  triageStatus: TriageStatus | null;
+  /** The finding, or (when `ERRORED`) what went wrong. */
+  triageMessage: string | null;
+  triageSuggestion: string | null;
+  triageTags: TriageTag[];
+  triageSource: TriageResult['source'] | null;
+  triageUpdatedAt: string | null;
 }
 
 export interface StoreStats {

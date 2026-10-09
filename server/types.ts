@@ -1,3 +1,4 @@
+import type { TriageStatus, TriageTag } from './workflows/errors/types.ts';
 export type FieldErrors = Record<string, string>;
 
 /** What `GET /api/extensions` says about each loaded extension; the UI builds one tab per entry. */
@@ -31,6 +32,16 @@ export interface TrackerIssue {
   resolverReason?: string | null;
   /** When the resolver last touched this issue. */
   resolverUpdatedAt?: string | null;
+  /** `PENDING` while analysed, then `COMPLETED` or `ERRORED`; null for errors from before triage was recorded. */
+  triageStatus?: TriageStatus | null;
+  /** What it looks like, why it likely happened and who the culprit is; when `ERRORED`, what went wrong. */
+  triageMessage?: string | null;
+  /** What to do about it, including "don't report it". */
+  triageSuggestion?: string | null;
+  triageTags?: TriageTag[];
+  /** `model` or `rules`. */
+  triageSource?: 'model' | 'rules' | null;
+  triageUpdatedAt?: string | null;
 }
 
 /** `healthy: false` means the tracker could not be read; `reason` says why. */

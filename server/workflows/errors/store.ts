@@ -1,6 +1,6 @@
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import { changed, columnsOf, openDatabase, transaction, type Row } from '../../sqlite.ts';
-import type { IssueRecord, NormalizedEvent, ResolverStatus, StoreStats } from './types.ts';
+import { TRIAGE_TAGS, type IssueRecord, type NormalizedEvent, type ResolverStatus, type StoreStats, type TriageResult, type TriageStatus, type TriageTag } from './types.ts';
 
 interface IssueRow {
   fingerprint_hash: string;
@@ -18,6 +18,22 @@ interface IssueRow {
   resolver_pr_url: string | null;
   resolver_reason: string | null;
   resolver_updated_at: string | null;
+  triage_status: TriageStatus | null;
+  triage_message: string | null;
+  triage_suggestion: string | null;
+  triage_tags: string | null;
+  triage_source: TriageResult['source'] | null;
+  triage_updated_at: string | null;
+}
+
+/** Tags are stored as JSON text; anything unreadable or unknown is dropped rather than shown. */
+function parseTags(text: string | null): TriageTag[] {
+  try {
+    const list = JSON.parse(text ?? '[]') as unknown;
+    return Array.isArray(list) ? list.filter((tag): tag is TriageTag => (TRIAGE_TAGS as readonly unknown[]).includes(tag)) : [];
+  } catch {
+    return [];
+  }
 }
 
 const SCHEMA = `
@@ -58,6 +74,12 @@ const ADDED_COLUMNS: [column: string, definition: string][] = [
   ['resolver_pr_url', 'TEXT'],
   ['resolver_reason', 'TEXT'],
   ['resolver_updated_at', 'TEXT'],
+  ['triage_status', 'TEXT'],
+  ['triage_message', 'TEXT'],
+  ['triage_suggestion', 'TEXT'],
+  ['triage_tags', 'TEXT'],
+  ['triage_source', 'TEXT'],
+  ['triage_updated_at', 'TEXT'],
 ];
 
 const toRecord = (row: IssueRow): IssueRecord => ({
@@ -76,6 +98,12 @@ const toRecord = (row: IssueRow): IssueRecord => ({
   resolverPrUrl: row.resolver_pr_url,
   resolverReason: row.resolver_reason,
   resolverUpdatedAt: row.resolver_updated_at,
+  triageStatus: row.triage_status,
+  triageMessage: row.triage_message,
+  triageSuggestion: row.triage_suggestion,
+  triageTags: parseTags(row.triage_tags),
+  triageSource: row.triage_source,
+  triageUpdatedAt: row.triage_updated_at,
 });
 
 export class Store {
@@ -84,6 +112,8 @@ export class Store {
   private readonly getIssueStmt: StatementSync;
   private readonly setGithubStmt: StatementSync;
   private readonly setResolverStatusStmt: StatementSync;
+  private readonly setTriageStmt: StatementSync;
+  private readonly latestPayloadStmt: StatementSync;
   private readonly pruneStmt: StatementSync;
   private readonly listStmt: StatementSync;
   private readonly statsStmt: StatementSync;
@@ -134,6 +164,11 @@ export class Store {
       `UPDATE issues SET resolver_status = ?, resolver_pr_number = ?, resolver_pr_url = ?, resolver_reason = ?, resolver_updated_at = ?
        WHERE fingerprint_hash = ?`,
     );
+    this.setTriageStmt = this.db.prepare(
+      `UPDATE issues SET triage_status = ?, triage_message = ?, triage_suggestion = ?, triage_tags = ?, triage_source = ?, triage_updated_at = ?
+       WHERE fingerprint_hash = ?`,
+    );
+    this.latestPayloadStmt = this.db.prepare('SELECT payload FROM events WHERE fingerprint_hash = ? ORDER BY received_at DESC, rowid DESC LIMIT 1');
     this.pruneStmt = this.db.prepare('DELETE FROM events WHERE received_at < ?');
     this.listStmt = this.db.prepare('SELECT * FROM issues ORDER BY last_seen DESC, fingerprint_hash LIMIT ? OFFSET ?');
     this.statsStmt = this.db.prepare(
@@ -156,6 +191,26 @@ export class Store {
 
   setGithubIssue(fingerprint: string, number: number, url: string, repo: string): void {
     this.setGithubStmt.run(number, url, repo, fingerprint);
+  }
+
+  /** The most recent stored event for an error, exactly as received; null once pruning has removed them all. */
+  latestEventPayload(fingerprint: string): string | null {
+    const row = this.latestPayloadStmt.get(fingerprint) as unknown as { payload: string } | undefined;
+    return row?.payload ?? null;
+  }
+
+  /** Marks triage as under way. Clears any earlier finding, so a retry never shows a stale one. */
+  setTriagePending(fingerprint: string, now = new Date()): void {
+    this.setTriageStmt.run('PENDING', null, null, null, null, now.toISOString(), fingerprint);
+  }
+
+  setTriageResult(fingerprint: string, result: TriageResult, now = new Date()): void {
+    this.setTriageStmt.run('COMPLETED', result.message, result.suggestion, JSON.stringify(result.tags), result.source, now.toISOString(), fingerprint);
+  }
+
+  /** Triage itself failed; `reason` is what went wrong, shown in place of a finding. */
+  setTriageError(fingerprint: string, reason: string, now = new Date()): void {
+    this.setTriageStmt.run('ERRORED', reason, null, '[]', null, now.toISOString(), fingerprint);
   }
 
   /**

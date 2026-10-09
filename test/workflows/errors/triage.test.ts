@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, describe, it } from 'node:test';
-import { ollamaTriager } from '../../../server/workflows/errors/triage.ts';
+import { ollamaTriager, rulesTriage } from '../../../server/workflows/errors/triage.ts';
 import { jsEvent, normalized, pyEvent } from './fixtures.ts';
 
 describe('ollamaTriager', () => {
@@ -20,21 +20,67 @@ describe('ollamaTriager', () => {
   after(() => server.close());
   const content = (c: string) => ({ status: 200, body: JSON.stringify({ message: { content: c } }) });
 
-  it("uses the model's verdict and sends the error with its frames", async () => {
+  it("uses the model's verdict and wording, and sends the error with its frames", async () => {
     const triage = ollamaTriager({ url: await ready, model: 'm' });
-    reply = () => content('{"small_fix": false, "reason": "x"}');
-    assert.equal(await triage(normalized(jsEvent())), false); // the heuristic alone would say true
+    reply = () => content('{"small_fix": false, "message": "Needs a redesign.", "suggestion": "Look first.", "tags": ["needs-human", "bogus", "bot-safe"]}');
+    const no = await triage(normalized(jsEvent())); // the rules alone would say bot-safe
+    assert.deepEqual([no.tags, no.message, no.suggestion, no.source], [['needs-human'], 'Needs a redesign.', 'Look first.', 'model']);
     assert.match(seen, /getUserId/);
-    reply = () => content('{"small_fix": true, "reason": "x"}');
-    assert.equal(await triage(normalized(pyEvent())), true); // the heuristic alone would say false
+    assert.match(seen, /Level: error/);
+    reply = () => content('{"small_fix": true, "message": "m", "suggestion": "s", "tags": []}');
+    assert.deepEqual((await triage(normalized(pyEvent()))).tags, ['bot-safe']); // the rules alone would say no
   });
 
-  it('falls back to the heuristic on server errors, bad JSON, or an unreachable Ollama', async () => {
+  it("never lets the rules' wording contradict the model when it leaves its own out", async () => {
+    const triage = ollamaTriager({ url: await ready, model: 'm' });
+    reply = () => content('{"small_fix": false}');
+    const result = await triage(normalized(jsEvent())); // the rules would say "looks like a small fix"
+    assert.deepEqual(result.tags, ['needs-human']);
+    assert.doesNotMatch(`${result.message} ${result.suggestion}`, /small fix/i);
+  });
+
+  it('falls back to the rules on server errors, bad JSON, a missing verdict, or an unreachable Ollama', async () => {
     const url = await ready;
     reply = () => ({ status: 500, body: 'no' });
-    assert.equal(await ollamaTriager({ url, model: 'm' })(normalized(jsEvent())), true);
+    assert.deepEqual(await ollamaTriager({ url, model: 'm' })(normalized(jsEvent())), rulesTriage(normalized(jsEvent())));
     reply = () => content('not json');
-    assert.equal(await ollamaTriager({ url, model: 'm' })(normalized(pyEvent())), false);
-    assert.equal(await ollamaTriager({ url: 'http://127.0.0.1:1', model: 'm' })(normalized(jsEvent())), true);
+    assert.equal((await ollamaTriager({ url, model: 'm' })(normalized(pyEvent()))).source, 'rules');
+    reply = () => content('{"message": "no verdict"}');
+    assert.equal((await ollamaTriager({ url, model: 'm' })(normalized(pyEvent()))).source, 'rules');
+    assert.equal((await ollamaTriager({ url: 'http://127.0.0.1:1', model: 'm' })(normalized(jsEvent()))).tags[0], 'bot-safe');
+  });
+});
+
+describe('rulesTriage', () => {
+  const message = (text: string, level = 'info') => normalized({ event_id: 'm'.repeat(32), platform: 'python', level, message: text, tags: { service: 'macremote' } });
+
+  it('calls a test message a test message, names no culprit, and says not to report it', () => {
+    const r = rulesTriage(message('errorflow test from MacRemote'));
+    assert.deepEqual(r.tags, ['test-event', 'no-stack-trace']);
+    assert.match(r.message, /test message/i);
+    assert.match(r.message, /no culprit/i);
+    assert.match(r.suggestion, /^Don't report it/);
+    assert.equal(r.source, 'rules');
+  });
+
+  it('tells a plain log line from a test, and a missing stack trace from both', () => {
+    assert.deepEqual(rulesTriage(message('disk is 91% full', 'warning')).tags, ['no-stack-trace', 'needs-human']);
+    const bare = normalized({ event_id: 'b'.repeat(32), platform: 'other', level: 'error', exception: { values: [{ type: 'LogError', value: 'who knows' }] } });
+    assert.deepEqual(rulesTriage(bare).tags, ['no-stack-trace', 'needs-human']);
+    assert.match(rulesTriage(bare).message, /culprit cannot be located/);
+  });
+
+  it('names the culprit in the app, marks small fixes bot-safe, and sends the rest to a person', () => {
+    const small = rulesTriage(normalized(jsEvent()));
+    assert.deepEqual(small.tags, ['bot-safe']);
+    assert.match(small.message, /getUserId/);
+    assert.deepEqual(rulesTriage(normalized(pyEvent())).tags, ['needs-human']);
+  });
+
+  it('spots network trouble and failures inside a library', () => {
+    const frame = (inApp: boolean) => ({ filename: 'x.js', function: 'f', lineno: 1, in_app: inApp });
+    const err = (type: string, value: string, inApp: boolean) => normalized({ ...jsEvent(), exception: { values: [{ type, value, stacktrace: { frames: [frame(inApp)] } }] } });
+    assert.deepEqual(rulesTriage(err('Error', 'connect ECONNREFUSED 127.0.0.1:5432', true)).tags, ['infrastructure', 'needs-human']);
+    assert.deepEqual(rulesTriage(err('RangeError', 'Invalid array length', false)).tags, ['third-party', 'needs-human']);
   });
 });

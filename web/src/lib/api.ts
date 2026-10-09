@@ -47,6 +47,8 @@ export const api = {
   errorTracker: {
     status: () => request<TrackerStatus>('GET', '/api/ext/errors/status'),
     projects: () => request<{ projects: TrackerProjectGroup[] }>('GET', '/api/ext/errors/projects').then((r) => r.projects),
+    /** Reads one error again; answers at once, the new finding follows. Rejects if it is already running or its events are gone. */
+    retriage: (fingerprintHash: string) => request<{ triage: 'started' }>('POST', `/api/ext/errors/issues/${encodeURIComponent(fingerprintHash)}/triage`, {}),
   },
   projects: {
     list: () => request<ProjectList>('GET', '/api/ext/projects'),

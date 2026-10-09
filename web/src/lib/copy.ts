@@ -142,14 +142,36 @@ export const copy = {
     FAILED: 'Failed',
   },
 
-  /** The four stages an error moves through; the Errors tab's pipeline and every row's track use these words. */
+  /** The stages an error moves through; the pipeline and every row's track use these words. */
   stages: {
     reported: { label: 'Tracked', sub: 'distinct errors grouped' },
-    filed: { label: 'Triaged', sub: 'passed triage, filed on GitHub' },
+    triaged: { label: 'Triaged', sub: 'read and explained' },
+    filed: { label: 'Filed', sub: 'opened on GitHub' },
     fixing: { label: 'Fix tried', sub: 'the resolver attempted' },
     review: { label: 'PR Open', sub: 'waiting for your review' },
-    track: (label: string, n: number) => `Stage ${n} of 4: ${label}`,
+    track: (label: string, n: number) => `Stage ${n} of 5: ${label}`,
     ended: { SKIPPED: 'skipped by the resolver', FAILED: 'the fix attempt failed' },
+  },
+
+  /** Triage: the read of an error. `PENDING` / `COMPLETED` / `ERRORED` are stored; these are the words shown. */
+  triage: {
+    heading: 'Triage',
+    again: 'Triage again',
+    againFailed: "Couldn't triage again",
+    status: { PENDING: 'Analyzing', COMPLETED: 'Triaged', ERRORED: "Couldn't triage" },
+    message: 'What happened',
+    suggestion: 'What to do',
+    failed: 'Triage could not read this error. It was still tracked and, if it qualifies, filed.',
+    source: { model: 'Read by the model', rules: 'Read by built-in rules' },
+    notYet: 'Not triaged. This error was tracked before triage was recorded.',
+    tags: {
+      'bot-safe': 'bot-safe',
+      'needs-human': 'needs a person',
+      'test-event': 'test event',
+      'no-stack-trace': 'no stack trace',
+      'third-party': 'third-party code',
+      infrastructure: 'infrastructure',
+    },
   },
 
   errors: {
@@ -161,7 +183,7 @@ export const copy = {
       project: 'Project',
       allProjects: 'All projects',
       state: 'State',
-      states: { all: 'Any state', unfiled: 'Not filed', open: 'Fix in progress', pr: 'PR Open', stuck: 'Skipped or failed' },
+      states: { all: 'Any state', unfiled: 'Not filed', safe: 'bot-safe', open: 'Fix in progress', pr: 'PR Open', stuck: 'Skipped or failed' },
       count: (shown: number, total: number) => (shown === total ? `${total} ${total === 1 ? 'error' : 'errors'}` : `${shown} of ${total} errors`),
       showMore: (n: number) => `Show ${n} more`,
       noMatch: { title: 'Nothing matches', body: 'Try a different search, or clear the filters.', clear: 'Clear filters' },
@@ -174,7 +196,8 @@ export const copy = {
       journey: 'Where it got to',
       steps: {
         reported: { done: 'Tracked: reported by your app and grouped', todo: 'Not tracked' },
-        filed: { done: (n: number) => `Triaged and filed as GitHub issue #${n}`, todo: 'Tracked only: not filed on GitHub' },
+        triaged: { done: 'Triaged: read and explained', failed: "Couldn't be triaged", todo: 'Being analyzed' },
+        filed: { done: (n: number) => `Filed as GitHub issue #${n}`, todo: 'Not filed on GitHub' },
         fixing: { done: 'The resolver tried a fix', todo: 'The resolver has not tried yet' },
         review: { done: 'Pull request open', todo: 'No pull request yet' },
       },

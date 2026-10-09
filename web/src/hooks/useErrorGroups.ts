@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type TrackerProjectGroup, type TrackerStatus } from '@/lib/api';
 
 const POLL_MS = 5000;
@@ -13,12 +13,15 @@ export function useErrorGroups() {
   const [status, setStatus] = useState<TrackerStatus | null>(null);
   const [groups, setGroups] = useState<TrackerProjectGroup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const refreshNow = useRef<() => Promise<void>>(async () => {});
+  /** Reads the errors straight away, e.g. right after an action that changes one. */
+  const refresh = useCallback(() => refreshNow.current(), []);
 
   useEffect(() => {
     let stopped = false;
     let timer: number | undefined;
 
-    const refresh = async () => {
+    const load = async () => {
       const [nextStatus, nextGroups] = await Promise.allSettled([api.errorTracker.status(), api.errorTracker.projects()]);
       if (stopped) return;
       if (nextStatus.status === 'fulfilled') setStatus(nextStatus.value);
@@ -29,8 +32,9 @@ export function useErrorGroups() {
         setError(message(nextGroups.reason));
       }
     };
+    refreshNow.current = load;
     const tick = async () => {
-      if (!document.hidden) await refresh();
+      if (!document.hidden) await load();
       if (!stopped) timer = window.setTimeout(() => void tick(), POLL_MS);
     };
     const onVisibility = () => {
@@ -47,5 +51,5 @@ export function useErrorGroups() {
     };
   }, []);
 
-  return { status, groups, error };
+  return { status, groups, error, refresh };
 }

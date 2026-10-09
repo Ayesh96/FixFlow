@@ -22,7 +22,7 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 /** The Projects tab: one card per repository, with its clone status, its errors' pipeline and the latest errors inside it. */
 export function ProjectsPanel() {
   const { data, error, announcement, refresh } = useProjects();
-  const { groups, status: tracker } = useErrorGroups();
+  const { groups, status: tracker, refresh: refreshErrors } = useErrorGroups();
   const { status: resolver } = useResolverAttempts();
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<ProjectView | null>(null);
@@ -100,6 +100,7 @@ export function ProjectsPanel() {
               project={project}
               group={groups?.find((g) => g.projectId === project.id)}
               busy={busy[project.id] === true}
+              onRefreshErrors={() => void refreshErrors()}
               onCopyDsn={() => void copyDsn(project)}
               onRetry={() => void run(project, 'clone', () => api.projects.retry(project.id), c.toast.retrying(project.repo))}
               onSettings={() => setEditing(project)}

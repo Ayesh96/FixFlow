@@ -1,13 +1,14 @@
-import { CircleCheck, Plug, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CircleCheck, Plug, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { ExternalLink } from '@/components/Bits';
-import { RecentErrors } from '@/components/errors/RecentErrors';
 import { Pipeline } from '@/components/Pipeline';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ProjectView, SetupStatus, TrackerProjectGroup } from '@/lib/api';
 import { copy } from '@/lib/copy';
+import { formatRelative } from '@/lib/format';
+import { projectHref } from '@/hooks/useProjectRoute';
 import { funnel } from '@/lib/lifecycle';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +32,7 @@ export function SetupBadge({ setup }: { setup: SetupStatus }) {
   );
 }
 
-function IconAction({ label, icon: Icon, onClick, disabled, destructive }: { label: string; icon: LucideIcon; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
+export function IconAction({ label, icon: Icon, onClick, disabled, destructive }: { label: string; icon: LucideIcon; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -49,7 +50,6 @@ interface Props {
   /** The project's errors, when the tracker has any for it. */
   group: TrackerProjectGroup | undefined;
   busy: boolean;
-  onRefreshErrors: () => void;
   onConnect: () => void;
   onCopyDsn: () => void;
   onRetry: () => void;
@@ -57,8 +57,11 @@ interface Props {
   onDelete: () => void;
 }
 
-/** One project, whole: where its clone is, how its errors are moving through the pipeline, and the latest of them. */
-export function ProjectCard({ project, group, busy, onRefreshErrors, onConnect, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
+/**
+ * One project at a glance: where its clone is and how far its errors get through the pipeline. Counts only; the
+ * errors themselves are on the project's own page, so a noisy project never makes its card longer.
+ */
+export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
   const issues = group?.issues ?? [];
   const canRetry = project.branch !== null && (project.setup.state === 'failed' || project.setup.state === 'idle');
   const headingId = `project-${project.id}`;
@@ -67,9 +70,12 @@ export function ProjectCard({ project, group, busy, onRefreshErrors, onConnect, 
     <Card className="gap-0 overflow-hidden py-0" role="region" aria-labelledby={headingId} data-project={project.id}>
       <header className="flex items-start justify-between gap-3 border-b p-4">
         <div className="min-w-0 space-y-1.5">
-          <h3 id={headingId} className="truncate text-base font-semibold">
-            <ExternalLink href={`https://github.com/${project.repo}`} label={c.repoLink(project.repo)}>
+          <h3 id={headingId} className="flex min-w-0 items-center gap-2 text-base font-semibold">
+            <a href={projectHref(project.id)} className="truncate rounded-sm underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50">
               {project.repo}
+            </a>
+            <ExternalLink href={`https://github.com/${project.repo}`} label={c.repoLink(project.repo)} className="shrink-0">
+              <span className="sr-only">GitHub</span>
             </ExternalLink>
           </h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -97,16 +103,19 @@ export function ProjectCard({ project, group, busy, onRefreshErrors, onConnect, 
         </p>
       )}
 
-      <div className="flex-1 space-y-4 p-4">
-        <Pipeline counts={funnel(issues)} compact />
+      <div className="flex-1 space-y-5 p-4 sm:p-5">
+        <Pipeline counts={funnel(issues)} roomy />
 
         {issues.length > 0 && group ? (
-          <div>
-            <div className="mb-2 flex items-baseline justify-between gap-2">
-              <p className="text-xs font-medium text-muted-foreground">{c.card.errors}</p>
-              <p className="text-xs text-muted-foreground">{c.card.total(group.issueCount, group.eventCount)}</p>
-            </div>
-            <RecentErrors group={group} onChanged={onRefreshErrors} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {c.card.total(group.issueCount, group.eventCount)}
+              {group.lastSeen && <> · {copy.errors.project.lastSeen(formatRelative(group.lastSeen))}</>}
+            </p>
+            <a href={projectHref(project.id)} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              {c.card.viewErrors}
+              <ArrowRight className="size-4" aria-hidden />
+            </a>
           </div>
         ) : (
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">

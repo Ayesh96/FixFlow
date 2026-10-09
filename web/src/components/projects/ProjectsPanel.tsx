@@ -5,6 +5,7 @@ import { Overview } from '@/components/projects/Overview';
 import { AddProjectDialog } from '@/components/projects/AddProjectDialog';
 import { ConnectDialog } from '@/components/projects/ConnectDialog';
 import { ProjectCard } from '@/components/projects/ProjectCard';
+import { ProjectPage } from '@/components/projects/ProjectPage';
 import { ProjectSettingsDialog } from '@/components/projects/ProjectSettingsDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -13,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useErrorGroups } from '@/hooks/useErrorGroups';
 import { useResolverAttempts } from '@/hooks/useResolverAttempts';
+import { LIST_HREF, useProjectRoute } from '@/hooks/useProjectRoute';
 import { useProjects } from '@/hooks/useProjects';
 import { api, type ProjectView } from '@/lib/api';
 import { copy } from '@/lib/copy';
@@ -31,6 +33,16 @@ export function ProjectsPanel() {
   const [connecting, setConnecting] = useState<ProjectView | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const projects = data?.projects ?? null;
+  const routeId = useProjectRoute();
+  const current = routeId !== null ? (projects?.find((p) => p.id === routeId) ?? null) : null;
+  const actionsFor = (project: ProjectView) => ({
+    busy: busy[project.id] === true,
+    onConnect: () => setConnecting(project),
+    onCopyDsn: () => void copyDsn(project),
+    onRetry: () => void run(project, 'clone', () => api.projects.retry(project.id), c.toast.retrying(project.repo)),
+    onSettings: () => setEditing(project),
+    onDelete: () => setDeleting(project),
+  });
 
   const run = async (project: ProjectView, verb: string, task: () => Promise<unknown>, done: string) => {
     setBusy((b) => ({ ...b, [project.id]: true }));
@@ -56,6 +68,18 @@ export function ProjectsPanel() {
 
   return (
     <>
+      {current && <ProjectPage project={current} group={groups?.find((g) => g.projectId === current.id)} onRefreshErrors={() => void refreshErrors()} {...actionsFor(current)} />}
+
+      {routeId !== null && !current && projects !== null && (
+        <Card className="items-center gap-3 px-6 py-16 text-center">
+          <h3 className="text-base font-semibold">{c.page.missing}</h3>
+          <a href={LIST_HREF} className={buttonVariants({ variant: 'outline' })}>
+            {c.page.back}
+          </a>
+        </Card>
+      )}
+
+      {routeId === null && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold">{c.heading}</h2>
         <Button onClick={() => setAdding(true)}>
@@ -63,8 +87,9 @@ export function ProjectsPanel() {
           {c.add}
         </Button>
       </div>
+      )}
 
-      {projects && projects.length > 0 && <Overview groups={groups} tracker={tracker} resolver={resolver} />}
+      {routeId === null && projects && projects.length > 0 && <Overview groups={groups} tracker={tracker} resolver={resolver} />}
 
       {error && (
         <Alert variant="destructive">
@@ -85,7 +110,7 @@ export function ProjectsPanel() {
         </div>
       )}
 
-      {projects?.length === 0 && (
+      {routeId === null && projects?.length === 0 && (
         <Card className="items-center gap-3 px-6 py-16 text-center">
           <FolderGit2 className="size-8 text-muted-foreground" aria-hidden />
           <h3 className="text-base font-semibold">{c.empty.title}</h3>
@@ -94,20 +119,14 @@ export function ProjectsPanel() {
         </Card>
       )}
 
-      {projects && projects.length > 0 && (
+      {routeId === null && projects && projects.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {projects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
               group={groups?.find((g) => g.projectId === project.id)}
-              busy={busy[project.id] === true}
-              onRefreshErrors={() => void refreshErrors()}
-              onConnect={() => setConnecting(project)}
-              onCopyDsn={() => void copyDsn(project)}
-              onRetry={() => void run(project, 'clone', () => api.projects.retry(project.id), c.toast.retrying(project.repo))}
-              onSettings={() => setEditing(project)}
-              onDelete={() => setDeleting(project)}
+              {...actionsFor(project)}
             />
           ))}
           <button
@@ -121,7 +140,7 @@ export function ProjectsPanel() {
         </div>
       )}
 
-      {data?.ingest && projects && projects.length > 0 && <p className="text-sm text-muted-foreground">{c.dsnHelp}</p>}
+      {routeId === null && data?.ingest && projects && projects.length > 0 && <p className="text-sm text-muted-foreground">{c.dsnHelp}</p>}
 
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}

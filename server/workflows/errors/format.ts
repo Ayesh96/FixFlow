@@ -31,17 +31,47 @@ function formatFrame(frame: StackFrame): string {
   return frame.function ? `    at ${frame.function} (${location})` : `    at ${location}`;
 }
 
-/** Newest frame first, like a Node.js stack trace. */
+/**
+ * Newest frame first, like a Node.js stack trace. When the app's own code is in the stack, its frames get their
+ * source line and every run of library frames between them folds into one line: the reader wants the app's frames,
+ * not twenty lines of web-framework internals. A stack with no app frames is shown whole.
+ */
+function formatFrames(oldestFirst: StackFrame[]): string[] {
+  const frames = oldestFirst.slice().reverse();
+  if (!frames.some((f) => f.inApp)) {
+    const shown = frames.slice(0, MAX_FRAMES).map(formatFrame);
+    if (frames.length > MAX_FRAMES) shown.push(`    … ${frames.length - MAX_FRAMES} more frames`);
+    return shown;
+  }
+  const lines: string[] = [];
+  let hidden = 0;
+  const flush = () => {
+    if (hidden > 0) lines.push(`    … ${hidden} library ${hidden === 1 ? 'frame' : 'frames'}`);
+    hidden = 0;
+  };
+  for (const frame of frames) {
+    if (!frame.inApp) {
+      hidden++;
+      continue;
+    }
+    flush();
+    lines.push(formatFrame(frame));
+    if (frame.contextLine) lines.push(`        ${oneLine(frame.contextLine)}`);
+  }
+  flush();
+  return lines.slice(0, MAX_FRAMES * 2);
+}
+
 function formatException(exception: ExceptionInfo): string {
-  const frames = exception.frames.slice().reverse();
-  const shown = frames.slice(0, MAX_FRAMES).map(formatFrame);
-  if (frames.length > MAX_FRAMES) shown.push(`    … ${frames.length - MAX_FRAMES} more frames`);
   const head = exception.value ? `${exception.type}: ${exception.value}` : exception.type;
-  return [head, ...shown].join('\n');
+  return [head, ...formatFrames(exception.frames)].join('\n');
 }
 
 export function formatStackTrace(event: NormalizedEvent): string {
-  if (event.exceptions.length === 0) return event.message || '(no stack trace)';
+  if (event.exceptions.length === 0) {
+    // A message is not a crash, but the stack of the code that logged it says where to start.
+    return event.stack.length > 0 ? [`${event.message || '(no message)'} (logged from)`, ...formatFrames(event.stack)].join('\n') : event.message || '(no stack trace)';
+  }
   // Sentry orders exceptions oldest first; show the thrown one first, then its causes.
   const [thrown, ...causes] = event.exceptions.slice().reverse();
   return [formatException(thrown as ExceptionInfo), ...causes.map((c) => `Caused by: ${formatException(c)}`)].join('\n\n');
@@ -57,6 +87,7 @@ export function formatIssueBody(event: NormalizedEvent, fingerprint: string): st
   if (event.release) rows.push(['Release', event.release]);
   if (event.serverName) rows.push(['Server', event.serverName]);
   if (event.culprit) rows.push(['Culprit', event.culprit]);
+  if (event.request) rows.push(['Request', `${event.request.method} ${event.request.path}`]);
   rows.push(['Event ID', event.eventId], ['Fingerprint', fingerprint.slice(0, 12)]);
 
   const tags = Object.entries(event.tags);

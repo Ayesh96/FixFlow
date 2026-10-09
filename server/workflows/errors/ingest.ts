@@ -6,6 +6,7 @@ import { formatRepo, parseRepo, type IssueTracker } from './github.ts';
 import { computeFingerprint, fingerprintScope } from './grouping.ts';
 import { SerialQueue } from './queue.ts';
 import { normalizeEvent } from './sentry/normalize.ts';
+import { hasStack } from './stack.ts';
 import type { Store } from './store.ts';
 import { rulesTriage, type Triager } from './triage.ts';
 import { LEVELS, type IssueRecord, type Level, type NormalizedEvent, type RepoRef } from './types.ts';
@@ -143,7 +144,7 @@ export class Ingestor {
     const project = this.options.projects.get(issue.projectId);
     // A bare log line gives a developer little to act on, so by default it stays in the tracker and waits for an
     // occurrence that carries frames. A project can ask for those on GitHub too.
-    if (!event.exceptions.some((exception) => exception.frames.length > 0) && !project?.issuesWithoutStack) return;
+    if (!hasStack(event) && !project?.issuesWithoutStack) return;
     const repo = project ? parseRepo(project.repo) : null;
     if (!project || !repo) {
       if (!this.warnedProjects.has(issue.projectId)) {

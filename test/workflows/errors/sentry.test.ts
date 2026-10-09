@@ -70,6 +70,34 @@ describe('normalizeEvent', () => {
   });
 });
 
+describe('normalizeEvent: what the SDK adds beyond the exception', () => {
+  const frame = (fn: string, inApp: boolean, extra: Record<string, unknown> = {}) => ({ filename: 'main.py', function: fn, lineno: 10, in_app: inApp, ...extra });
+  const message = (extra: Record<string, unknown>) => normalized({ event_id: 'a'.repeat(32), platform: 'python', level: 'error', message: 'display sleep failed', ...extra });
+
+  it("reads the stack Sentry attaches to a message, which lives in `threads`, not `exception`", () => {
+    const e = message({ threads: { values: [{ crashed: false, current: true, stacktrace: { frames: [frame('main', true), frame('display_sleep', true)] } }] } });
+    assert.deepEqual(e.stack.map((f) => f.function), ['main', 'display_sleep']);
+    assert.deepEqual(e.exceptions, []);
+  });
+
+  it('prefers the crashed thread, and ignores threads when the exception already has frames', () => {
+    const two = message({ threads: { values: [{ current: true, stacktrace: { frames: [frame('a', true)] } }, { crashed: true, stacktrace: { frames: [frame('b', true)] } }] } });
+    assert.deepEqual(two.stack.map((f) => f.function), ['b']);
+    const withException = normalized(jsEvent({ threads: { values: [{ stacktrace: { frames: [frame('t', true)] } }] } }));
+    assert.deepEqual(withException.stack, []);
+  });
+
+  it('keeps short local variables, and the request as method and path only (no host, no query string)', () => {
+    const e = normalized(jsEvent({ request: { method: 'post', url: 'http://10.0.0.5:8420/volume/up?token=secret', headers: { cookie: 'x' } } }));
+    assert.deepEqual(e.request, { method: 'POST', path: '/volume/up' });
+    const long = normalized(jsEvent({ exception: { values: [{ type: 'E', value: 'v', stacktrace: { frames: [frame('f', true, { vars: { direction: "'up'", blob: 'x'.repeat(500) } })] } }] } }));
+    assert.equal(long.exceptions[0]?.frames[0]?.vars?.direction, "'up'");
+    assert.ok((long.exceptions[0]?.frames[0]?.vars?.blob ?? '').length <= 120);
+    assert.equal(normalized(jsEvent()).request, null);
+    assert.equal(normalized(jsEvent()).exceptions[0]?.frames[0]?.vars, null);
+  });
+});
+
 describe('computeFingerprint', () => {
   it('is stable across messages, line numbers, content hashes and query strings', () => {
     const a = normalized(jsEvent());

@@ -8,6 +8,8 @@ export interface StackFrame {
   colno: number | null;
   inApp: boolean;
   contextLine: string | null;
+  /** The function's local variables at that point, as short strings; null when the SDK did not send any. */
+  vars: Record<string, string> | null;
 }
 
 export interface ExceptionInfo {
@@ -34,6 +36,13 @@ export interface NormalizedEvent {
   culprit: string | null;
   /** Oldest first; the last entry is the exception that was actually thrown. */
   exceptions: ExceptionInfo[];
+  /**
+   * The stack an SDK attaches to a plain message (`attach_stacktrace`). Sentry puts it in `threads`, not `exception`.
+   * Oldest first; empty when the event has an exception with frames, or carries no stack.
+   */
+  stack: StackFrame[];
+  /** The HTTP request being served when it happened, without host or query string; null outside a request. */
+  request: { method: string; path: string } | null;
   tags: Record<string, string>;
   /** Client-supplied grouping override (Sentry's `fingerprint` field). */
   fingerprint: string[] | null;

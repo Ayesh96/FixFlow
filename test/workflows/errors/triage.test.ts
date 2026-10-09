@@ -51,6 +51,104 @@ describe('ollamaTriager', () => {
   });
 });
 
+describe('rulesTriage: more of what real apps send', () => {
+  const frame = (fn: string, inApp = true) => ({ filename: 'main.py', function: fn, lineno: 5, in_app: inApp });
+  const crash = (type: string, value: string, frames = [frame('handler')]) => normalized({ event_id: 'c'.repeat(32), platform: 'python', level: 'error', exception: { values: [{ type, value, stacktrace: { frames } }] } });
+  const logged = (text: string, level = 'error', frames = [frame('display_sleep')]) =>
+    normalized({ event_id: 'd'.repeat(32), platform: 'python', level, message: text, threads: { values: [{ current: true, stacktrace: { frames } }] } });
+
+  it("recognises Python's small mistakes as bot-safe, not only JavaScript's", () => {
+    assert.deepEqual(rulesTriage(crash('NameError', "name 'VOLUME_STP' is not defined")).tags, ['bot-safe']);
+    assert.deepEqual(rulesTriage(crash('AttributeError', "'NoneType' object has no attribute 'rstrip'")).tags, ['bot-safe']);
+    assert.deepEqual(rulesTriage(crash('TypeError', "'NoneType' object is not subscriptable")).tags, ['bot-safe']);
+    assert.deepEqual(rulesTriage(crash('AttributeError', "'str' object has no attribute 'foo'")).tags, ['needs-human'], 'only the None cases are a plain missing check');
+    assert.deepEqual(rulesTriage(crash('NameError', "name 'x' is not defined", [frame('lib', false)])).tags.includes('bot-safe'), false, 'not in the app, nothing to fix here');
+  });
+
+  it('blames a permission or setting, not the code, and says what to do', () => {
+    const r = rulesTriage(crash('HTTPException', 'osascript is not allowed assistive access. (-1719)'));
+    assert.deepEqual(r.tags, ['infrastructure', 'needs-human']);
+    assert.match(r.message, /permissions or configuration/);
+    assert.match(r.suggestion, /Fix the permission or setting/);
+  });
+
+  it('treats a logged message that carries a stack as real, pointing at the code that logged it', () => {
+    const r = rulesTriage(logged('display sleep failed: pmset returned a non-zero exit code'));
+    assert.deepEqual(r.tags, ['needs-human']);
+    assert.match(r.message, /logged from display_sleep \(main\.py:5\)/);
+    assert.deepEqual(rulesTriage(logged('upstream timed out after 30s')).tags, ['infrastructure', 'needs-human']);
+    assert.deepEqual(rulesTriage(logged('osascript is not allowed assistive access')).tags, ['infrastructure', 'needs-human']);
+  });
+
+  it('still reads a test message as a test when it came with a stack', () => {
+    const r = rulesTriage(logged('errorflow test from MacRemote', 'info'));
+    assert.deepEqual(r.tags, ['test-event'], 'there is a stack, so no no-stack-trace tag');
+    assert.match(r.suggestion, /^Don't report it/);
+  });
+});
+
+describe('ollamaTriager: what the model does not get to overrule', () => {
+  let reply = '';
+  let seen = '';
+  const server = createServer((req, res) => {
+    let data = '';
+    req.on('data', (c) => (data += c));
+    req.on('end', () => {
+      seen = data;
+      res.writeHead(200).end(JSON.stringify({ message: { content: reply } }));
+    });
+  });
+  const ready = new Promise<string>((resolve) => server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${(server.address() as { port: number }).port}`)));
+  after(() => server.close());
+  const ask = async (event: ReturnType<typeof normalized>, answer: Record<string, unknown>) => {
+    reply = JSON.stringify(answer);
+    return ollamaTriager({ url: await ready, model: 'm' })(event);
+  };
+  const crash = (type: string, value: string, inApp = true) => normalized({ event_id: 'c'.repeat(32), platform: 'python', level: 'error', exception: { values: [{ type, value, stacktrace: { frames: [{ filename: 'main.py', function: 'f', lineno: 3, in_app: inApp, vars: { direction: "'up'" } }] } }] }, request: { method: 'POST', url: 'http://h/volume/up' } });
+  const note = (event: ReturnType<typeof normalized>) => ({ ...event });
+
+  it("never lets a small fix also be tagged needs-human", async () => {
+    const r = await ask(crash('NameError', "name 'x' is not defined"), { small_fix: true, message: 'm', suggestion: 's', tags: ['needs-human', 'infrastructure'] });
+    assert.deepEqual(r.tags, ['bot-safe', 'infrastructure']);
+  });
+
+  it('refuses bot-safe where there is no app code to fix: a log line, or a failure inside a library', async () => {
+    const message = normalized({ event_id: 'm'.repeat(32), platform: 'python', level: 'error', message: '[Errno 48] address already in use' });
+    assert.deepEqual((await ask(message, { small_fix: true, message: 'm', suggestion: 's', tags: [] })).tags, ['no-stack-trace', 'needs-human']);
+    assert.deepEqual((await ask(crash('RangeError', 'x', false), { small_fix: true, message: 'm', suggestion: 's', tags: [] })).tags, ['needs-human']);
+  });
+
+  it('replaces "Don\'t report it" said about a real failure, but keeps it for a test', async () => {
+    const real = await ask(crash('HTTPException', 'osascript is not allowed assistive access'), { small_fix: false, message: 'Permissions.', suggestion: "Don't report it. Ask your admin.", tags: ['infrastructure'] });
+    assert.doesNotMatch(real.suggestion, /^Don't report it/);
+    assert.equal(real.message, 'Permissions.', 'its explanation is kept');
+    const test = normalized({ event_id: 't'.repeat(32), platform: 'python', level: 'info', message: 'errorflow test from MacRemote' });
+    const kept = await ask(test, { small_fix: false, message: 'A test.', suggestion: "Don't report it", tags: ['test-event'] });
+    assert.deepEqual([kept.tags, kept.suggestion], [['test-event', 'no-stack-trace'], "Don't report it"]);
+  });
+
+  it('drops test-event from a real exception, and always states the missing stack as a fact', async () => {
+    const r = await ask(crash('KeyError', "'x'"), { small_fix: false, message: 'm', suggestion: 's', tags: ['test-event'] });
+    assert.deepEqual(r.tags, ['needs-human']);
+    const bare = normalized({ event_id: 'b'.repeat(32), platform: 'python', level: 'error', exception: { values: [{ type: 'ValueError', value: 'never raised' }] } });
+    assert.ok((await ask(bare, { small_fix: false, message: 'm', suggestion: 's', tags: ['needs-human'] })).tags.includes('no-stack-trace'));
+  });
+
+  it('only calls something third-party when its stack really never enters the app', async () => {
+    const answer = { small_fix: false, message: 'm', suggestion: 's', tags: ['third-party'] };
+    assert.deepEqual((await ask(crash('NameError', "name 'x' is not defined"), answer)).tags, ['needs-human'], 'the top frame is app code');
+    const bare = normalized({ event_id: 'b'.repeat(32), platform: 'python', level: 'error', exception: { values: [{ type: 'ValueError', value: 'never raised' }] } });
+    assert.deepEqual((await ask(bare, answer)).tags, ['no-stack-trace', 'needs-human'], 'there is no stack to be inside of');
+    assert.deepEqual((await ask(crash('RangeError', 'x', false), answer)).tags, ['third-party', 'needs-human'], 'a real library failure keeps it');
+  });
+
+  it('gives the model the locals and the request, so it can say which input broke what', async () => {
+    await ask(note(crash('NameError', "name 'x' is not defined")), { small_fix: true, message: 'm', suggestion: 's', tags: [] });
+    assert.match(seen, /Request: POST \/volume\/up/);
+    assert.match(seen, /locals: direction='up'/);
+  });
+});
+
 describe('rulesTriage', () => {
   const message = (text: string, level = 'info') => normalized({ event_id: 'm'.repeat(32), platform: 'python', level, message: text, tags: { service: 'macremote' } });
 

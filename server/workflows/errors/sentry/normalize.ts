@@ -26,7 +26,47 @@ function parseFrame(value: unknown): StackFrame | null {
     colno: asNumber(value.colno),
     inApp: value.in_app === true,
     contextLine: asString(value.context_line),
+    vars: parseVars(value.vars),
   };
+}
+
+const MAX_VARS = 12;
+const MAX_VAR_LENGTH = 120;
+
+/** Local variables arrive as an object of already-stringified values (Python) or raw JSON values; keep a short readable form. */
+function parseVars(value: unknown): Record<string, string> | null {
+  if (!isRecord(value)) return null;
+  const entries = Object.entries(value)
+    .slice(0, MAX_VARS)
+    .map(([name, v]) => {
+      const text = typeof v === 'string' ? v : (JSON.stringify(v) ?? String(v));
+      return [name, text.length > MAX_VAR_LENGTH ? `${text.slice(0, MAX_VAR_LENGTH - 1)}…` : text] as const;
+    });
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+/** The stack of the thread the event is about (`crashed`, else `current`, else the first that has one). */
+function parseThreadStack(value: unknown): StackFrame[] {
+  const list: unknown = Array.isArray(value) ? value : isRecord(value) ? value.values : [];
+  const threads = (Array.isArray(list) ? list : []).filter(isRecord).filter((t) => isRecord(t.stacktrace) && Array.isArray(t.stacktrace.frames));
+  const thread = threads.find((t) => t.crashed === true) ?? threads.find((t) => t.current === true) ?? threads[0];
+  const frames = thread && isRecord(thread.stacktrace) && Array.isArray(thread.stacktrace.frames) ? thread.stacktrace.frames : [];
+  return frames.map(parseFrame).filter((f): f is StackFrame => f !== null);
+}
+
+/** Method and path only: the host is the app's own and the query string may carry secrets. */
+function parseRequest(value: unknown): NormalizedEvent['request'] {
+  if (!isRecord(value)) return null;
+  const method = asString(value.method);
+  const url = asString(value.url);
+  if (!method || !url) return null;
+  let path: string;
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    path = url.split(/[?#]/)[0] ?? url;
+  }
+  return { method: method.toUpperCase(), path: path.slice(0, 200) };
 }
 
 function parseExceptions(value: unknown): ExceptionInfo[] {
@@ -89,6 +129,8 @@ export function normalizeEvent(rawJson: string): NormalizedEvent {
     message: primary?.value || parseMessage(data),
     culprit: asString(data.culprit) ?? asString(data.transaction),
     exceptions,
+    stack: exceptions.some((e) => e.frames.length > 0) ? [] : parseThreadStack(data.threads),
+    request: parseRequest(data.request),
     tags: parseTags(data.tags),
     fingerprint: fingerprint.length > 0 ? fingerprint : null,
     rawJson,

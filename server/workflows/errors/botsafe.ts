@@ -10,6 +10,11 @@ const SMALL_FIX = [
   /^(?:undefined|null) is not an object/,
   /^[\w$.]+ is not defined$/,
   /^[\w$.]+ is not a function$/,
+  // The same mistakes, worded the way Python says them.
+  /^name '[\w.]+' is not defined$/,
+  /^'NoneType' object has no attribute '\w+'$/,
+  /^'NoneType' object is not (?:subscriptable|iterable|callable)$/,
+  /^cannot access local variable '\w+' where it is not associated with a value$/,
 ];
 
 /**
@@ -22,4 +27,13 @@ export function isBotSafe(event: NormalizedEvent): boolean {
   const thrown = event.exceptions.at(-1);
   if (!thrown || !thrown.frames.some((f) => f.inApp)) return false;
   return SMALL_FIX.some((pattern) => pattern.test(thrown.value));
+}
+
+/**
+ * Whether there is code to change at all: a crash that reached the app's own code, or a lint finding.
+ * A log line or a failure inside a library is never a small fix, whatever anyone says about it.
+ */
+export function hasCodeToFix(event: NormalizedEvent): boolean {
+  if (LINT.test(event.message) || LINT.test(event.exceptionType ?? '')) return true;
+  return event.exceptions.at(-1)?.frames.some((f) => f.inApp) === true;
 }

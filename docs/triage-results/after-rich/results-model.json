@@ -1,0 +1,195 @@
+[
+ {
+  "title": "KeyError: 'bogus'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe"
+  ],
+  "message": "A KeyError occurred because the key 'bogus' was not found in the dictionary.",
+  "suggestion": "Add a check for the existence of the key before accessing it.",
+  "filed": 1,
+  "labels": []
+ },
+ {
+  "title": "NameError: name 'VOLUME_STP' is not defined",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "third-party"
+  ],
+  "message": "The variable 'VOLUME_STP' is not defined in the function where it's being used.",
+  "suggestion": "Define 'VOLUME_STP' at the beginning of the function or import it if it's supposed to be from another module.",
+  "filed": 2,
+  "labels": [
+   "bot-safe"
+  ]
+ },
+ {
+  "title": "AttributeError: 'NoneType' object has no attribute 'rstrip'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe"
+  ],
+  "message": "The error occurred because the variable `OPEN_TARGETS[target]` is `None`, and you are trying to call `.rstrip()` on it. This likely happened due to a missing or incorrect initialization of `OPEN_TARGETS`. The culprit is the function `open_target` in `main.py`.",
+  "suggestion": "Check if `target` is correctly mapped in `OPEN_TARGETS` before calling `.rstrip()`. Ensure that `OPEN_TARGETS` is properly initialized and contains the expected keys.",
+  "filed": 3,
+  "labels": [
+   "bot-safe"
+  ]
+ },
+ {
+  "title": "HTTPException: osascript is not allowed assistive access. (-1719)",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure",
+   "needs-human"
+  ],
+  "message": "The error is due to the application not having assistive access enabled on the macOS system. This is a configuration issue.",
+  "suggestion": "Enable assistive access for your application in System Preferences > Security & Privacy > Privacy > Accessibility.",
+  "filed": 4,
+  "labels": []
+ },
+ {
+  "title": "TimeoutExpired: Command '['osascript', '-e', 'tell application \"System Events\" to key code 126']' timed out aft\u2026",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure",
+   "needs-human"
+  ],
+  "message": "The command timed out because the system event to press the key code took longer than expected.",
+  "suggestion": "Check if the Mac remote application is responding or try restarting it.",
+  "filed": 5,
+  "labels": []
+ },
+ {
+  "title": "Message: display sleep failed: pmset returned a non-zero exit code",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure",
+   "needs-human"
+  ],
+  "message": "The display sleep failed because pmset is not allowed to assistive access. This is likely due to a configuration issue or missing permissions.",
+  "suggestion": "Check the system settings and ensure that assistive access is enabled for your application.",
+  "filed": 6,
+  "labels": []
+ },
+ {
+  "title": "Message: errorflow test from MacRemote",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "A log message indicating an errorflow test from MacRemote.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: hello world ping",
+  "level": "debug",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "no-stack-trace",
+   "test-event"
+  ],
+  "message": "A debug message 'hello world ping' was logged.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: Failed to ping the database",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "no-stack-trace",
+   "needs-human"
+  ],
+  "message": "A log message indicating a failed database ping attempt.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: sentry test please ignore",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event"
+  ],
+  "message": "A test message was sent to Sentry intentionally.",
+  "suggestion": "Don't report it",
+  "filed": 7,
+  "labels": []
+ },
+ {
+  "title": "KeyError: 'customer_id'",
+  "level": "warning",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe"
+  ],
+  "message": "A KeyError occurred because the 'customer_id' key was not found in the dictionary.",
+  "suggestion": "Add a check for the 'customer_id' key before accessing it.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "ValueError: created but never raised",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "no-stack-trace",
+   "third-party",
+   "needs-human"
+  ],
+  "message": "A ValueError was created but not raised in the code.",
+  "suggestion": "Check the function where the error is being created and ensure it is being properly handled or raised.",
+  "filed": null,
+  "labels": null
+ }
+]

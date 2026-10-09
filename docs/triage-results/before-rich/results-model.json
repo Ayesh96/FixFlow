@@ -1,0 +1,190 @@
+[
+ {
+  "title": "KeyError: 'bogus'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "A KeyError occurred because the code attempted to access a dictionary key that does not exist ('bogus'). This is likely due to an incorrect assumption about the data being processed.",
+  "suggestion": "Add a check for the existence of the key before accessing it, or ensure that the data being passed to this function is correctly formatted.",
+  "filed": 1,
+  "labels": []
+ },
+ {
+  "title": "NameError: name 'VOLUME_STP' is not defined",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "no-stack-trace"
+  ],
+  "message": "A variable 'VOLUME_STP' is not defined in the code.",
+  "suggestion": "Define the variable 'VOLUME_STP' before using it in the function 'volume'.",
+  "filed": 2,
+  "labels": []
+ },
+ {
+  "title": "AttributeError: 'NoneType' object has no attribute 'rstrip'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "The error occurs because `OPEN_TARGETS[target]` is `None`, and you are trying to call `.rstrip('/')` on it. This likely happened due to a missing or incorrect initialization of the `OPEN_TARGETS` dictionary.",
+  "suggestion": "Add a null check before calling `.rstrip('/')`. For example: `url = OPEN_TARGETS.get(target, '').rstrip('/')`",
+  "filed": 3,
+  "labels": []
+ },
+ {
+  "title": "HTTPException: osascript is not allowed assistive access. (-1719)",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "The error indicates that 'osascript' is not allowed assistive access on the home-mac-mini. This is likely due to security settings or user configuration.",
+  "suggestion": "Don't report it. Check and enable assistive access for 'osascript' in System Preferences > Security & Privacy > Privacy tab.",
+  "filed": 4,
+  "labels": []
+ },
+ {
+  "title": "TimeoutExpired: Command '['osascript', '-e', 'tell application \"System Events\" to key code 126']' timed out aft\u2026",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "A timeout occurred while trying to execute an osascript command on the home-mac-mini. This is likely due to a network issue or the system being unresponsive.",
+  "suggestion": "Check the network connection and ensure that the System Events application is running properly on the home-mac-mini.",
+  "filed": 5,
+  "labels": []
+ },
+ {
+  "title": "Message: display sleep failed: pmset returned a non-zero exit code",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "no-stack-trace",
+   "infrastructure"
+  ],
+  "message": "The display sleep failed due to an issue with pmset on the home-mac-mini.",
+  "suggestion": "Don't report it if this is expected behavior or noise.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: errorflow test from MacRemote",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This appears to be a test or noise message from the errorflow service on your MacRemote platform.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: hello world ping",
+  "level": "debug",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This appears to be a test or noise message.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: Failed to ping the database",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "Failed to ping the database, likely due to network issues or database unavailability.",
+  "suggestion": "Don't report it if this is expected behavior during certain times of day or under heavy load.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: sentry test please ignore",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event"
+  ],
+  "message": "This appears to be a test message.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "KeyError: 'customer_id'",
+  "level": "warning",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "A KeyError occurred because 'customer_id' was not found in the dictionary.",
+  "suggestion": "Add a check to ensure 'customer_id' exists before accessing it.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "ValueError: created but never raised",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "A ValueError was created but not raised in the code. This is likely a test message or noise.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ }
+]

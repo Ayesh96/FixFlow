@@ -1,0 +1,189 @@
+[
+ {
+  "title": "KeyError: 'bogus'",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "A KeyError occurred because the code attempted to access a dictionary key that does not exist ('bogus'). This is likely due to an incorrect or missing value in the input data.",
+  "suggestion": "Add a null check for the 'bogus' key before accessing it.",
+  "filed": 1,
+  "labels": []
+ },
+ {
+  "title": "NameError: name 'VOLUME_STP' is not defined",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "The variable 'VOLUME_STP' is not defined in the current scope.",
+  "suggestion": "Define 'VOLUME_STP' before using it or check if it should be imported from another module.",
+  "filed": 2,
+  "labels": []
+ },
+ {
+  "title": "AttributeError: 'NoneType' object has no attribute 'rstrip'",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "The error occurs because `OPEN_TARGETS[target]` is `None`, and the code attempts to call `.rstrip('/')` on it. This likely happened due to a missing or incorrect initialization of `OPEN_TARGETS`. The culprit is the application logic.",
+  "suggestion": "Add a null check before calling `.rstrip('/')` or ensure that `OPEN_TARGETS[target]` is properly initialized.",
+  "filed": 3,
+  "labels": []
+ },
+ {
+  "title": "HTTPException: osascript is not allowed assistive access. (-1719)",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "The error indicates that 'osascript' is not allowed assistive access. This is likely due to security settings on the production environment.",
+  "suggestion": "Don't report it. Contact your system administrator to enable assistive access for 'osascript'.",
+  "filed": 4,
+  "labels": []
+ },
+ {
+  "title": "TimeoutExpired: Command '['osascript', '-e', 'tell application \"System Events\" to key code 126']' timed out aft\u2026",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "A timeout occurred while trying to execute an osascript command in the production environment.",
+  "suggestion": "Don't report it. This is likely a transient issue related to the system's responsiveness or network conditions.",
+  "filed": 5,
+  "labels": []
+ },
+ {
+  "title": "Message: display sleep failed: pmset returned a non-zero exit code",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "The system call to 'pmset' failed, indicating an issue with the system's power management settings.",
+  "suggestion": "Don't report it. This is likely an expected condition in production environments where power management might be configured differently.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: errorflow test from MacRemote",
+  "level": "info",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This appears to be a test or noise message.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: hello world ping",
+  "level": "debug",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This appears to be a test or noise message.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: Failed to ping the database",
+  "level": "info",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "infrastructure"
+  ],
+  "message": "Failed to ping the database, likely due to network issues or database unavailability.",
+  "suggestion": "Don't report it if this is expected behavior during maintenance or under heavy load.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: sentry test please ignore",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This appears to be a test or noise message.",
+  "suggestion": "Don't report it",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "KeyError: 'customer_id'",
+  "level": "warning",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "bot-safe",
+   "needs-human"
+  ],
+  "message": "A KeyError occurred because 'customer_id' was not found in the dictionary.",
+  "suggestion": "Add a check to ensure 'customer_id' exists before accessing it.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "ValueError: created but never raised",
+  "level": "error",
+  "service": null,
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "model",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "A ValueError was created but not raised, which is likely a bug in the code. This could be due to an unexpected condition or a missing raise statement.",
+  "suggestion": "Review the code where the ValueError is being created and ensure that it is being properly raised under all possible conditions.",
+  "filed": null,
+  "labels": null
+ }
+]

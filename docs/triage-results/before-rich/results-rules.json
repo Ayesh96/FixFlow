@@ -1,0 +1,189 @@
+[
+ {
+  "title": "KeyError: 'bogus'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "KeyError: 'bogus'. Thrown from key (main.py:93). It is not an obvious small fix.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": 1,
+  "labels": []
+ },
+ {
+  "title": "NameError: name 'VOLUME_STP' is not defined",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "NameError: name 'VOLUME_STP' is not defined. Thrown from volume (main.py:109). It is not an obvious small fix.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": 2,
+  "labels": []
+ },
+ {
+  "title": "AttributeError: 'NoneType' object has no attribute 'rstrip'",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "AttributeError: 'NoneType' object has no attribute 'rstrip'. Thrown from open_target (main.py:122). It is not an obvious small fix.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": 3,
+  "labels": []
+ },
+ {
+  "title": "HTTPException: osascript is not allowed assistive access. (-1719)",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "HTTPException: osascript is not allowed assistive access. (-1719). Thrown from run_osascript (main.py:82). It is not an obvious small fix.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": 4,
+  "labels": []
+ },
+ {
+  "title": "TimeoutExpired: Command '['osascript', '-e', 'tell application \"System Events\" to key code 126']' timed out aft\u2026",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "infrastructure",
+   "needs-human"
+  ],
+  "message": "TimeoutExpired: Command '['osascript', '-e', 'tell application \"System Events\" to key code 126']' timed out after 5 seconds. This looks like a network or service problem rather than a bug in your code; it surfaced in run_osascript (main.py:78).",
+  "suggestion": "Check the service or connection this call depends on. A code change is unlikely to help, so the resolver won't be asked to try.",
+  "filed": 5,
+  "labels": []
+ },
+ {
+  "title": "Message: display sleep failed: pmset returned a non-zero exit code",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "no-stack-trace",
+   "needs-human"
+  ],
+  "message": "A \u201cerror\u201d log message with no stack trace: \u201cdisplay sleep failed: pmset returned a non-zero exit code\u201d. Nothing in the code can be pointed at as the cause.",
+  "suggestion": "Report it only if someone recognises it. To make it actionable, send it as an exception so it carries a stack trace.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: errorflow test from MacRemote",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This looks like a test message, not a real failure. \u201cerrorflow test from MacRemote\u201d was sent on purpose from your python app (macremote) at level \u201cinfo\u201d. Nothing threw an exception, so there is no culprit to find.",
+  "suggestion": "Don't report it: this is not a valid issue. It is safe to ignore.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: hello world ping",
+  "level": "debug",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "test-event",
+   "no-stack-trace"
+  ],
+  "message": "This looks like a test message, not a real failure. \u201chello world ping\u201d was sent on purpose from your python app (macremote) at level \u201cdebug\u201d. Nothing threw an exception, so there is no culprit to find.",
+  "suggestion": "Don't report it: this is not a valid issue. It is safe to ignore.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: Failed to ping the database",
+  "level": "info",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "no-stack-trace",
+   "needs-human"
+  ],
+  "message": "A \u201cinfo\u201d log message with no stack trace: \u201cFailed to ping the database\u201d. Nothing in the code can be pointed at as the cause.",
+  "suggestion": "Report it only if someone recognises it. To make it actionable, send it as an exception so it carries a stack trace.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "Message: sentry test please ignore",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "no-stack-trace",
+   "needs-human"
+  ],
+  "message": "A \u201cerror\u201d log message with no stack trace: \u201csentry test please ignore\u201d. Nothing in the code can be pointed at as the cause.",
+  "suggestion": "Report it only if someone recognises it. To make it actionable, send it as an exception so it carries a stack trace.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "KeyError: 'customer_id'",
+  "level": "warning",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "needs-human"
+  ],
+  "message": "KeyError: 'customer_id'. Thrown from <module> (emit.py:12). It is not an obvious small fix.",
+  "suggestion": "Report it, and have a person look first. It is not a clear small fix for the resolver.",
+  "filed": null,
+  "labels": null
+ },
+ {
+  "title": "ValueError: created but never raised",
+  "level": "error",
+  "service": "macremote",
+  "count": 1,
+  "status": "COMPLETED",
+  "source": "rules",
+  "tags": [
+   "no-stack-trace",
+   "needs-human"
+  ],
+  "message": "ValueError: created but never raised. It arrived without a stack trace, so the culprit cannot be located.",
+  "suggestion": "Make sure the SDK attaches stack traces (and source maps, for browser code), then wait for the next occurrence.",
+  "filed": null,
+  "labels": null
+ }
+]

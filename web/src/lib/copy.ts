@@ -25,9 +25,9 @@ export const copy = {
     columns: { repo: 'Repository', branch: 'Branch', token: 'Token', verify: 'Fix check', setup: 'Clone', actions: 'Actions' },
     noVerify: 'none, fixes go out unverified',
     card: {
-      errors: 'Tracked errors and their fixes',
+      errors: 'Latest errors',
       total: (issues: number, events: number) => `${issues.toLocaleString('en-US')} ${issues === 1 ? 'error' : 'errors'} · ${events.toLocaleString('en-US')} ${events === 1 ? 'event' : 'events'}`,
-      quiet: { title: 'No errors yet', withDsn: 'Point your app\'s Sentry SDK at this project\'s error address and they will show up here.', noDsn: 'Error tracking is off for this project.' },
+      quiet: { title: 'No errors yet', withDsn: 'Connect an app and its errors will show up here.', noDsn: 'Error tracking is off for this project.' },
       copyDsn: 'Copy error address',
       check: 'Fix check',
     },
@@ -174,21 +174,33 @@ export const copy = {
     },
   },
 
+  connect: {
+    title: (repo: string) => `Connect an app to ${repo}`,
+    description: "Point an app's Sentry SDK at this project. Pick the language it is written in; the code below is already filled in for this project.",
+    languages: 'Language',
+    button: 'Connect an app',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: "Couldn't copy it. Select the text instead.",
+    noDsn: 'Error tracking is off for this dashboard, so there is no error address to give an app. Turn the errors workflow on and restart.',
+    localhostNote: 'This address uses localhost, so it works for apps on this computer. An app on another machine needs the ingest listener opened to it (ORCH_ERRORS_INGEST_HOST).',
+    steps: { address: 'This project\'s error address', install: 'Install the SDK', init: 'Add this where your app starts', test: 'Send a test' },
+    initNote: {
+      python: 'Put it at the top of your entry file, before the app is created. Unhandled exceptions are then reported on their own. FastAPI and Flask need nothing more.',
+      node: 'Run it before the rest of your app (in ES modules, with node --import ./instrument.mjs). Unhandled exceptions and rejections are then reported on their own.',
+      browser: 'Run it once when the page loads. Browsers on another device cannot reach a loopback-only listener; see the note above.',
+    },
+    testNote: 'Sends one info message. It shows up on this project\'s card within a few seconds, is read by triage as a test, and is not filed on GitHub.',
+    settingsTitle: 'What the settings do',
+    typescriptNote: 'TypeScript and JavaScript use the same code. The SDK ships its own types, so there is nothing extra to install.',
+  },
+
   errors: {
     heading: 'Errors',
-    inbox: {
-      title: 'Inbox',
-      search: 'Search errors',
-      searchPlaceholder: 'Search by title or app…',
-      project: 'Project',
-      allProjects: 'All projects',
-      state: 'State',
-      states: { all: 'Any state', unfiled: 'Not filed', safe: 'bot-safe', open: 'Fix in progress', pr: 'PR Open', stuck: 'Skipped or failed' },
-      count: (shown: number, total: number) => (shown === total ? `${total} ${total === 1 ? 'error' : 'errors'}` : `${shown} of ${total} errors`),
-      showMore: (n: number) => `Show ${n} more`,
-      noMatch: { title: 'Nothing matches', body: 'Try a different search, or clear the filters.', clear: 'Clear filters' },
+    recent: {
       open: (title: string) => `Open details: ${title}`,
       seen: (n: number) => `${n.toLocaleString('en-US')}×`,
+      showing: (shown: number, total: number) => `Showing the ${shown} most recent of ${total} errors`,
     },
     detail: {
       close: 'Close',

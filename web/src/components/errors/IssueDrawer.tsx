@@ -5,14 +5,21 @@ import { ExternalLink, When } from '@/components/Bits';
 import { StatusBadge, TagChips, TriageBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { api } from '@/lib/api';
+import { api, type TrackerIssue } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatCount } from '@/lib/format';
 import { lifecycleOf, safeUrl } from '@/lib/lifecycle';
-import type { InboxItem } from '@/components/errors/ErrorInbox';
 import { cn } from '@/lib/utils';
 
 const c = copy.errors.detail;
+
+/** One error with the project it belongs to, as the drawer shows it. */
+export interface InboxItem {
+  issue: TrackerIssue;
+  projectId: string | null;
+  repo: string | null;
+  branch: string | null;
+}
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (

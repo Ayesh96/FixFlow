@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Overview } from '@/components/projects/Overview';
 import { AddProjectDialog } from '@/components/projects/AddProjectDialog';
+import { ConnectDialog } from '@/components/projects/ConnectDialog';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ProjectSettingsDialog } from '@/components/projects/ProjectSettingsDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,6 +28,7 @@ export function ProjectsPanel() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<ProjectView | null>(null);
   const [editing, setEditing] = useState<ProjectView | null>(null);
+  const [connecting, setConnecting] = useState<ProjectView | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const projects = data?.projects ?? null;
 
@@ -101,6 +103,7 @@ export function ProjectsPanel() {
               group={groups?.find((g) => g.projectId === project.id)}
               busy={busy[project.id] === true}
               onRefreshErrors={() => void refreshErrors()}
+              onConnect={() => setConnecting(project)}
               onCopyDsn={() => void copyDsn(project)}
               onRetry={() => void run(project, 'clone', () => api.projects.retry(project.id), c.toast.retrying(project.repo))}
               onSettings={() => setEditing(project)}
@@ -125,6 +128,8 @@ export function ProjectsPanel() {
       </div>
 
       <AddProjectDialog open={adding} onOpenChange={setAdding} onAdded={() => void refresh()} />
+
+      <ConnectDialog project={connecting} onClose={() => setConnecting(null)} />
 
       <ProjectSettingsDialog project={editing} onClose={() => setEditing(null)} onSaved={() => void refresh()} />
 

@@ -1,6 +1,6 @@
-import { CircleCheck, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { CircleCheck, Plug, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { ExternalLink } from '@/components/Bits';
-import { ErrorInbox } from '@/components/errors/ErrorInbox';
+import { RecentErrors } from '@/components/errors/RecentErrors';
 import { Pipeline } from '@/components/Pipeline';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ interface Props {
   group: TrackerProjectGroup | undefined;
   busy: boolean;
   onRefreshErrors: () => void;
+  onConnect: () => void;
   onCopyDsn: () => void;
   onRetry: () => void;
   onSettings: () => void;
@@ -57,7 +58,7 @@ interface Props {
 }
 
 /** One project, whole: where its clone is, how its errors are moving through the pipeline, and the latest of them. */
-export function ProjectCard({ project, group, busy, onRefreshErrors, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
+export function ProjectCard({ project, group, busy, onRefreshErrors, onConnect, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
   const issues = group?.issues ?? [];
   const canRetry = project.branch !== null && (project.setup.state === 'failed' || project.setup.state === 'idle');
   const headingId = `project-${project.id}`;
@@ -105,17 +106,29 @@ export function ProjectCard({ project, group, busy, onRefreshErrors, onCopyDsn, 
               <p className="text-xs font-medium text-muted-foreground">{c.card.errors}</p>
               <p className="text-xs text-muted-foreground">{c.card.total(group.issueCount, group.eventCount)}</p>
             </div>
-            <ErrorInbox groups={[group]} embedded onChanged={onRefreshErrors} />
+            <RecentErrors group={group} onChanged={onRefreshErrors} />
           </div>
         ) : (
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">{c.card.quiet.title}</p>
             <p className="mt-1">{project.dsn ? c.card.quiet.withDsn : c.card.quiet.noDsn}</p>
+            {project.dsn && (
+              <Button size="sm" className="mt-3" onClick={onConnect}>
+                <Plug className="size-4" aria-hidden />
+                {copy.connect.button}
+              </Button>
+            )}
           </div>
         )}
       </div>
 
       <footer className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-background/40 px-4 py-2.5 text-xs text-muted-foreground">
+        {project.dsn && (
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={onConnect}>
+            <Plug className="size-3.5" aria-hidden />
+            {copy.connect.button}
+          </Button>
+        )}
         {project.dsn && (
           <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={onCopyDsn}>
             <Copy className="size-3.5" aria-hidden />

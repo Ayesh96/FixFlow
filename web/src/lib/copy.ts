@@ -23,7 +23,14 @@ export const copy = {
       cta: 'Add your first project',
     },
     columns: { repo: 'Repository', branch: 'Branch', token: 'Token', verify: 'Fix check', setup: 'Clone', actions: 'Actions' },
-    noVerify: 'None: fixes go out unverified',
+    noVerify: 'none, fixes go out unverified',
+    card: {
+      errors: 'Tracked errors and their fixes',
+      total: (issues: number, events: number) => `${issues.toLocaleString('en-US')} ${issues === 1 ? 'error' : 'errors'} · ${events.toLocaleString('en-US')} ${events === 1 ? 'event' : 'events'}`,
+      quiet: { title: 'No errors yet', withDsn: 'Point your app\'s Sentry SDK at this project\'s error address and they will show up here.', noDsn: 'Error tracking is off for this project.' },
+      copyDsn: 'Copy error address',
+      check: 'Fix check',
+    },
     repoLink: (repo: string) => `Open ${repo} on GitHub (new tab)`,
     branchPending: 'learned on its first fix',
     token: (hint: string) => `••••${hint}`,
@@ -127,8 +134,53 @@ export const copy = {
     },
   },
 
+  status: {
+    PENDING: 'Pending',
+    IN_PROGRESS: 'In Progress',
+    PR_OPEN: 'PR Open',
+    SKIPPED: 'Skipped',
+    FAILED: 'Failed',
+  },
+
+  /** The four stages an error moves through; the Errors tab's pipeline and every row's track use these words. */
+  stages: {
+    reported: { label: 'Tracked', sub: 'distinct errors grouped' },
+    filed: { label: 'Triaged', sub: 'passed triage, filed on GitHub' },
+    fixing: { label: 'Fix tried', sub: 'the resolver attempted' },
+    review: { label: 'PR Open', sub: 'waiting for your review' },
+    track: (label: string, n: number) => `Stage ${n} of 4: ${label}`,
+    ended: { SKIPPED: 'skipped by the resolver', FAILED: 'the fix attempt failed' },
+  },
+
   errors: {
     heading: 'Errors',
+    inbox: {
+      title: 'Inbox',
+      search: 'Search errors',
+      searchPlaceholder: 'Search by title or app…',
+      project: 'Project',
+      allProjects: 'All projects',
+      state: 'State',
+      states: { all: 'Any state', unfiled: 'Not filed', open: 'Fix in progress', pr: 'PR Open', stuck: 'Skipped or failed' },
+      count: (shown: number, total: number) => (shown === total ? `${total} ${total === 1 ? 'error' : 'errors'}` : `${shown} of ${total} errors`),
+      showMore: (n: number) => `Show ${n} more`,
+      noMatch: { title: 'Nothing matches', body: 'Try a different search, or clear the filters.', clear: 'Clear filters' },
+      open: (title: string) => `Open details: ${title}`,
+      seen: (n: number) => `${n.toLocaleString('en-US')}×`,
+    },
+    detail: {
+      close: 'Close',
+      facts: { seen: 'Times seen', first: 'First seen', last: 'Last seen', app: 'App', project: 'Project' },
+      journey: 'Where it got to',
+      steps: {
+        reported: { done: 'Tracked: reported by your app and grouped', todo: 'Not tracked' },
+        filed: { done: (n: number) => `Triaged and filed as GitHub issue #${n}`, todo: 'Tracked only: not filed on GitHub' },
+        fixing: { done: 'The resolver tried a fix', todo: 'The resolver has not tried yet' },
+        review: { done: 'Pull request open', todo: 'No pull request yet' },
+      },
+      openIssue: 'Open issue',
+      openPr: 'Open pull request',
+    },
     kpi: {
       issues: { label: 'Issues', sub: 'distinct errors grouped' },
       events: { label: 'Events', sub: 'occurrences received' },

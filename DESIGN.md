@@ -26,8 +26,8 @@ Neutral base is shadcn's `neutral` dark theme, so every shadcn component renders
 | `--destructive` | `#e5484d` | delete only |
 | `--ring` | `#d4d4d4` | focus ring; shadcn draws it at 50% alpha = 3.9:1 effective on card |
 | `--radius` | `0.5rem` | cards 8px, controls 6px |
-| `--chart-1` | `#3987e5` | sparkline accent (categorical slot 1, dark step) |
-| `--chart-muted` | `#898781` | sparkline history, axis/labels ink |
+| `--chart-1` | `#3987e5` | pipeline bars, in-progress icon (categorical slot 1, dark step) |
+| `--chart-muted` | `#898781` | muted chart ink |
 | `--status-running` | `#0ca30c` | icon only |
 | `--status-stopped` | `#898781` | icon only |
 | `--status-crashed` | `#d03b3b` | icon only |
@@ -36,56 +36,51 @@ Type: **Geist Sans** for UI, **Geist Mono** for paths/commands/logs (self-hosted
 Spacing: Tailwind 4px scale; page gutter 16 (mobile) / 24; max width 1152px.
 Motion: 150ms ease-out for hover/focus; sheet/dialog use shadcn's enter/exit; everything respects `prefers-reduced-motion`.
 
-## 3. Component inventory
+## 3. Layout and patterns
 
-| Component | Source | Variants / states | Notes |
-|---|---|---|---|
-| Button | shadcn | default, outline, ghost, destructive · sm, icon · disabled, loading (spinner + label) | icon buttons always have `aria-label` and a Tooltip |
-| Badge | shadcn | outline | container for `StatusBadge` |
-| Card | shadcn | - | KPI tile surface |
-| Table | shadcn | - | process list; row actions right-aligned |
-| Dialog | shadcn | - | Add App wizard |
-| AlertDialog | shadcn | - | Delete confirmation (focus lands on the safe action) |
-| Sheet (right) | shadcn | - | Log viewer |
-| Select, Switch, Input, Label, Checkbox | shadcn | default, focus, invalid (`aria-invalid`), disabled | invalid = red border + message linked by `aria-describedby` |
-| Tooltip | shadcn | - | action-button labels, sparkline readout |
-| **Open action** | custom | link (has web address) / disabled (none) | an `<a target="_blank" rel="noopener noreferrer">` styled as an icon button; only http(s) is ever rendered, even from a hand-edited plist |
-| Sonner | shadcn | success, error | transient results ("Stopped worker") |
-| **StatusBadge** | custom | running / stopped / crashed | icon + label; crashed appends the exit reason |
-| **Sparkline** | custom | cpu / memory · hover crosshair | see §4 |
-| **StatTile** | custom | with / without trend | see §4 |
-| **Stepper** | custom | current / done / upcoming | `<ol>`, `aria-current="step"` |
-| **KeyValueEditor** | custom | add / remove row | environment variables |
-| **Terminal** | custom | live / paused / reconnecting / empty | stderr lines carry a red left rule and a "stderr" marker (not color alone) |
+| Pattern | Where | Why |
+|---|---|---|
+| **Full-width canvas** | `App.tsx` | Content spans the screen (cap 2000px, 16/32px gutters) instead of a centred 1152px column. Cards go 1 → 2 → 3 columns at `md` / `2xl`. |
+| **Project card** | `ProjectCard.tsx` | The unit of the product. Header: repo, branch, clone status, actions. Body: that project's pipeline (Tracked → Triaged → Fix tried → PR Open) and its errors with their resolution. Footer: error address, token, fix check. Everything about a project lives in its card; there are no separate Errors or Resolver tabs. |
+| **Overview strip** | `Overview.tsx` | Above the cards: tracker health, resolver last poll (and poll error), and the pipeline summed across projects. |
+| **Embedded error list** | `ErrorInbox.tsx` (`embedded`) | Five rows per card, "Show N more"; search and state filter appear only past five errors. Click a row for the detail drawer. |
+| **Detail drawer** | `IssueDrawer.tsx` | Right-hand sheet: counts, and a timeline of how far the error got, with links to the issue and PR and the resolver's reason. |
+| **Lifecycle track** | `LifecycleTrack.tsx` | Four segments per row filled to the furthest stage; the state word beside it carries the meaning. |
+| **Responsive rows** | `ErrorInbox.tsx` | Under `md` the row's columns collapse into a second line (track, state, count, time) instead of a horizontally scrolling table. |
+| **Progressive disclosure** | inbox | 25 rows, then "Show N more"; detail only on demand. |
+| **Polling, quiet** | `use*` hooks | 5s poll while the tab is visible; the last good data stays on screen if a poll fails. |
+
+Note: the server does not store a triage verdict; "Triaged" means the error passed triage and was filed on GitHub.
+
+Components: shadcn primitives in `components/ui/`; product components in `components/`. Shared pieces to reuse, not copy: `StatusBadge` (resolver states), `Bits` (`When`, `ExternalLink`), `lib/lifecycle.ts` (stage logic and `safeUrl`).
 
 ## 4. Data visualization (from the `dataviz` procedure)
 
-**Form.** Headline numbers → **stat tiles** (not charts). Per-process trend → **sparkline** inside the table row. Nothing else needs a chart.
+**Form.** Counts per stage are a funnel of four ordered magnitudes, so they are **stat tiles with a proportion bar**, not a chart. Per-error progress is the lifecycle track. There are no time-series charts because the server stores first/last seen and a count per error, not a series; do not draw a sparkline from two timestamps.
 
-**Color.** One series per sparkline → categorical slot 1 (`#3987e5`). Validator on the card surface: lightness band, chroma floor and ≥3:1 contrast all PASS. History is drawn in muted gray and the latest ~25% of the line plus the end dot in the accent (the tile contract: de-emphasis hue with the current period in accent). CPU and memory sit in separately headed columns, so both use slot 1; hue would add no information.
+**Color.** The pipeline bars use one hue, categorical slot 1 (`#3987e5`), over a hairline track. Validator on the card surface: lightness band, chroma floor and ≥3:1 contrast PASS. Stage names and percentages are text, so nothing depends on the hue.
 
-**Status** (fixed, never reused for series):
+**Resolver status** (one component, `StatusBadge`; shape carries the meaning, color only reinforces it):
 
-| State | Icon | Color (icon only) | Label |
+| State | Icon | Icon color | Label |
 |---|---|---|---|
-| running | circle-check | `#0ca30c` | Running |
-| stopped | circle-pause | `#898781` | Stopped |
-| crashed | triangle-alert | `#d03b3b` | Crashed · exit 3 |
+| Pending | circle-dashed | `--status-stopped` | Pending |
+| In Progress | loader (spins; static under reduced motion) | `--chart-1` | In Progress |
+| PR Open | git-pull-request | `--status-running` | PR Open |
+| Skipped | circle-slash | `--status-stopped` | Skipped |
+| Failed | triangle-alert | `--status-crashed` | Failed |
 
-Labels stay in the normal text ink. Text never wears a data color.
+Labels stay in normal text ink. Text never wears a data color. No ad-hoc colors (the earlier `yellow-600` is gone).
 
-**Marks.** Line 2px, round joins; area fill 10% opacity; end dot r = 4 with a 2px ring in the surface color; no axes or gridlines in sparklines (the number beside it is the scale).
-
-**Stat tile contract.** label (sentence case) → value (semibold, proportional figures, auto-compact) → optional trend. Tiles: *Apps* (count), *Running* (count, "of N"), *CPU* (sum, % of one core, sparkline), *Memory* (sum RSS, sparkline).
-
-**Interaction.** Every sparkline has a hover crosshair + tooltip (value and "Ns ago"); hit area is the whole cell. Each sparkline is `role="img"` with an `aria-label` summarizing min/max/now, and the table row already carries the current values as text (the table view).
+**Interaction.** Every row is a real `<button>` with a descriptive `aria-label`; hover and focus share one background; the chevron nudges 2px on hover (disabled under `prefers-reduced-motion`).
 
 ## 5. Accessibility rules
 
 - Every interactive element reachable and operable by keyboard; visible 2px focus ring.
 - Dialogs/Sheet/AlertDialog trap focus, close on Esc, and restore focus (Radix).
 - Text ≥ 4.5:1 (`#a3a3a3` on `#171717` = 7.1:1). Status icons ≥ 3:1 and never sole carriers of meaning.
-- Live-updating numbers are **not** announced every 2s; a single polite live region announces status *changes* ("ai-worker is now Crashed").
+- Live-updating numbers are **not** announced on every poll; the inbox has one polite live region that announces the filtered count when a filter changes.
+- The lifecycle track is `role="img"` with the stage as its label; the drawer timeline is an ordered list with "(done)" / "(not yet)" text for screen readers.
 - Wizard: step list is an ordered list; validation errors are announced and focus moves to the first invalid field.
 
 ## 6. Copy rules (from the `ux-copy` pass)

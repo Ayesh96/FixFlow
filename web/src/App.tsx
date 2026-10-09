@@ -40,13 +40,28 @@ export default function App() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="min-h-screen">
+      <Tabs value={tab} onValueChange={setTab} className="min-h-screen gap-0">
         <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6">
+          <div className="mx-auto flex h-14 max-w-[2000px] items-center gap-3 px-4 sm:px-8">
             <Layers className="size-5" aria-hidden />
             <span className="font-semibold tracking-tight">{copy.name}</span>
             <span className="hidden text-sm text-muted-foreground sm:inline">{copy.tagline}</span>
           </div>
+          {extensions.length > 1 && (
+            <div className="mx-auto max-w-[2000px] overflow-x-auto px-4 sm:px-8">
+              <TabsList aria-label={copy.tabs.label} className="h-10 w-fit gap-1 rounded-none bg-transparent p-0">
+                {extensions.map((e) => (
+                  <TabsTrigger
+                    key={e.id}
+                    value={e.id}
+                    className="h-10 flex-none rounded-none border-0 border-b-2 border-transparent px-3 text-muted-foreground shadow-none transition-colors duration-150 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent dark:data-[state=active]:border-foreground"
+                  >
+                    {e.title}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          )}
           {load.state === 'offline' && (
             <p role="status" className="border-t border-status-crashed/40 bg-status-crashed/10 px-4 py-2 text-center text-sm">
               {copy.offline}
@@ -54,7 +69,7 @@ export default function App() {
           )}
         </header>
 
-        <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+        <main className="mx-auto max-w-[2000px] space-y-6 px-4 py-8 sm:px-8">
           {load.state === 'loading' && (
             <div className="space-y-3" aria-busy="true" aria-label="Loading">
               {[0, 1].map((i) => (
@@ -71,29 +86,18 @@ export default function App() {
             </Card>
           )}
 
-          {extensions.length > 0 && (
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList aria-label={copy.tabs.label}>
-                {extensions.map((e) => (
-                  <TabsTrigger key={e.id} value={e.id}>
-                    {e.title}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {extensions.map((e) => {
-                const Panel = PANELS[e.id];
-                return (
-                  Panel && (
-                    <TabsContent key={e.id} value={e.id}>
-                      <Panel />
-                    </TabsContent>
-                  )
-                );
-              })}
-            </Tabs>
-          )}
+          {extensions.map((e) => {
+            const Panel = PANELS[e.id];
+            return (
+              Panel && (
+                <TabsContent key={e.id} value={e.id} className="space-y-6">
+                  <Panel />
+                </TabsContent>
+              )
+            );
+          })}
         </main>
-      </div>
+      </Tabs>
       <Toaster />
     </TooltipProvider>
   );

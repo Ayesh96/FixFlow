@@ -1,11 +1,8 @@
 import type { ComponentType } from 'react';
-import { ErrorsPanel } from '@/components/errors/ErrorsPanel';
 import { ProjectsPanel } from '@/components/projects/ProjectsPanel';
-import { ResolverPanel } from '@/components/resolver/ResolverPanel';
 
-/** The UI for each server workflow, keyed by its id. A workflow without an entry here gets no tab. */
+/** The UI for each server workflow, keyed by its id. A workflow without an entry here gets no tab.
+ *  Errors and the resolver show inside each project's card, so only Projects has a tab. */
 export const PANELS: Record<string, ComponentType> = {
   projects: ProjectsPanel,
-  errors: ErrorsPanel,
-  resolver: ResolverPanel,
 };

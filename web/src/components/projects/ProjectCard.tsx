@@ -1,7 +1,7 @@
-import { ArrowRight, CircleCheck, Plug, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CircleCheck, CircleDashed, Copy, GitBranch, Loader2, RotateCw, Settings, Trash2, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { ExternalLink } from '@/components/Bits';
 import { Pipeline } from '@/components/Pipeline';
-import { Badge } from '@/components/ui/badge';
+import { StateLabel } from '@/components/StatusLabel';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,6 +9,8 @@ import type { ProjectView, SetupStatus, TrackerProjectGroup } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatRelative } from '@/lib/format';
 import { projectHref } from '@/hooks/useProjectRoute';
+import { connectionOf } from '@/lib/connection';
+import { ConnectionButton, ConnectionNote } from '@/components/projects/ConnectionStatus';
 import { funnel } from '@/lib/lifecycle';
 import { cn } from '@/lib/utils';
 
@@ -21,14 +23,17 @@ const SETUP: Record<SetupStatus['state'], { label: string; icon: LucideIcon; ton
   failed: { label: c.setup.failed, icon: TriangleAlert, tone: 'text-status-crashed' },
 };
 
-/** Icon and word together, never colour alone (DESIGN.md §1). */
-export function SetupBadge({ setup }: { setup: SetupStatus }) {
-  const { label, icon: Icon, tone, spin } = SETUP[setup.state];
+/**
+ * Where the clone has got to. On a card it stays silent when all is well (Ready), speaking up only when something
+ * needs attention; `always` is for the page's setup section, where Ready is the answer being looked for.
+ */
+export function SetupLabel({ setup, always = false }: { setup: SetupStatus; always?: boolean }) {
+  if (setup.state === 'ready' && !always) return null;
+  const { label, icon, tone, spin } = SETUP[setup.state];
   return (
-    <Badge variant="outline" className="gap-1.5 px-2 py-0.5 text-[13px] font-normal text-foreground" data-setup={setup.state}>
-      <Icon className={cn('size-3.5', tone, spin && 'animate-spin motion-reduce:animate-none')} aria-hidden />
+    <StateLabel icon={icon} tone={tone} spin={spin} data-setup={setup.state}>
       {label}
-    </Badge>
+    </StateLabel>
   );
 }
 
@@ -42,6 +47,16 @@ export function IconAction({ label, icon: Icon, onClick, disabled, destructive }
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
+  );
+}
+
+/** A small label above its value: the card's facts line up in equal columns. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0 space-y-0.5">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-foreground">{children}</dd>
+    </div>
   );
 }
 
@@ -63,6 +78,7 @@ interface Props {
  */
 export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetry, onSettings, onDelete }: Props) {
   const issues = group?.issues ?? [];
+  const connection = connectionOf(group);
   const canRetry = project.branch !== null && (project.setup.state === 'failed' || project.setup.state === 'idle');
   const headingId = `project-${project.id}`;
 
@@ -87,7 +103,7 @@ export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetr
                 </>
               )}
             </span>
-            <SetupBadge setup={project.setup} />
+            <SetupLabel setup={project.setup} />
           </div>
         </div>
         <div className="-mr-2 -mt-1 flex shrink-0">
@@ -109,6 +125,7 @@ export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetr
         {issues.length > 0 && group ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
+              {connection.apps.length > 0 && <>{connection.apps.join(', ')} · </>}
               {c.card.total(group.issueCount, group.eventCount)}
               {group.lastSeen && <> · {copy.errors.project.lastSeen(formatRelative(group.lastSeen))}</>}
             </p>
@@ -121,36 +138,32 @@ export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetr
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">{c.card.quiet.title}</p>
             <p className="mt-1">{project.dsn ? c.card.quiet.withDsn : c.card.quiet.noDsn}</p>
-            {project.dsn && (
-              <Button size="sm" className="mt-3" onClick={onConnect}>
-                <Plug className="size-4" aria-hidden />
-                {copy.connect.button}
-              </Button>
-            )}
           </div>
         )}
       </div>
 
-      <footer className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-background/40 px-4 py-2.5 text-xs text-muted-foreground">
+      <footer className="space-y-3 border-t bg-background/40 p-4">
         {project.dsn && (
-          <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={onConnect}>
-            <Plug className="size-3.5" aria-hidden />
-            {copy.connect.button}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <ConnectionButton connection={connection} onClick={onConnect} fill />
+            <Button variant="outline" size="sm" className="w-full" onClick={onCopyDsn}>
+              <Copy className="size-4" aria-hidden />
+              {c.card.copyDsn}
+            </Button>
+          </div>
         )}
-        {project.dsn && (
-          <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={onCopyDsn}>
-            <Copy className="size-3.5" aria-hidden />
-            {c.card.copyDsn}
-          </Button>
-        )}
-        <span>
-          <span className="font-mono">{c.token(project.tokenHint)}</span>
-          {project.hasResolverToken && <span> + {c.separateToken}</span>}
-        </span>
-        <span className="min-w-0 max-w-full truncate" title={project.verifyCommand ?? undefined}>
-          {c.card.check}: {project.verifyCommand ? <span className="font-mono">{project.verifyCommand}</span> : c.noVerify}
-        </span>
+        <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+          <Fact label={c.card.connection}>{project.dsn ? <ConnectionNote connection={connection} /> : c.card.quiet.noDsn}</Fact>
+          <Fact label={c.columns.token}>
+            <span className="font-mono">{c.token(project.tokenHint)}</span>
+            {project.hasResolverToken && <span> + {c.separateToken}</span>}
+          </Fact>
+          <Fact label={c.card.check}>
+            <span className="block truncate" title={project.verifyCommand ?? undefined}>
+              {project.verifyCommand ? <span className="font-mono">{project.verifyCommand}</span> : c.noVerify}
+            </span>
+          </Fact>
+        </dl>
       </footer>
     </Card>
   );

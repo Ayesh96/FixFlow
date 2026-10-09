@@ -2,20 +2,17 @@ import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { useMemo } from 'react';
 import { Pipeline } from '@/components/Pipeline';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { StateLabel } from '@/components/StatusLabel';
 import type { ResolverStatus, TrackerProjectGroup, TrackerStatus } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatCount, formatRelative } from '@/lib/format';
 import { funnel } from '@/lib/lifecycle';
-import { cn } from '@/lib/utils';
 
 function Health({ ok, children }: { ok: boolean; children: string }) {
-  const Icon = ok ? CircleCheck : TriangleAlert;
   return (
-    <Badge variant="outline" className="gap-1.5 px-2 py-0.5 text-[13px] font-normal text-foreground" data-healthy={ok}>
-      <Icon className={cn('size-3.5', ok ? 'text-status-running' : 'text-status-crashed')} aria-hidden />
+    <StateLabel icon={ok ? CircleCheck : TriangleAlert} tone={ok ? 'text-status-running' : 'text-status-crashed'} data-healthy={ok}>
       {children}
-    </Badge>
+    </StateLabel>
   );
 }
 

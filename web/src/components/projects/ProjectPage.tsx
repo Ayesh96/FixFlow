@@ -3,13 +3,15 @@ import { useEffect, useRef } from 'react';
 import { ExternalLink } from '@/components/Bits';
 import { ErrorList } from '@/components/errors/ErrorList';
 import { Pipeline } from '@/components/Pipeline';
-import { SetupBadge } from '@/components/projects/ProjectCard';
+import { ConnectionButton, ConnectionNote } from '@/components/projects/ConnectionStatus';
+import { SetupLabel } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LIST_HREF } from '@/hooks/useProjectRoute';
 import type { ProjectView, TrackerProjectGroup } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatRelative } from '@/lib/format';
+import { connectionOf } from '@/lib/connection';
 import { funnel } from '@/lib/lifecycle';
 
 const c = copy.projects;
@@ -44,6 +46,7 @@ export function ProjectPage({ project, group, busy, onRefreshErrors, onConnect, 
   }, [project.id]);
 
   const issues = group?.issues ?? [];
+  const connection = connectionOf(group);
   const canRetry = project.branch !== null && (project.setup.state === 'failed' || project.setup.state === 'idle');
 
   return (
@@ -70,16 +73,12 @@ export function ProjectPage({ project, group, busy, onRefreshErrors, onConnect, 
                 </>
               )}
             </span>
-            <SetupBadge setup={project.setup} />
+            <SetupLabel setup={project.setup} />
+            {project.dsn && <ConnectionNote connection={connection} className="text-sm text-muted-foreground" />}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {project.dsn && (
-            <Button size="sm" onClick={onConnect}>
-              <Plug className="size-4" aria-hidden />
-              {copy.connect.button}
-            </Button>
-          )}
+          {project.dsn && <ConnectionButton connection={connection} onClick={onConnect} />}
           {project.dsn && (
             <Button variant="outline" size="sm" onClick={onCopyDsn}>
               <Copy className="size-4" aria-hidden />
@@ -147,12 +146,16 @@ export function ProjectPage({ project, group, busy, onRefreshErrors, onConnect, 
         </h3>
         <Card className="p-4">
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Fact label={c.page.clone}>
+              <SetupLabel setup={project.setup} always />
+            </Fact>
             <Fact label={c.columns.token}>
               <span className="font-mono">{c.token(project.tokenHint)}</span>
               {project.hasResolverToken && <span> + {c.separateToken}</span>}
             </Fact>
             <Fact label={c.card.check}>{project.verifyCommand ? <span className="font-mono">{project.verifyCommand}</span> : c.noVerify}</Fact>
             <Fact label={c.page.stackless}>{project.issuesWithoutStack ? c.page.on : c.page.off}</Fact>
+            <Fact label={c.page.apps}>{connection.apps.length > 0 ? connection.apps.join(', ') : connection.connected ? c.page.untagged : c.page.noneYet}</Fact>
             <Fact label={c.page.address}>{project.dsn ? <span className="font-mono">{project.dsn}</span> : c.card.quiet.noDsn}</Fact>
           </dl>
         </Card>

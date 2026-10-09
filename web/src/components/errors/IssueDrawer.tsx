@@ -2,7 +2,7 @@ import { Check, Circle, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ExternalLink, When } from '@/components/Bits';
-import { StatusBadge, TagChips, TriageBadge } from '@/components/StatusBadge';
+import { ResolverLabel, TagChips, TriageLabel } from '@/components/StatusLabel';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api, type TrackerIssue } from '@/lib/api';
@@ -90,7 +90,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
                   {copy.triage.heading}
                 </h3>
                 <div className="flex items-center gap-2">
-                  {issue.triageStatus && <TriageBadge status={issue.triageStatus} />}
+                  {issue.triageStatus && <TriageLabel status={issue.triageStatus} />}
                   <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" disabled={asking || issue.triageStatus === 'PENDING'} onClick={() => void again()}>
                     <RotateCw className={asking ? 'size-3.5 animate-spin motion-reduce:animate-none' : 'size-3.5'} aria-hidden />
                     {copy.triage.again}
@@ -127,7 +127,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
                 <h3 id="journey" className="text-sm font-medium">
                   {c.journey}
                 </h3>
-                {issue.resolverStatus && <StatusBadge status={issue.resolverStatus} />}
+                {issue.resolverStatus && <ResolverLabel status={issue.resolverStatus} />}
               </div>
 
               <ol className="relative space-y-5">

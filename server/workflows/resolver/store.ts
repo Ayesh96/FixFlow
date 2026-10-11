@@ -1,5 +1,5 @@
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
-import { openDatabase } from '../../sqlite.ts';
+import { columnsOf, openDatabase } from '../../sqlite.ts';
 import type { AttemptRecord, AttemptStats, AttemptStatus } from './types.ts';
 
 const SCHEMA = `
@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS attempts (
   pr_number        INTEGER,
   pr_url           TEXT,
   reason           TEXT,
+  attempt_count    INTEGER NOT NULL DEFAULT 0,
   attempted_at     TEXT NOT NULL,
   PRIMARY KEY (repo, issue_number)
 );
@@ -25,6 +26,7 @@ interface Row {
   pr_number: number | null;
   pr_url: string | null;
   reason: string | null;
+  attempt_count: number;
   attempted_at: string;
 }
 
@@ -37,6 +39,7 @@ function toRecord(row: Row): AttemptRecord {
     prNumber: row.pr_number,
     prUrl: row.pr_url,
     reason: row.reason,
+    attempts: row.attempt_count,
     attemptedAt: row.attempted_at,
   };
 }
@@ -52,15 +55,20 @@ export class Store {
   constructor(path: string) {
     this.db = openDatabase(path);
     this.db.exec(SCHEMA);
+    // Databases from before attempts were counted get the column; their old failures start with a fresh allowance.
+    if (!columnsOf(this.db, 'attempts').has('attempt_count')) {
+      this.db.exec('ALTER TABLE attempts ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0');
+    }
 
     this.stmtGetAttempt = this.db.prepare(`
       SELECT * FROM attempts WHERE repo = ? AND issue_number = ?
     `);
 
     this.stmtBeginAttempt = this.db.prepare(`
-      INSERT INTO attempts (repo, issue_number, fingerprint_hash, status, pr_number, pr_url, reason, attempted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO attempts (repo, issue_number, fingerprint_hash, status, pr_number, pr_url, reason, attempted_at, attempt_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
       ON CONFLICT (repo, issue_number) DO UPDATE SET
+        attempt_count = attempt_count + 1,
         fingerprint_hash = excluded.fingerprint_hash,
         status = excluded.status,
         pr_number = excluded.pr_number,

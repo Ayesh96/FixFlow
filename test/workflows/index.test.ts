@@ -14,7 +14,7 @@ const errors = (over: Partial<ErrorsConfig> = {}): ErrorsConfig => ({
 });
 const resolver = (): ResolverConfig => ({
   githubApiUrl: 'https://api.github.com', llm: fakeLlm(),
-  pollIntervalMs: 300_000, maxConcurrentFixes: 1, retrySkippedAttempts: false, databasePath: ':memory:',
+  pollIntervalMs: 300_000, maxConcurrentFixes: 1, maxAttemptsPerIssue: 3, retrySkippedAttempts: false, databasePath: ':memory:',
 });
 
 describe('loadWorkflows', () => {

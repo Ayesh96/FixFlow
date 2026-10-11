@@ -19,6 +19,7 @@ function makeConfig(overrides: Partial<ConfigType> = {}): ConfigType {
     llm: fakeLlm(),
     pollIntervalMs: 300_000,
     maxConcurrentFixes: 3,
+    maxAttemptsPerIssue: 3,
     retrySkippedAttempts: false,
     databasePath: ':memory:',
     ...overrides,
@@ -206,10 +207,84 @@ describe('Scheduler', () => {
     assert.deepEqual(fetched, [7]);
   });
 
+  /** Runs one poll over issue 7 and says whether the resolver tried to fix it. */
+  async function pollTriesToFix(store: Store, config: ConfigType = makeConfig()): Promise<boolean> {
+    const issueSource: IssueSource = { listIssues: async () => [tracked()], reportResolverStatus: async () => {} };
+    const github: GitHubGateway = { getIssue: async () => openIssue, getDefaultBranch: async () => 'main', createPullRequest: async () => ({ number: 1, url: 'x' }) };
+    let tried = false;
+    const attemptFix = async (): Promise<FixOutcome> => {
+      tried = true;
+      return { kind: 'failed', error: 'still broken' };
+    };
+    await new Scheduler({ issueSource, githubFor: () => github, projects, store, config, logger: silent, attemptFix }).pollOnce();
+    return tried;
+  }
+
+  /** Puts issue 7 through `count` failed attempts, the last one `ago` ms in the past. */
+  function failTimes(store: Store, count: number, ago: number): void {
+    for (let i = 0; i < count; i++) {
+      store.beginAttempt('acme/app', 7, 'fp-1');
+      store.recordResult('acme/app', 7, 'FAILED', { reason: 'clone exploded' }, new Date(Date.now() - ago));
+    }
+  }
+
+  it('waits out a growing backoff after a failed attempt, then tries again', async () => {
+    const minute = 60_000;
+    const justNow = newStore();
+    failTimes(justNow, 1, 0);
+    assert.equal(await pollTriesToFix(justNow), false, 'a failure from this instant is left alone');
+
+    const onePast = newStore();
+    failTimes(onePast, 1, 16 * minute);
+    assert.equal(await pollTriesToFix(onePast), true, 'one failure waits 15 minutes');
+
+    const twoNotYet = newStore();
+    failTimes(twoNotYet, 2, 16 * minute);
+    assert.equal(await pollTriesToFix(twoNotYet), false, 'two failures wait 30 minutes');
+
+    const twoPast = newStore();
+    failTimes(twoPast, 2, 31 * minute);
+    assert.equal(await pollTriesToFix(twoPast), true);
+  });
+
+  it('stops retrying an issue once it has used its attempts, and says so', async () => {
+    const day = 24 * 60 * 60_000;
+    const exhausted = newStore();
+    failTimes(exhausted, 3, day);
+    assert.equal(await pollTriesToFix(exhausted), false, 'three failures a day ago are still not retried');
+    assert.equal(exhausted.getAttempt('acme/app', 7)?.attempts, 3);
+
+    const raised = newStore();
+    failTimes(raised, 3, day);
+    assert.equal(await pollTriesToFix(raised, makeConfig({ maxAttemptsPerIssue: 5 })), true, 'a higher limit allows another try');
+
+    // The attempt that uses the last allowance leaves a reason that says the resolver stopped.
+    const last = newStore();
+    failTimes(last, 2, day);
+    assert.equal(await pollTriesToFix(last), true);
+    assert.match(last.getAttempt('acme/app', 7)?.reason ?? '', /still broken \(tried 3 times; run it from the dashboard/);
+  });
+
+  it('still runs an exhausted issue when a person asks for it', async () => {
+    const store = newStore();
+    failTimes(store, 3, 24 * 60 * 60_000);
+    const issueSource: IssueSource = { listIssues: async () => [tracked()], reportResolverStatus: async () => {} };
+    const github: GitHubGateway = { getIssue: async () => openIssue, getDefaultBranch: async () => 'main', createPullRequest: async () => ({ number: 1, url: 'x' }) };
+    let forced = false;
+    const attemptFix = async (): Promise<FixOutcome> => {
+      forced = true;
+      return { kind: 'skipped', reason: 'no' };
+    };
+    const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
+    assert.equal(await scheduler.forceIssue('fp-1'), 'started');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(forced, true);
+  });
+
   it('retries an issue whose previous attempt failed', async () => {
     const store = newStore();
     store.beginAttempt('acme/app', 7, 'fp-1');
-    store.recordResult('acme/app', 7, 'FAILED', { reason: 'clone exploded' });
+    store.recordResult('acme/app', 7, 'FAILED', { reason: 'clone exploded' }, new Date(Date.now() - 60 * 60_000));
 
     const issueSource: IssueSource = { listIssues: async () => [tracked()], reportResolverStatus: async () => {} };
     const github: GitHubGateway = {

@@ -123,9 +123,10 @@ With no model set up for triage, new errors are triaged by the rule-based heuris
 | `ORCH_RESOLVER_DB` | `<data>/resolver.db` | |
 | `ORCH_RESOLVER_POLL_INTERVAL_MS` | `300000` | Minimum 30000. |
 | `ORCH_RESOLVER_MAX_CONCURRENT_FIXES` | `3` | |
+| `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How often one issue is attempted before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
 | `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
 
-A fix attempt clones a repo, runs a model and may run your check command, so it does real work on your machine as you.
+A fix attempt clones a repo, runs a model and may run your check command, so it does real work on your machine as you. A model call costs money, so a single attempt is also capped at 20 turns (`AGENT_MAX_TURNS` in `server/constants.ts`).
 
 ## Development
 

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { RESOLVER_RETRY_BACKOFF_MS } from '../../constants.ts';
 import type { Project } from '../../projects/store.ts';
 import type { Logger } from '../types.ts';
 import { formatRepo, parseRepo } from '../../shared/repo.ts';
@@ -10,9 +11,9 @@ import { formatPullRequestBody, formatPullRequestTitle, formatFixSummary } from 
 import type { GitHubGateway } from './github.ts';
 import type { Store } from './store.ts';
 import type { IssueSource } from './issueSource.ts';
-import type { AttemptStatus, GitHubIssue, PollStatus, RepoRef, TrackedIssue } from './types.ts';
+import type { AttemptRecord, AttemptStatus, GitHubIssue, PollStatus, RepoRef, TrackedIssue } from './types.ts';
 
-/** Attempts in these states are never retried; every other state is fair game on the next poll. */
+/** Attempts in these states are never retried. A FAILED one is retried on a backoff, up to `maxAttemptsPerIssue` times. */
 const TERMINAL_STATUSES = new Set<AttemptStatus>(['PR_OPEN', 'SKIPPED']);
 
 interface Candidate {
@@ -188,6 +189,7 @@ export class Scheduler {
 
       const existing = this.store.getAttempt(item.githubRepo, item.githubIssueNumber);
       if (existing && TERMINAL_STATUSES.has(existing.status) && !this.isRetrySkipped(existing.status)) continue;
+      if (existing && this.isResting(existing)) continue;
 
       const github = this.githubFor(project.resolverToken ?? project.token);
       let issue: GitHubIssue | null;
@@ -202,6 +204,24 @@ export class Scheduler {
       candidates.push({ repo, issue, fingerprintHash: item.fingerprintHash, project, github });
     }
     return candidates;
+  }
+
+  /**
+   * A failed issue is left alone once it has used its attempts, and for a growing wait before that, so a
+   * broken key or an outage cannot spend a model's budget on the same issue every poll.
+   * Running it by hand skips this check.
+   */
+  private isResting(attempt: AttemptRecord): boolean {
+    if (attempt.status !== 'FAILED') return false;
+    if (attempt.attempts >= this.config.maxAttemptsPerIssue) return true;
+    const wait = RESOLVER_RETRY_BACKOFF_MS * 2 ** Math.max(0, attempt.attempts - 1);
+    return Date.now() - Date.parse(attempt.attemptedAt) < wait;
+  }
+
+  /** Tells the person, on the attempt that used the last allowance, that the resolver has stopped trying. */
+  private failureReason(repo: string, issueNumber: number, reason: string): string {
+    const used = this.store.getAttempt(repo, issueNumber)?.attempts ?? 0;
+    return used >= this.config.maxAttemptsPerIssue ? `${reason} (tried ${used} times; run it from the dashboard to try again)` : reason;
   }
 
   /** Only SKIPPED is ever re-run, and only when the testing flag is on. PR_OPEN stays blocked: re-running it would open a duplicate PR. */
@@ -260,9 +280,10 @@ export class Scheduler {
         return;
       }
       if (outcome.kind === 'failed') {
-        this.store.recordResult(repoStr, issue.number, 'FAILED', { reason: outcome.error });
+        const reason = this.failureReason(repoStr, issue.number, outcome.error);
+        this.store.recordResult(repoStr, issue.number, 'FAILED', { reason });
         this.onChange();
-        await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason: outcome.error });
+        await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason });
         this.logger.warn({ repo: repoStr, issue: issue.number, error: outcome.error }, 'Fix attempt failed');
         return;
       }
@@ -279,7 +300,7 @@ export class Scheduler {
       await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'PR_OPEN', opened);
       this.logger.info({ repo: repoStr, issue: issue.number, pr: pr.url }, 'Opened pull request');
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = this.failureReason(repoStr, issue.number, err instanceof Error ? err.message : String(err));
       this.store.recordResult(repoStr, issue.number, 'FAILED', { reason: message });
       this.onChange();
       await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason: message });

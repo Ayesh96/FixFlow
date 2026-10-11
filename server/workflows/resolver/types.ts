@@ -38,6 +38,8 @@ export interface AttemptRecord {
   prNumber: number | null;
   prUrl: string | null;
   reason: string | null;
+  /** How many times this issue has been attempted, whatever the outcome. */
+  attempts: number;
   attemptedAt: string;
 }
 

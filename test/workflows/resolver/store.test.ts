@@ -108,3 +108,39 @@ test('stats() with mixed statuses counts correctly', () => {
   assert.equal(stats.failed, 1);
   store.close();
 });
+
+test('every beginAttempt counts, whatever the outcome', () => {
+  const store = new Store(':memory:');
+  store.beginAttempt('owner/repo', 42, 'hash123');
+  assert.equal(store.getAttempt('owner/repo', 42)?.attempts, 1);
+  store.recordResult('owner/repo', 42, 'FAILED', { reason: 'boom' });
+  store.beginAttempt('owner/repo', 42, 'hash123');
+  store.recordResult('owner/repo', 42, 'SKIPPED', { reason: 'no' });
+  store.beginAttempt('owner/repo', 42, 'hash123');
+  assert.equal(store.getAttempt('owner/repo', 42)?.attempts, 3);
+  assert.equal(store.getAttempt('owner/repo', 43), null);
+  store.close();
+});
+
+test('a database from before attempts were counted is upgraded in place', async () => {
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { DatabaseSync } = await import('node:sqlite');
+  const path = join(mkdtempSync(join(tmpdir(), 'resolver-old-')), 'resolver.db');
+
+  const old = new DatabaseSync(path);
+  old.exec(`CREATE TABLE attempts (
+    repo TEXT NOT NULL, issue_number INTEGER NOT NULL, fingerprint_hash TEXT NOT NULL, status TEXT NOT NULL,
+    pr_number INTEGER, pr_url TEXT, reason TEXT, attempted_at TEXT NOT NULL, PRIMARY KEY (repo, issue_number))`);
+  old.exec("INSERT INTO attempts VALUES ('owner/repo', 9, 'h', 'FAILED', NULL, NULL, 'old failure', '2024-01-01T00:00:00.000Z')");
+  old.close();
+
+  const store = new Store(path);
+  const row = store.getAttempt('owner/repo', 9);
+  assert.equal(row?.status, 'FAILED');
+  assert.equal(row?.attempts, 0, 'an old failure starts with a fresh allowance');
+  store.beginAttempt('owner/repo', 9, 'h');
+  assert.equal(store.getAttempt('owner/repo', 9)?.attempts, 1);
+  store.close();
+});

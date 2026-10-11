@@ -22,6 +22,7 @@ const issue: GitHubIssue = {
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
+    maxAttemptsPerIssue: 3,
     retrySkippedAttempts: false,
     githubApiUrl: 'https://api.github.com',
     llm: fakeLlm(),

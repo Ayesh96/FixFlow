@@ -40,7 +40,8 @@ const resolverConfig = (overrides: Partial<ResolverConfig> = {}): ResolverConfig
   llm: fakeLlm(),
   pollIntervalMs: 300_000,
   maxConcurrentFixes: 1,
-  retrySkippedAttempts: false,
+  maxAttemptsPerIssue: 3,
+    retrySkippedAttempts: false,
   databasePath: ':memory:',
   ...overrides,
 });

@@ -39,6 +39,10 @@ export const VERIFY_TIMEOUT_MS = 5 * MINUTE;
 export const VERIFY_OUTPUT_MAX_CHARS = 4000;
 /** The most model turns one fix attempt may take. Each turn re-sends the whole history, so this is the cost ceiling per attempt. */
 export const AGENT_MAX_TURNS = 20;
+/** How often one issue is attempted before the resolver stops on its own. A person can still run it from the dashboard. */
+export const RESOLVER_MAX_ATTEMPTS_PER_ISSUE = 3;
+/** The wait after a failed attempt, doubled for each further failure, so an outage does not spend every attempt within minutes. */
+export const RESOLVER_RETRY_BACKOFF_MS = 15 * MINUTE;
 /** Source files named in the issue that are read for the model up front, saving it the first few tool calls. */
 export const AGENT_PREREAD_FILES = 3;
 /** Lines either side of the crashing line that a pre-read shows. */

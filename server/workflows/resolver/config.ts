@@ -2,8 +2,7 @@ import { join } from 'node:path';
 import type { LlmGateway } from '../../llm/index.ts';
 import { parseDatabaseUrl } from '../../shared/database-url.ts';
 import { ConfigError } from '../../shared/errors.ts';
-import { RESOLVER_MIN_POLL_INTERVAL_MS } from '../../constants.ts';
-
+import { RESOLVER_MAX_ATTEMPTS_PER_ISSUE, RESOLVER_MIN_POLL_INTERVAL_MS } from '../../constants.ts';
 
 export interface Config {
   /** The GitHub API address. Tokens belong to projects now (see server/projects). */
@@ -12,6 +11,8 @@ export interface Config {
   llm: LlmGateway;
   pollIntervalMs: number;
   maxConcurrentFixes: number;
+  /** How often one issue is attempted before the resolver leaves it alone; running it by hand still works. */
+  maxAttemptsPerIssue: number;
   /** Testing aid: re-attempt SKIPPED issues on every poll instead of remembering the skip. PR_OPEN is never retried. */
   retrySkippedAttempts: boolean;
   databasePath: string;
@@ -49,6 +50,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
   };
   const pollIntervalMs = integer('ORCH_RESOLVER_POLL_INTERVAL_MS', 300_000, RESOLVER_MIN_POLL_INTERVAL_MS);
   const maxConcurrentFixes = integer('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', 3, 1);
+  const maxAttemptsPerIssue = integer('ORCH_RESOLVER_MAX_ATTEMPTS', RESOLVER_MAX_ATTEMPTS_PER_ISSUE, 1);
 
   const databaseUrl = text('ORCH_RESOLVER_DB') || join(dataDir, 'resolver.db');
   const databasePath = parseDatabaseUrl(databaseUrl);
@@ -61,6 +63,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
     llm,
     pollIntervalMs,
     maxConcurrentFixes,
+    maxAttemptsPerIssue,
     retrySkippedAttempts: /^(?:1|true|yes|on)$/i.test(text('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS')),
     databasePath: databasePath as string,
   };

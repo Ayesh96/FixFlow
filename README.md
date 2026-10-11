@@ -1,29 +1,25 @@
 # FixFlow
 
-**The coding factory.** Errors go in; pull requests come out.
+FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and then tries a fix with an AI model, so you get a pull request to review. It runs on your own machine with a local Ollama model, DeepSeek or Anthropic, and works with the Sentry SDKs your app already uses.
 
-Self-hosted error tracking, triage and automated fixes. Give it a GitHub repository and point your app's Sentry SDK at it:
+[![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)](LICENSE)
+[![CI](https://github.com/Ayesh96/FixFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayesh96/FixFlow/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Ayesh96/FixFlow)](https://github.com/Ayesh96/FixFlow/releases/latest)
+[![Stars](https://img.shields.io/github/stars/Ayesh96/FixFlow?style=flat)](https://github.com/Ayesh96/FixFlow/stargazers)
 
-1. **Track.** Errors arrive through a Sentry-compatible endpoint and are grouped, so the same error 2,000 times is one issue with a count.
-2. **Triage.** A model (local Ollama, or a rule-based fallback) decides whether the error looks like a small fix.
-3. **File.** One GitHub issue per new error. Errors without a stack trace are kept here but stay off GitHub unless the project asks for them.
-4. **Resolve.** The resolver fetches the latest of your branch, lets a model attempt a fix in a throwaway worktree, runs your project's check command, and opens a pull request against that branch.
+<!--
+DEMO GIF (not recorded yet). To add it: follow docs/launch/demo-recording.md, save the file as
+docs/assets/demo.gif, then replace this comment with:
+  ![FixFlow: an error arrives, a GitHub issue is filed, a pull request is opened](docs/assets/demo.gif)
+-->
 
-Everything runs on your own machine. Your code and tokens never leave it, except to GitHub and the model you choose.
+## The problem
 
-## Install
+Your app throws errors in production. Someone has to notice them, group the duplicates, write an issue, find the cause and open a fix. Hosted trackers do the first half well, but the second half is still manual, and self-hosting the full Sentry stack is heavy. FixFlow is one small process that does both halves for small, clear bugs and leaves the decision to merge with you.
 
-You need **Node 24 or newer** and **git** on Linux or macOS. The server runs its TypeScript directly (no compile step) and uses Node's built-in `node:sqlite`. Windows is not tested.
+## Quick start
 
-**From a release** (no build step): download `fixflow-v<version>.tar.gz` and `sha256sums.txt` from the [latest release](https://github.com/Ayesh96/FixFlow/releases/latest), then:
-
-```bash
-shasum -a 256 -c sha256sums.txt        # on Linux: sha256sum -c sha256sums.txt
-tar -xzf fixflow-v*.tar.gz && cd fixflow-v*
-node bin/fixflow.mjs
-```
-
-**From a clone** (to develop or to run the latest commit):
+You need **Node 24 or newer** and **git**, on Linux or macOS (Windows is not tested).
 
 ```bash
 git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
@@ -31,128 +27,71 @@ npm install     # also installs the UI's dependencies
 npm start       # builds the UI if it is stale, then serves it
 ```
 
-Either prints a link like `http://localhost:7420/?token=…`. **Open that link once**; your browser remembers it (see [Security](#security)). On an older Node it stops with a message saying so.
+It prints a link like `http://localhost:7420/?token=…`. Open it once; your browser remembers it.
 
-## Using it
+Then, in the dashboard:
 
-1. **Projects tab → Add project.** Enter the repository (`owner/name`), a GitHub token, then pick the branch to work on from the repo's own branches. Optionally set a command that checks a fix (for example `npm ci && npm test`). The token and repo are checked with GitHub before anything is saved, and the repository is cloned straight away.
-2. **Point your app at the project's error address**, shown on its row (copy it with the icon): a DSN such as `http://fixflow@localhost:3000/1`.
-3. Errors show up on the **Errors** tab, grouped by project. The **Resolver** tab shows what it tried, skipped, or failed, with links to each issue and pull request.
+1. **Projects tab → Add project.** Enter `owner/name`, a GitHub token, and the branch to work on. Optionally add a command that checks a fix, such as `npm ci && npm test`.
+2. Copy the project's **error address** (a DSN like `http://fixflow@localhost:3000/1`) into your app's Sentry SDK settings.
+3. Trigger an error. It shows up on the **Errors** tab, and a GitHub issue is filed when it has a stack trace.
 
-A project's **gear icon** changes everything except the repository: branch, token, a separate pull-request token, the check command, and whether errors without a stack trace also go to GitHub.
+To check the receiving side without an app, `curl http://localhost:3000/healthz` should return `200`.
 
-## What a project is
+No build step is needed if you use a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) instead: verify it with `sha256sums.txt`, unpack it, and run `node bin/fixflow.mjs`.
 
-A **project** is a repository, the **branch** to work on, and the **GitHub token** to do it with. Its id is the number at the end of the DSN.
+Triage works without any model (a rule-based fallback is used). To let the resolver write fixes, run [Ollama](https://ollama.com) locally, or set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. See the [reference](docs/reference.md#configuration).
 
-- The **branch is the one you give**, not GitHub's default. Errors are filed against it, fixes are based on its latest commit, and pull requests target it.
-- Tokens are stored **encrypted** (AES-256-GCM) in `projects.db`, never in `.env`, and are never sent to the browser (only the last 4 characters, to tell tokens apart). The key is `secret.key` (mode 0600), beside it.
-- **What that does and does not protect:** a copied database or backup contains no usable token. Someone who can read your user's files can still read the key beside it, so this is the same trust as an SSH private key, not an OS keychain.
-- A project can have a separate token for the resolver (pushing a branch and opening a pull request need more access than filing issues). Without one, the main token is used.
-- Each project's repository is cloned once, when it is added, into `repos/`, and fetched up to date before every fix. One clone serves every branch of a repo.
-- **The check command** runs through a shell, in a throwaway copy of the repository, before and after each fix. If it already fails before the fix, the resolver skips the issue; if it fails after, the pull request says it is unverified. It runs as you, on your machine, so only put commands there that you would run yourself.
+## Features
 
-All of it lives in one data folder, `~/.fixflow` by default (`ORCH_DATA_DIR`).
+- **Sentry-compatible ingest.** Accepts the Sentry `store` and `envelope` endpoints, including gzip, so you change a DSN and nothing else in your app.
+- **Grouping.** Errors are grouped by exception type, crashing file and line, so the same error 2,000 times is one issue with a count.
+- **Triage.** A local or hosted model, or a rule-based fallback, labels each error (for example `bot-safe` or `needs-human`) and says why.
+- **One GitHub issue per new error**, with the stack trace, and comments at 100, 1,000 and 10,000 events by default.
+- **Resolver.** Fetches your branch, lets a model attempt a fix in a throwaway worktree, runs your check command before and after, and opens a pull request. It marks the pull request unverified when the check is missing or fails.
 
-## Two listeners
+## How it works
 
-One process, two sockets, and the split matters:
-
-| | Dashboard | Error ingest |
-|---|---|---|
-| Default | `127.0.0.1:7420` | `127.0.0.1:3000` |
-| Auth | token cookie + `Host` allow-list + `Origin` check | optional `sentry_key` only |
-| CORS | none (same-origin only) | `*` |
-| Serves | the UI and the API | the two Sentry endpoints and `/healthz`, nothing else |
-
-Sentry SDKs, browsers included, post cross-origin with no cookie, so none of the dashboard's checks can apply to them. Rather than weaken those checks, ingest gets its own socket with nothing else on it. It still binds loopback by default, so only apps on this machine can report until you set `ORCH_ERRORS_INGEST_HOST=0.0.0.0` (which prints a warning at startup). Set `ORCH_ERRORS_DSN_PUBLIC_KEY` to require a key.
-
-## Security
-
-This server holds your GitHub tokens and can push code, so:
-
-1. It listens on **127.0.0.1 only**.
-2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on our port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
-3. Every `/api` route needs a **secret token**, kept in `<data folder>/token` (mode `0600`). The link printed at startup exchanges it for an `HttpOnly; SameSite=Strict` cookie. Treat the token file like an SSH key.
-4. Strict CSP, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, and `no-store` on API responses.
-5. Git and the model's tools use argument arrays. The only shell is your own check command.
-
-## Configuration
-
-Everything is optional. Copy `.env.example` to `.env`.
-
-| Variable | Default | |
-|---|---|---|
-| `PORT` | `7420` | The dashboard. |
-| `ORCH_DATA_DIR` | `~/.fixflow` | Where the token, databases, key and clones live. |
-| `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
-| `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
-| `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. The resolver always has a local Ollama to try (`http://localhost:11434`); triage uses it only when this is set. |
-| `ORCH_OLLAMA_MODEL` | `qwen2.5-coder:7b` | |
-| `ORCH_DEEPSEEK_API_KEY` | unset | Turns on DeepSeek as a model for triage and the resolver. |
-| `ORCH_DEEPSEEK_MODEL` | `deepseek-flash` | Or `deepseek-v4-pro`. Thinking mode is always off. |
-| `ORCH_DEEPSEEK_API_URL` | `https://api.deepseek.com` | |
-| `ORCH_ANTHROPIC_API_KEY` | unset | Turns on Anthropic as a model for triage and the resolver. |
-| `ORCH_ANTHROPIC_MODEL` | `claude-haiku-4-5` | |
-| `ORCH_LLM_PROVIDERS` | `ollama,deepseek,anthropic` | The models to try, in order, for both triage and the resolver; the first is used and the rest are fallbacks when it fails. A model that is not set up is skipped by default, and is an error when you name it here. |
-| `ORCH_TRIAGE_PROVIDERS` / `ORCH_RESOLVER_PROVIDERS` | `ORCH_LLM_PROVIDERS` | The same, for one purpose only. |
-
-With no model set up for triage, new errors are triaged by the rule-based heuristic. When models are set up and all of them fail, the error is recorded as ERRORED and can be triaged again.
-
-### Errors
-
-| Variable | Default | |
-|---|---|---|
-| `ORCH_ERRORS_ENABLED` | on | `0` leaves the workflow out. |
-| `ORCH_ERRORS_INGEST_PORT` | `3000` | |
-| `ORCH_ERRORS_INGEST_HOST` | `127.0.0.1` | |
-| `ORCH_ERRORS_DSN_PUBLIC_KEY` | unset | When set, ingest requests must carry this `sentry_key`. |
-| `ORCH_ERRORS_GITHUB_LABELS` | none | Labels applied to new issues. |
-| `ORCH_ERRORS_MIN_LEVEL` | `error` | |
-| `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the issue. |
-| `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
-| `ORCH_ERRORS_DB` | `<data>/errors.db` | |
-
-**What reaches GitHub.** Every error is kept in the Errors tab. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file and its line, not the message, so an error with changing ids in its text is still one issue.
-
-### Resolver
-
-| Variable | Default | |
-|---|---|---|
-| `ORCH_RESOLVER_ENABLED` | on | `0` leaves the workflow out. |
-| `ORCH_RESOLVER_DB` | `<data>/resolver.db` | |
-| `ORCH_RESOLVER_POLL_INTERVAL_MS` | `300000` | Minimum 30000. |
-| `ORCH_RESOLVER_MAX_CONCURRENT_FIXES` | `3` | |
-| `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How often one issue is attempted before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
-| `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
-
-A fix attempt clones a repo, runs a model and may run your check command, so it does real work on your machine as you. A model call costs money, so a single attempt is also capped at 20 turns (`AGENT_MAX_TURNS` in `server/constants.ts`).
-
-## Development
-
-```
-server/                Express API (TypeScript, run natively by Node)
-  app.ts               the dashboard app (loopback, token-checked)
-  ingest.ts            the public ingest listener: no cookie, no Origin check, ingest routes only
-  projects/            projects, encrypted tokens, repo clones, the GitHub check, and the Projects routes
-  workflows/
-    errors/            Sentry ingest, grouping, triage, GitHub issues
-    resolver/          polls those issues, attempts a fix, opens a PR
-web/                   React + Vite + Tailwind v4 + shadcn/ui (Radix). See DESIGN.md
-test/                  real git and real SQLite; only GitHub's network API and the paid model are faked
+```mermaid
+flowchart LR
+  A[Your app + Sentry SDK] -->|store / envelope| B[FixFlow ingest :3000]
+  B --> C[Group by fingerprint]
+  C --> D[Triage: model or rules]
+  D --> E[GitHub issue]
+  E --> F[Resolver: worktree + model + check command]
+  F --> G[Pull request on your branch]
 ```
 
-The only runtime dependency of the server is `express`; SQLite is Node's built-in `node:sqlite`.
+The dashboard (`127.0.0.1:7420`) and the ingest endpoint (`127.0.0.1:3000`) are two separate sockets in one process. Both listen on loopback by default. Tokens are stored encrypted on disk. The [reference](docs/reference.md) covers the details.
 
-```bash
-npm run dev               # API with auto-restart + Vite hot reload on http://localhost:5173
-npm test                  # server tests + UI unit tests
-npm run typecheck
-```
+## Compared with alternatives
 
-To add another workflow, implement `Workflow` from `server/workflows/types.ts` (`id`, `title`, `routes(router)`, optional `start`/`stop`, and `ingestRoutes(router)` only if it needs unauthenticated outside traffic), switch it on in `server/workflows/index.ts`, and register a panel for its `id` in `web/src/components/extensions.ts`.
+| | FixFlow | Sentry (hosted or self-hosted) | GlitchTip, Bugsink |
+|---|---|---|---|
+| Receives Sentry SDK events | Yes | Yes | Yes |
+| Opens GitHub issues from errors | Yes, built in | Yes (integration) | Varies; check each project |
+| Tries a code fix and opens a pull request | Yes, with your own model | Yes, through Seer, a paid Sentry feature | No |
+| Runs on one machine with no extra services | Yes (Node and git) | Heavy; the self-hosted stack needs several services | Lighter than Sentry |
+| Performance tracing, session replay, alert rules, release health | **No** | **Yes** | Partial or none |
+| Multiple users, teams, roles | **No**, single user on loopback | **Yes** | Yes |
+| Quality of the fixes | Depends on the model you give it; no measured success rate yet | Likely better models and context | n/a |
 
-`DESIGN.md` documents the tokens, components, accessibility rules and copy conventions.
+Choose Sentry if you need tracing, alerting, teams or a large SDK and integration ecosystem. Choose GlitchTip or Bugsink if you want a mature, multi-user, self-hosted tracker and do not need automated fixes. Choose FixFlow if you want the loop from error to reviewable pull request on your own machine, for a small project, and you accept that it is young. General coding agents that work from a GitHub issue, such as GitHub's Copilot coding agent, are broader than FixFlow and may give better fixes; FixFlow's difference is the Sentry intake and that a local model can be used.
+
+Triage was measured on 12 replayed situations; see [docs/TRIAGE-BEFORE-AFTER.md](docs/TRIAGE-BEFORE-AFTER.md). Fix quality has not been measured.
+
+## Roadmap
+
+There is no committed roadmap. Known gaps you can help with:
+
+- Windows support (not tested today).
+- A measured success rate for the resolver, the way triage has one.
+- A container image (none exists yet).
+
+Ideas and bug reports are welcome as [issues](https://github.com/Ayesh96/FixFlow/issues).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Commits need a DCO sign-off (`git commit -s`). Run `npm run typecheck && npm test` before opening a pull request.
 
 ## License
 
@@ -162,4 +101,4 @@ FixFlow is **source-available** under the [Functional Source License, version 1.
 - You may **not** use it to offer a competing commercial product or service.
 - Each release converts to the **Apache License 2.0 two years after** it is published.
 
-"FixFlow" is the name of this project; a fork has to use another name. To report a suspected violation, open an issue or contact the maintainer. See [CONTRIBUTING.md](CONTRIBUTING.md) to send changes.
+"FixFlow" is the name of this project; a fork has to use another name. To report a suspected violation, open an issue or contact the maintainer.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../../llm/fakes.ts';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,7 +8,7 @@ import { runVerify as realRunVerify } from '../../../server/workflows/resolver/v
 import { attemptFix, parseVerdict, runFixAgent, type FixerDeps } from '../../../server/workflows/resolver/fixer.ts';
 import type { Config } from '../../../server/workflows/resolver/config.ts';
 import type { AgentVerdict } from '../../../server/workflows/resolver/fixer.ts';
-import type { ChatClient, OllamaMessage } from '../../../server/workflows/resolver/ollama-client.ts';
+import type { ChatClient, ChatMessage } from '../../../server/llm/index.ts';
 import type { GitHubIssue, RepoRef } from '../../../server/workflows/resolver/types.ts';
 
 const repo: RepoRef = { owner: 'acme', repo: 'app' };
@@ -23,9 +24,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     retrySkippedAttempts: false,
     githubApiUrl: 'https://api.github.com',
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'qwen2.5-coder:7b',
-    anthropic: null,
+    llm: fakeLlm(),
     pollIntervalMs: 300_000,
     maxConcurrentFixes: 3,
     databasePath: ':memory:',
@@ -106,7 +105,7 @@ function textClient(content: string): { client: ChatClient; calls: number[] } {
   return {
     calls,
     client: {
-      chat: async (): Promise<OllamaMessage> => {
+      chat: async (): Promise<ChatMessage> => {
         calls.push(1);
         return { role: 'assistant', content };
       },
@@ -119,7 +118,7 @@ function throwingClient(message: string): { client: ChatClient; calls: number[] 
   return {
     calls,
     client: {
-      chat: async (): Promise<OllamaMessage> => {
+      chat: async (): Promise<ChatMessage> => {
         calls.push(1);
         throw new Error(message);
       },
@@ -155,10 +154,10 @@ describe('runFixAgent', () => {
   });
 
   describe('after an edit landed', () => {
-    const editCall = (old: string, replacement: string): OllamaMessage['tool_calls'] => [
+    const editCall = (old: string, replacement: string): ChatMessage['tool_calls'] => [
       { id: 'c1', function: { name: 'edit_file', arguments: JSON.stringify({ path: 'a.py', old_string: old, new_string: replacement }) } },
     ];
-    const scripted = (replies: OllamaMessage[]): ChatClient => ({ chat: async () => replies.shift() ?? { role: 'assistant', content: 'SKIP: out of script' } });
+    const scripted = (replies: ChatMessage[]): ChatClient => ({ chat: async () => replies.shift() ?? { role: 'assistant', content: 'SKIP: out of script' } });
     const repo = async (): Promise<string> => {
       const dir = mkdtempSync(join(tmpdir(), 'fixer-test-'));
       writeFileSync(join(dir, 'a.py'), 'x = out.decode()\n');

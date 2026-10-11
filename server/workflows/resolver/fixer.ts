@@ -1,16 +1,9 @@
 import { executeTool, mapToRepoPath, readFileTool, TOOL_DEFINITIONS } from './agent-tools.ts';
 import type { Config } from './config.ts';
 import * as git from './git.ts';
-import { AnthropicClient, FallbackClient } from './anthropic-client.ts';
-import { OllamaClient, type ChatClient, type OllamaMessage } from './ollama-client.ts';
+import type { ChatClient, ChatMessage } from '../../llm/index.ts';
 import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
-
-/** Haiku first when a key is configured, with the local Ollama model as the fallback; Ollama alone otherwise. */
-export function createChatClient(config: Config, onFallback?: (err: unknown) => void): ChatClient {
-  const local = new OllamaClient({ apiUrl: config.ollamaUrl, model: config.ollamaModel });
-  return config.anthropic ? new FallbackClient(new AnthropicClient(config.anthropic), local, onFallback) : local;
-}
 
 export const BRANCH_PREFIX = 'errorresolver/issue-';
 const MAX_AGENT_TURNS = 20;
@@ -125,7 +118,7 @@ export interface RunFixAgentOptions {
 
 /** Runs the fix agent, scoped to `cwd` with read/list/grep/edit only — no Bash, no network, no git. */
 export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOptions): Promise<AgentVerdict> {
-  const messages: OllamaMessage[] = [
+  const messages: ChatMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: buildPrompt(issue, options.force, await referencedSources(options.cwd, issue.body).catch(() => '')) },
   ];
@@ -269,7 +262,7 @@ export async function attemptFix(
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
       force: input.force === true,
-      client: createChatClient(config, (err) => console.warn(`[error-resolver] hosted model failed, falling back to ${config.ollamaModel}:`, err instanceof Error ? err.message : err)),
+      client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[error-resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
     });
     if (verdict.kind === 'error') return { kind: 'failed', error: verdict.message };
     if (verdict.kind === 'skip') return { kind: 'skipped', reason: verdict.reason };

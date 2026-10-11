@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../llm/fakes.ts';
 import type { Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import { createApp } from '../../server/app.ts';
@@ -30,15 +31,13 @@ const errorsConfig = (overrides: Partial<ErrorsConfig> = {}): ErrorsConfig => ({
   minIssueLevel: 'error',
   commentThresholds: [100],
   retentionDays: 30,
-  ollama: null,
+  llm: fakeLlm(),
   ...overrides,
 });
 
 const resolverConfig = (overrides: Partial<ResolverConfig> = {}): ResolverConfig => ({
   githubApiUrl: 'https://api.github.com',
-  ollamaUrl: 'http://localhost:11434',
-  ollamaModel: 'm',
-  anthropic: null,
+  llm: fakeLlm(),
   pollIntervalMs: 300_000,
   maxConcurrentFixes: 1,
   retrySkippedAttempts: false,

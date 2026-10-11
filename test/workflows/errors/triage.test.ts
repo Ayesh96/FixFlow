@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { after, describe, it } from 'node:test';
-import { ollamaTriager, rulesTriage } from '../../../server/workflows/errors/triage.ts';
+import { OllamaProvider } from '../../../server/llm/providers/ollama.ts';
+import { ProviderRegistry } from '../../../server/llm/registry.ts';
+import { ConfigModelSelector } from '../../../server/llm/selector.ts';
+import { LlmService } from '../../../server/llm/service.ts';
+import { modelTriager, rulesTriage } from '../../../server/workflows/errors/triage.ts';
 import { jsEvent, normalized, pyEvent } from './fixtures.ts';
 
-describe('ollamaTriager', () => {
+/** The triager as the app builds it, with Ollama as the only model and the test server as Ollama. */
+const triagerAt = (url: string) =>
+  modelTriager(new LlmService(new ConfigModelSelector({ triage: ['ollama'], resolver: [] }), new ProviderRegistry().register('ollama', () => new OllamaProvider({ apiUrl: url, model: 'm' }))));
+
+describe('modelTriager over Ollama', () => {
   let reply: () => { status: number; body: string } = () => ({ status: 200, body: '' });
   let seen = '';
   const server = createServer((req, res) => {
@@ -21,7 +29,7 @@ describe('ollamaTriager', () => {
   const content = (c: string) => ({ status: 200, body: JSON.stringify({ message: { content: c } }) });
 
   it("uses the model's verdict and wording, and sends the error with its frames", async () => {
-    const triage = ollamaTriager({ url: await ready, model: 'm' });
+    const triage = triagerAt(await ready);
     reply = () => content('{"small_fix": false, "message": "Needs a redesign.", "suggestion": "Look first.", "tags": ["needs-human", "bogus", "bot-safe"]}');
     const no = await triage(normalized(jsEvent())); // the rules alone would say bot-safe
     assert.deepEqual([no.tags, no.message, no.suggestion, no.source], [['needs-human'], 'Needs a redesign.', 'Look first.', 'model']);
@@ -32,7 +40,7 @@ describe('ollamaTriager', () => {
   });
 
   it("never lets the rules' wording contradict the model when it leaves its own out", async () => {
-    const triage = ollamaTriager({ url: await ready, model: 'm' });
+    const triage = triagerAt(await ready);
     reply = () => content('{"small_fix": false}');
     const result = await triage(normalized(jsEvent())); // the rules would say "looks like a small fix"
     assert.deepEqual(result.tags, ['needs-human']);
@@ -42,12 +50,12 @@ describe('ollamaTriager', () => {
   it('throws, instead of falling back to the rules, on server errors, bad JSON, a missing verdict, or an unreachable Ollama', async () => {
     const url = await ready;
     reply = () => ({ status: 500, body: 'no' });
-    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(jsEvent())), /HTTP 500/);
+    await assert.rejects(triagerAt(url)(normalized(jsEvent())), /500/);
     reply = () => content('not json');
-    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(pyEvent())), /JSON/);
+    await assert.rejects(triagerAt(url)(normalized(pyEvent())), /JSON/);
     reply = () => content('{"message": "no verdict"}');
-    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(pyEvent())), /small_fix/);
-    await assert.rejects(ollamaTriager({ url: 'http://127.0.0.1:1', model: 'm' })(normalized(jsEvent())));
+    await assert.rejects(triagerAt(url)(normalized(pyEvent())), /small_fix/);
+    await assert.rejects(triagerAt('http://127.0.0.1:1')(normalized(jsEvent())));
   });
 });
 
@@ -87,7 +95,7 @@ describe('rulesTriage: more of what real apps send', () => {
   });
 });
 
-describe('ollamaTriager: what the model does not get to overrule', () => {
+describe('modelTriager: what the model does not get to overrule', () => {
   let reply = '';
   let seen = '';
   const server = createServer((req, res) => {
@@ -102,7 +110,7 @@ describe('ollamaTriager: what the model does not get to overrule', () => {
   after(() => server.close());
   const ask = async (event: ReturnType<typeof normalized>, answer: Record<string, unknown>) => {
     reply = JSON.stringify(answer);
-    return ollamaTriager({ url: await ready, model: 'm' })(event);
+    return triagerAt(await ready)(event);
   };
   const crash = (type: string, value: string, inApp = true) => normalized({ event_id: 'c'.repeat(32), platform: 'python', level: 'error', exception: { values: [{ type, value, stacktrace: { frames: [{ filename: 'main.py', function: 'f', lineno: 3, in_app: inApp, vars: { direction: "'up'" } }] } }] }, request: { method: 'POST', url: 'http://h/volume/up' } });
   const note = (event: ReturnType<typeof normalized>) => ({ ...event });

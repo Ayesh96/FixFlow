@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { OllamaSettings } from '../config.ts';
+import type { LlmGateway } from '../../llm/index.ts';
 import { LEVELS, type Level } from './types.ts';
 
 export interface Config {
@@ -17,8 +17,8 @@ export interface Config {
   minIssueLevel: Level;
   commentThresholds: number[];
   retentionDays: number;
-  /** Local Ollama used to triage new issues (the `bot-safe` label); null falls back to the rule-based heuristic. */
-  ollama: OllamaSettings | null;
+  /** The models; triage uses them when any is set up for it, and otherwise the rule-based heuristic. */
+  llm: LlmGateway;
 }
 
 export class ConfigError extends Error {
@@ -45,7 +45,7 @@ export function parseDatabaseUrl(url: string): string | null {
 export interface LoadOptions {
   dataDir: string;
   githubApiUrl: string;
-  ollama: OllamaSettings | null;
+  llm: LlmGateway;
 }
 
 const OFF = /^(?:0|false|no|off)$/i;
@@ -54,7 +54,7 @@ const OFF = /^(?:0|false|no|off)$/i;
  * Reads the errors workflow's settings. It is on unless `ORCH_ERRORS_ENABLED` turns it off (0, false,
  * no or off), and then it returns null, which leaves the tab out of the dashboard.
  */
-export function loadConfig(env: Env, { dataDir, githubApiUrl, ollama }: LoadOptions): Config | null {
+export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions): Config | null {
   const text = (name: string): string => env[name]?.trim() ?? '';
   const list = (name: string): string[] =>
     text(name)
@@ -102,6 +102,6 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, ollama }: LoadOpti
     minIssueLevel,
     commentThresholds,
     retentionDays,
-    ollama,
+    llm,
   };
 }

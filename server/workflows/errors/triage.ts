@@ -1,4 +1,4 @@
-import { OLLAMA_NUM_CTX } from '../config.ts';
+import type { LlmGateway } from '../../llm/index.ts';
 import { hasCodeToFix, isBotSafe } from './botsafe.ts';
 import { stackOf } from './stack.ts';
 import { TRIAGE_TAGS, type NormalizedEvent, type StackFrame, type TriageResult, type TriageTag } from './types.ts';
@@ -6,9 +6,7 @@ import { TRIAGE_TAGS, type NormalizedEvent, type StackFrame, type TriageResult, 
 /** Reads an error and says what it is, what to do about it, and which tags apply. Throws when it cannot (the error is then recorded as ERRORED). */
 export type Triager = (event: NormalizedEvent) => Promise<TriageResult>;
 
-export interface OllamaTriageOptions {
-  url: string;
-  model: string;
+export interface ModelTriageOptions {
   timeoutMs?: number;
 }
 
@@ -157,31 +155,24 @@ const text = (value: unknown): string | null => (typeof value === 'string' && va
 const DISMISSES = /^don'?t report it/i;
 
 /**
- * Asks a local Ollama model, and only the model: a failure (down, slow, malformed, no verdict) is thrown, so
+ * Asks the model, and only the model: a failure (every provider down, slow, malformed, no verdict) is thrown, so
  * the error shows as ERRORED and can be triaged again, rather than being answered by the rule-based triage.
+ * Which provider answers is the gateway's business; it walks them in the order set for triage.
  */
-export function ollamaTriager({ url, model, timeoutMs = 60_000 }: OllamaTriageOptions): Triager {
+export function modelTriager(llm: LlmGateway, { timeoutMs = 60_000 }: ModelTriageOptions = {}): Triager {
   return async (event) => {
-    const response = await fetch(`${url.replace(/\/+$/, '')}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        stream: false,
-        format: 'json',
-        options: { temperature: 0, num_ctx: OLLAMA_NUM_CTX },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: describe(event) },
-        ],
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!response.ok) throw new Error(`The triage model answered with HTTP ${response.status}`);
-    const reply = (await response.json()) as { message?: { content?: string } };
+    const reply = await llm.run(
+      'triage',
+      [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: describe(event) },
+      ],
+      [],
+      { json: true, temperature: 0, timeoutMs },
+    );
     let verdict: { small_fix?: unknown; message?: unknown; suggestion?: unknown; tags?: unknown };
     try {
-      verdict = JSON.parse(reply.message?.content ?? '');
+      verdict = JSON.parse(reply.content ?? '');
     } catch {
       throw new Error('The triage model did not answer with JSON');
     }

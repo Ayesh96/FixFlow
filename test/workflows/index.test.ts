@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../llm/fakes.ts';
 import { existsSync } from 'node:fs';
 import { afterEach, describe, it } from 'node:test';
 import type { Config as ErrorsConfig } from '../../server/workflows/errors/config.ts';
@@ -9,10 +10,10 @@ import { tempConfig } from '../helpers.ts';
 const errors = (over: Partial<ErrorsConfig> = {}): ErrorsConfig => ({
   ingestPort: 3000, ingestHost: '127.0.0.1', databasePath: ':memory:', dsnPublicKey: null,
   github: { apiUrl: 'https://api.github.com', labels: [] },
-  minIssueLevel: 'error', commentThresholds: [100], retentionDays: 30, ollama: null, ...over,
+  minIssueLevel: 'error', commentThresholds: [100], retentionDays: 30, llm: fakeLlm(), ...over,
 });
 const resolver = (): ResolverConfig => ({
-  githubApiUrl: 'https://api.github.com', ollamaUrl: 'http://localhost:11434', ollamaModel: 'm', anthropic: null,
+  githubApiUrl: 'https://api.github.com', llm: fakeLlm(),
   pollIntervalMs: 300_000, maxConcurrentFixes: 1, retrySkippedAttempts: false, databasePath: ':memory:',
 });
 

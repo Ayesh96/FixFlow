@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { AnthropicSettings, OllamaSettings } from '../config.ts';
+import type { LlmGateway } from '../../llm/index.ts';
 import type { RepoRef } from './types.ts';
 
 const MIN_POLL_INTERVAL_MS = 30_000;
@@ -7,11 +7,8 @@ const MIN_POLL_INTERVAL_MS = 30_000;
 export interface Config {
   /** The GitHub API address. Tokens belong to projects now (see server/projects). */
   githubApiUrl: string;
-  /** Local Ollama, used to diagnose and fix issues. */
-  ollamaUrl: string;
-  ollamaModel: string;
-  /** Hosted model tried first; when null only Ollama is used. Ollama is also the fallback if it fails. */
-  anthropic: AnthropicSettings | null;
+  /** The models that diagnose and fix issues, tried in the order set for the resolver. */
+  llm: LlmGateway;
   pollIntervalMs: number;
   maxConcurrentFixes: number;
   /** Testing aid: re-attempt SKIPPED issues on every poll instead of remembering the skip. PR_OPEN is never retried. */
@@ -49,8 +46,7 @@ export function parseDatabaseUrl(url: string): string | null {
 export interface LoadOptions {
   dataDir: string;
   githubApiUrl: string;
-  ollama: OllamaSettings | null;
-  anthropic: AnthropicSettings | null;
+  llm: LlmGateway;
 }
 
 /**
@@ -60,7 +56,7 @@ export interface LoadOptions {
  * It no longer takes a tracker URL or admin token: the errors workflow's store is right here in
  * the same process, so the scheduler reads issues from it directly.
  */
-export function loadConfig(env: Env, { dataDir, githubApiUrl, ollama, anthropic }: LoadOptions): Config | null {
+export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions): Config | null {
   const text = (name: string): string => env[name]?.trim() ?? '';
   if (/^(?:0|false|no|off)$/i.test(text('ORCH_RESOLVER_ENABLED'))) return null;
 
@@ -86,9 +82,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, ollama, anthropic 
 
   return {
     githubApiUrl,
-    ollamaUrl: ollama?.url ?? 'http://localhost:11434',
-    ollamaModel: ollama?.model ?? 'qwen2.5-coder:7b',
-    anthropic,
+    llm,
     pollIntervalMs,
     maxConcurrentFixes,
     retrySkippedAttempts: /^(?:1|true|yes|on)$/i.test(text('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS')),

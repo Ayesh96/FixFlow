@@ -23,7 +23,7 @@ Changed cells are **bold**.
 | Bot-safe rules only knew JavaScript wording | Python's `NameError`, `'NoneType' object has no attribute`, `'NoneType' object is not subscriptable/iterable/callable` and unbound locals are recognised |
 | A missing permission was reported as an ordinary bug | New rule: permission/configuration problems are tagged `infrastructure` and say what to fix, not "change the code" |
 | Locals, request and source lines were sent but unused | The triage prompt gets the request and the app frame's locals; the GitHub issue gets the request (method and path only), the source line, and folds library frames |
-| Model: `bot-safe` together with `needs-human`; `bot-safe` on log lines; "Don't report it" about real failures; `test-event` on real exceptions; `third-party` on app code | Guardrails on facts the model cannot overrule (see `ollamaTriager`); each has a test |
+| Model: `bot-safe` together with `needs-human`; `bot-safe` on log lines; "Don't report it" about real failures; `test-event` on real exceptions; `third-party` on app code | Guardrails on facts the model cannot overrule (see `modelTriager`); each has a test |
 
 Local variables are deliberately **not** put in the GitHub issue (it may be a public repo); the local model sees them.
 

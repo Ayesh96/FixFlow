@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
-import { OllamaClient, OllamaError } from '../../../server/workflows/resolver/ollama-client.ts';
-import type { OllamaMessage } from '../../../server/workflows/resolver/ollama-client.ts';
+import { OllamaError, OllamaProvider } from '../../server/llm/providers/ollama.ts';
+import type { ChatMessage } from '../../server/llm/types.ts';
 
-describe('OllamaClient', () => {
+describe('OllamaProvider', () => {
   let server: Server;
   let apiUrl: string;
   const requests: {
@@ -52,7 +52,7 @@ describe('OllamaClient', () => {
   });
 
   const client = () =>
-    new OllamaClient({
+    new OllamaProvider({
       apiUrl,
       model: 'qwen3',
     });
@@ -66,7 +66,7 @@ describe('OllamaClient', () => {
       },
     });
 
-    const messages: OllamaMessage[] = [
+    const messages: ChatMessage[] = [
       { role: 'system', content: 'You are a helpful assistant.' },
       { role: 'user', content: 'What is 2+2?' },
     ];
@@ -93,7 +93,7 @@ describe('OllamaClient', () => {
     });
   });
 
-  it('outgoing tool_calls argument conversion: OllamaMessage JSON string arguments become parsed objects in request', async () => {
+  it('outgoing tool_calls argument conversion: ChatMessage JSON string arguments become parsed objects in request', async () => {
     requests.length = 0;
     respond = () => ({
       status: 200,
@@ -102,7 +102,7 @@ describe('OllamaClient', () => {
       },
     });
 
-    const messages: OllamaMessage[] = [
+    const messages: ChatMessage[] = [
       { role: 'user', content: 'Read the file' },
       {
         role: 'assistant',
@@ -143,8 +143,10 @@ describe('OllamaClient', () => {
       },
     });
 
-    const coder = new OllamaClient({ apiUrl, model: 'qwen2.5-coder:7b' });
-    const result = await coder.chat([{ role: 'user', content: 'Fix the bug' }], []);
+    // The tool names it may recover come from the tools offered in the call, not from a built-in list.
+    const offered = [{ type: 'function', function: { name: 'read_file', parameters: { type: 'object', properties: {} } } }];
+    const coder = new OllamaProvider({ apiUrl, model: 'qwen2.5-coder:7b' });
+    const result = await coder.chat([{ role: 'user', content: 'Fix the bug' }], offered);
 
     assert.equal(result.tool_calls?.length, 1);
     assert.equal(result.tool_calls?.[0]?.function.name, 'read_file');
@@ -290,7 +292,7 @@ describe('OllamaClient', () => {
   });
 
   it('network failure (unreachable server) throws OllamaError with status 0', async () => {
-    const unreachableClient = new OllamaClient({
+    const unreachableClient = new OllamaProvider({
       apiUrl: 'http://127.0.0.1:1',
       model: 'qwen3',
     });

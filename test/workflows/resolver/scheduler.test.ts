@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../../llm/fakes.ts';
 import { afterEach, describe, it } from 'node:test';
 import { silentLogger } from '../helpers.ts';
 import type { Project } from '../../../server/projects/store.ts';
@@ -15,9 +16,7 @@ const silent = silentLogger();
 function makeConfig(overrides: Partial<ConfigType> = {}): ConfigType {
   return {
     githubApiUrl: 'https://api.github.com',
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'qwen2.5-coder:7b',
-    anthropic: null,
+    llm: fakeLlm(),
     pollIntervalMs: 300_000,
     maxConcurrentFixes: 3,
     retrySkippedAttempts: false,

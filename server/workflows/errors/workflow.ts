@@ -9,7 +9,7 @@ import { GitHubClient } from './github.ts';
 import { Ingestor } from './ingest.ts';
 import { ingestRoutes } from './ingestRoutes.ts';
 import { Store } from './store.ts';
-import { ollamaTriager } from './triage.ts';
+import { modelTriager } from './triage.ts';
 
 const ISSUE_LIMIT = 200;
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
@@ -47,7 +47,7 @@ export class ErrorsWorkflow implements Workflow {
       this.store,
       // Each project opens its issues with its own token.
       (project) => new GitHubClient({ token: project.token, apiUrl: config.github.apiUrl, labels: config.github.labels }),
-      { ...config, projects, triage: config.ollama ? ollamaTriager(config.ollama) : undefined },
+      { ...config, projects, triage: config.llm.isAvailable('triage') ? modelTriager(config.llm) : undefined },
       this.logger,
     );
   }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { extractNamedToolCalls, isQwenCoderModel } from '../../../server/workflows/resolver/qwen-named-tool-calls.ts';
+import { extractNamedToolCalls, isQwenCoderModel } from '../../server/llm/providers/qwen-named-tool-calls.ts';
 
 const KNOWN = new Set(['read_file', 'list_directory', 'grep', 'edit_file']);
 

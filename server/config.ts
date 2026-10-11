@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { githubApiUrl, githubCloneUrl, loadAnthropic, loadOllama } from './workflows/config.ts';
+import { createLlm, loadLlmSettings } from './llm/index.ts';
+import { githubApiUrl, githubCloneUrl } from './workflows/config.ts';
 import { loadConfig as loadErrorsConfig, type Config as ErrorsConfig } from './workflows/errors/config.ts';
 import { loadConfig as loadResolverConfig, type Config as ResolverConfig } from './workflows/resolver/config.ts';
 
@@ -34,9 +35,8 @@ export function loadConfig(env: Env = process.env): Config {
 
   const dataDir = env.ORCH_DATA_DIR ?? join(home, '.errorflow');
 
-  // GitHub, Ollama and Anthropic are read once and shared by the workflows that need them.
-  const ollama = loadOllama(env);
-  const anthropic = loadAnthropic(env);
+  // The models are read once and shared: both workflows ask for one by purpose, never by name.
+  const llm = createLlm(loadLlmSettings(env));
 
   return {
     port,
@@ -47,7 +47,7 @@ export function loadConfig(env: Env = process.env): Config {
     secretKeyFile: env.ORCH_SECRET_KEY_FILE ?? join(dataDir, 'secret.key'),
     reposDir: env.ORCH_REPOS_DIR ?? join(dataDir, 'repos'),
     githubCloneUrl: githubCloneUrl(env),
-    errors: loadErrorsConfig(env, { dataDir, githubApiUrl: githubApiUrl(env), ollama }),
-    resolver: loadResolverConfig(env, { dataDir, githubApiUrl: githubApiUrl(env), ollama, anthropic }),
+    errors: loadErrorsConfig(env, { dataDir, githubApiUrl: githubApiUrl(env), llm }),
+    resolver: loadResolverConfig(env, { dataDir, githubApiUrl: githubApiUrl(env), llm }),
   };
 }

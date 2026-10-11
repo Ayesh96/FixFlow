@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../../llm/fakes.ts';
 import { describe, it } from 'node:test';
 import { ConfigError, loadConfig, parseDatabaseUrl, parseRepo, formatRepo, type LoadOptions } from '../../../server/workflows/resolver/config.ts';
 
 const DATA = '/data/test';
-const options: LoadOptions = { dataDir: DATA, githubApiUrl: 'https://api.github.com', ollama: null, anthropic: null };
+const options: LoadOptions = { dataDir: DATA, githubApiUrl: 'https://api.github.com', llm: fakeLlm() };
 
 /** The resolver needs no tracker URL or token: each project brings its own. */
 const valid = {};
@@ -22,24 +23,14 @@ describe('resolver loadConfig', () => {
     assert.ok(c);
     assert.equal(c.pollIntervalMs, 300_000);
     assert.equal(c.maxConcurrentFixes, 3);
-    assert.equal(c.ollamaModel, 'qwen2.5-coder:7b');
-    assert.equal(c.ollamaUrl, 'http://localhost:11434');
     assert.equal(c.databasePath, `${DATA}/resolver.db`);
     assert.equal(c.githubApiUrl, 'https://api.github.com');
-    assert.equal(c.anthropic, null);
     assert.equal(c.retrySkippedAttempts, false);
   });
 
-  it('takes the hosted model from the shared Anthropic settings', () => {
-    const anthropic = { apiUrl: 'https://api.anthropic.com', apiKey: 'sk-test', model: 'claude-haiku-4-5' };
-    assert.deepEqual(load(valid, { anthropic })?.anthropic, anthropic);
-  });
-
-  it('takes Ollama from the shared settings', () => {
-    const c = load(valid, { ollama: { url: 'http://box:11434', model: 'custom' } });
-    assert.ok(c);
-    assert.equal(c.ollamaUrl, 'http://box:11434');
-    assert.equal(c.ollamaModel, 'custom');
+  it('carries the shared models through', () => {
+    const llm = fakeLlm();
+    assert.equal(load(valid, { llm })?.llm, llm);
   });
 
   it('enforces a minimum poll interval', () => {

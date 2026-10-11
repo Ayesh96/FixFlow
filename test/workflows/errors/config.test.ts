@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { fakeLlm } from '../../llm/fakes.ts';
 import { describe, it } from 'node:test';
 import { ConfigError, loadConfig, parseDatabaseUrl, type LoadOptions } from '../../../server/workflows/errors/config.ts';
 
 const DATA = '/data/test';
-const options: LoadOptions = { dataDir: DATA, githubApiUrl: 'https://api.github.com', ollama: null };
+const options: LoadOptions = { dataDir: DATA, githubApiUrl: 'https://api.github.com', llm: fakeLlm() };
 
 const load = (env: Record<string, string>, overrides: Partial<LoadOptions> = {}) => loadConfig(env, { ...options, ...overrides });
 
@@ -56,11 +57,12 @@ describe('errors loadConfig', () => {
     assert.equal(c.databasePath, './data/errors.db');
   });
 
-  it('carries the GitHub address and Ollama settings through, and needs no token of its own', () => {
-    const c = load({ ORCH_ERRORS_ENABLED: '1' }, { githubApiUrl: 'https://ghe.example.com/api/v3', ollama: { url: 'http://x:11434', model: 'm' } });
+  it('carries the GitHub address and the models through, and needs no token of its own', () => {
+    const llm = fakeLlm();
+    const c = load({ ORCH_ERRORS_ENABLED: '1' }, { githubApiUrl: 'https://ghe.example.com/api/v3', llm });
     assert.ok(c);
     assert.equal(c.github.apiUrl, 'https://ghe.example.com/api/v3');
-    assert.deepEqual(c.ollama, { url: 'http://x:11434', model: 'm' });
+    assert.equal(c.llm, llm);
   });
 });
 

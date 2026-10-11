@@ -1,42 +1,16 @@
 /**
  * Recovers tool calls that qwen2.5-coder writes as plain text in the form `tool_name {"arg": ...}`:
  * the tool name followed directly by its arguments object, with no `name`/`arguments` wrapper.
- * The generic parsers in ollama-client.ts don't recognize that shape, so the call is lost and the
+ * The generic parsers in tool-call-recovery.ts don't recognize that shape, so the call is lost and the
  * fixer reads the text as a final answer. Kept separate from those parsers on purpose: it is only
  * applied when the configured model is qwen2.5-coder.
  */
 
+import { findJsonObjectEnd } from '../tool-call-recovery.ts';
+
 /** Only the qwen2.5-coder family (any size or tag) gets this parser. */
 export function isQwenCoderModel(model: string): boolean {
   return /^qwen2\.5-coder(:|$)/i.test(model);
-}
-
-/**
- * Finds the span of one JSON object starting at `start` (which must be a `{`), honoring string
- * escaping so braces inside quoted string values (e.g. code being edited) don't throw off the
- * count. Returns the end index (exclusive) of the matching `}`, or null if the braces never
- * balance before the string ends.
- */
-export function findJsonObjectEnd(text: string, start: number): number | null {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (ch === '\\') escaped = true;
-      else if (ch === '"') inString = false;
-      continue;
-    }
-    if (ch === '"') inString = true;
-    else if (ch === '{') depth++;
-    else if (ch === '}') {
-      depth--;
-      if (depth === 0) return i + 1;
-    }
-  }
-  return null;
 }
 
 /**

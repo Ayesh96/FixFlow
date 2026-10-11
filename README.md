@@ -70,10 +70,17 @@ Everything is optional. Copy `.env.example` to `.env`.
 | `ORCH_DATA_DIR` | `~/.errorflow` | Where the token, databases, key and clones live. |
 | `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
 | `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
-| `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. Unset leaves triage on its rule-based heuristic. |
+| `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. The resolver always has a local Ollama to try (`http://localhost:11434`); triage uses it only when this is set. |
 | `ORCH_OLLAMA_MODEL` | `qwen2.5-coder:7b` | |
-| `ORCH_ANTHROPIC_API_KEY` | unset | When set, the resolver tries this hosted model first and falls back to Ollama. |
+| `ORCH_DEEPSEEK_API_KEY` | unset | Turns on DeepSeek as a model for triage and the resolver. |
+| `ORCH_DEEPSEEK_MODEL` | `deepseek-flash` | Or `deepseek-v4-pro`. Thinking mode is always off. |
+| `ORCH_DEEPSEEK_API_URL` | `https://api.deepseek.com` | |
+| `ORCH_ANTHROPIC_API_KEY` | unset | Turns on Anthropic as a model for triage and the resolver. |
 | `ORCH_ANTHROPIC_MODEL` | `claude-haiku-4-5` | |
+| `ORCH_LLM_PROVIDERS` | `ollama,deepseek,anthropic` | The models to try, in order, for both triage and the resolver; the first is used and the rest are fallbacks when it fails. A model that is not set up is skipped by default, and is an error when you name it here. |
+| `ORCH_TRIAGE_PROVIDERS` / `ORCH_RESOLVER_PROVIDERS` | `ORCH_LLM_PROVIDERS` | The same, for one purpose only. |
+
+With no model set up for triage, new errors are triaged by the rule-based heuristic. When models are set up and all of them fail, the error is recorded as ERRORED and can be triaged again.
 
 ### Errors
 

@@ -1,8 +1,9 @@
+import { OLLAMA_NUM_CTX } from '../config.ts';
 import { hasCodeToFix, isBotSafe } from './botsafe.ts';
 import { stackOf } from './stack.ts';
 import { TRIAGE_TAGS, type NormalizedEvent, type StackFrame, type TriageResult, type TriageTag } from './types.ts';
 
-/** Reads an error and says what it is, what to do about it, and which tags apply. Never throws. */
+/** Reads an error and says what it is, what to do about it, and which tags apply. Throws when it cannot (the error is then recorded as ERRORED). */
 export type Triager = (event: NormalizedEvent) => Promise<TriageResult>;
 
 export interface OllamaTriageOptions {
@@ -155,57 +156,58 @@ tags: any of ${TRIAGE_TAGS.filter((t) => t !== 'bot-safe').join(', ')}. Do not i
 const text = (value: unknown): string | null => (typeof value === 'string' && value.trim() !== '' ? clip(value.trim()) : null);
 const DISMISSES = /^don'?t report it/i;
 
-/** Asks a local Ollama model; any failure (down, slow, malformed) falls back to the rule-based triage. */
+/**
+ * Asks a local Ollama model, and only the model: a failure (down, slow, malformed, no verdict) is thrown, so
+ * the error shows as ERRORED and can be triaged again, rather than being answered by the rule-based triage.
+ */
 export function ollamaTriager({ url, model, timeoutMs = 60_000 }: OllamaTriageOptions): Triager {
   return async (event) => {
-    const fallback = rulesTriage(event);
+    const response = await fetch(`${url.replace(/\/+$/, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        format: 'json',
+        options: { temperature: 0, num_ctx: OLLAMA_NUM_CTX },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: describe(event) },
+        ],
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) throw new Error(`The triage model answered with HTTP ${response.status}`);
+    const reply = (await response.json()) as { message?: { content?: string } };
+    let verdict: { small_fix?: unknown; message?: unknown; suggestion?: unknown; tags?: unknown };
     try {
-      const response = await fetch(`${url.replace(/\/+$/, '')}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          stream: false,
-          format: 'json',
-          options: { temperature: 0 },
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: describe(event) },
-          ],
-        }),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      if (!response.ok) return fallback;
-      const reply = (await response.json()) as { message?: { content?: string } };
-      const verdict = JSON.parse(reply.message?.content ?? '') as { small_fix?: unknown; message?: unknown; suggestion?: unknown; tags?: unknown };
-      if (typeof verdict.small_fix !== 'boolean') return fallback;
-
-      // The model gives its opinion; these are facts about the event it does not get to overrule.
-      const thrown = event.exceptions.at(-1);
-      const smallFix = verdict.small_fix && hasCodeToFix(event); // a log line or a library failure is not a small fix
-      const named = (Array.isArray(verdict.tags) ? verdict.tags : []).filter((t): t is TriageTag => TRIAGE_TAGS.includes(t as TriageTag) && t !== 'bot-safe');
-      const tags = new Set<TriageTag>(named);
-      if (thrown) tags.delete('test-event'); // a real exception is not a test
-      if (stackOf(event).length === 0) tags.add('no-stack-trace');
-      // "Inside a library" is a fact about the stack: it needs a stack, and none of its frames in the app.
-      if (stackOf(event).length === 0 || stackOf(event).some((f) => f.inApp)) tags.delete('third-party');
-      if (smallFix) tags.delete('needs-human'); // never both "a bot can do this" and "a person must"
-      if (!smallFix && !tags.has('test-event') && !tags.has('needs-human')) tags.add('needs-human');
-      const finalTags: TriageTag[] = [...(smallFix ? (['bot-safe'] as const) : []), ...tags];
-
-      // Wording the model leaves out comes from the rules, but only when the rules reached the same verdict;
-      // otherwise their text would contradict the model's, so a neutral line stands in.
-      const agrees = fallback.tags.includes('bot-safe') === smallFix;
-      const neutralWhat = thrown ? `${thrown.type}: ${clip(thrown.value, 160)}.` : `“${clip(event.message, 160)}”.`;
-      const neutralNext = smallFix ? 'Report it. It looks like a small fix, so the resolver will try it.' : 'Report it, and have a person look first.';
-      let suggestion = text(verdict.suggestion) ?? (agrees ? fallback.suggestion : neutralNext);
-      // "Don't report it" is for tests and noise. A model that says it about a real failure is wrong, and the
-      // cost of being wrong is a missed bug, so such a suggestion is replaced rather than shown.
-      if (DISMISSES.test(suggestion) && !finalTags.includes('test-event')) suggestion = agrees && !DISMISSES.test(fallback.suggestion) ? fallback.suggestion : neutralNext;
-
-      return { message: text(verdict.message) ?? (agrees ? fallback.message : neutralWhat), suggestion, tags: finalTags, source: 'model' };
+      verdict = JSON.parse(reply.message?.content ?? '');
     } catch {
-      return fallback;
+      throw new Error('The triage model did not answer with JSON');
     }
+    if (typeof verdict.small_fix !== 'boolean') throw new Error('The triage model gave no small_fix verdict');
+
+    // The model gives its opinion; these are facts about the event it does not get to overrule.
+    const thrown = event.exceptions.at(-1);
+    const smallFix = verdict.small_fix && hasCodeToFix(event); // a log line or a library failure is not a small fix
+    const named = (Array.isArray(verdict.tags) ? verdict.tags : []).filter((t): t is TriageTag => TRIAGE_TAGS.includes(t as TriageTag) && t !== 'bot-safe');
+    const tags = new Set<TriageTag>(named);
+    if (thrown) tags.delete('test-event'); // a real exception is not a test
+    if (stackOf(event).length === 0) tags.add('no-stack-trace');
+    // "Inside a library" is a fact about the stack: it needs a stack, and none of its frames in the app.
+    if (stackOf(event).length === 0 || stackOf(event).some((f) => f.inApp)) tags.delete('third-party');
+    if (smallFix) tags.delete('needs-human'); // never both "a bot can do this" and "a person must"
+    if (!smallFix && !tags.has('test-event') && !tags.has('needs-human')) tags.add('needs-human');
+    const finalTags: TriageTag[] = [...(smallFix ? (['bot-safe'] as const) : []), ...tags];
+
+    // Wording the model leaves out is a neutral line about the error, never the rules' opinion of it.
+    const neutralWhat = thrown ? `${thrown.type}: ${clip(thrown.value, 160)}.` : `“${clip(event.message, 160)}”.`;
+    const neutralNext = smallFix ? 'Report it. It looks like a small fix, so the resolver will try it.' : 'Report it, and have a person look first.';
+    let suggestion = text(verdict.suggestion) ?? neutralNext;
+    // "Don't report it" is for tests and noise. A model that says it about a real failure is wrong, and the
+    // cost of being wrong is a missed bug, so such a suggestion is replaced rather than shown.
+    if (DISMISSES.test(suggestion) && !finalTags.includes('test-event')) suggestion = neutralNext;
+
+    return { message: text(verdict.message) ?? neutralWhat, suggestion, tags: finalTags, source: 'model' };
   };
 }

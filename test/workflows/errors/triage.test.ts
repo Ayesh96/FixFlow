@@ -39,15 +39,15 @@ describe('ollamaTriager', () => {
     assert.doesNotMatch(`${result.message} ${result.suggestion}`, /small fix/i);
   });
 
-  it('falls back to the rules on server errors, bad JSON, a missing verdict, or an unreachable Ollama', async () => {
+  it('throws, instead of falling back to the rules, on server errors, bad JSON, a missing verdict, or an unreachable Ollama', async () => {
     const url = await ready;
     reply = () => ({ status: 500, body: 'no' });
-    assert.deepEqual(await ollamaTriager({ url, model: 'm' })(normalized(jsEvent())), rulesTriage(normalized(jsEvent())));
+    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(jsEvent())), /HTTP 500/);
     reply = () => content('not json');
-    assert.equal((await ollamaTriager({ url, model: 'm' })(normalized(pyEvent()))).source, 'rules');
+    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(pyEvent())), /JSON/);
     reply = () => content('{"message": "no verdict"}');
-    assert.equal((await ollamaTriager({ url, model: 'm' })(normalized(pyEvent()))).source, 'rules');
-    assert.equal((await ollamaTriager({ url: 'http://127.0.0.1:1', model: 'm' })(normalized(jsEvent()))).tags[0], 'bot-safe');
+    await assert.rejects(ollamaTriager({ url, model: 'm' })(normalized(pyEvent())), /small_fix/);
+    await assert.rejects(ollamaTriager({ url: 'http://127.0.0.1:1', model: 'm' })(normalized(jsEvent())));
   });
 });
 

@@ -1,3 +1,4 @@
+import { OLLAMA_NUM_CTX } from '../config.ts';
 import { TOOL_DEFINITIONS } from './agent-tools.ts';
 import { extractNamedToolCalls, findJsonObjectEnd, isQwenCoderModel } from './qwen-named-tool-calls.ts';
 
@@ -161,6 +162,7 @@ export class OllamaClient implements ChatClient {
           messages: messages.map(toOllamaMessage),
           tools,
           stream: false,
+          options: { num_ctx: OLLAMA_NUM_CTX },
         }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });

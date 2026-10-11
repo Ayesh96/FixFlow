@@ -89,6 +89,7 @@ describe('OllamaClient', () => {
       messages,
       tools,
       stream: false,
+      options: { num_ctx: 32768 },
     });
   });
 

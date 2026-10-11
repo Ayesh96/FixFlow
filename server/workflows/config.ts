@@ -4,6 +4,13 @@
  * and handed to whichever workflow wants them.
  */
 
+/**
+ * The context window asked of every Ollama request. Ollama's own default is a few thousand tokens, which a
+ * stack trace plus the source files it names and a conversation of tool results outgrow, and it cuts the
+ * oldest text silently. qwen2.5-coder supports 32768.
+ */
+export const OLLAMA_NUM_CTX = 32_768;
+
 export interface OllamaSettings {
   url: string;
   model: string;

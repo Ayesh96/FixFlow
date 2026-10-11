@@ -5,7 +5,7 @@ import type { Project } from '../../projects/store.ts';
 import type { Logger } from '../types.ts';
 import { formatRepo, parseRepo, type Config } from './config.ts';
 import { attemptFix as defaultAttemptFix } from './fixer.ts';
-import { formatPullRequestBody, formatPullRequestTitle } from './format.ts';
+import { formatPullRequestBody, formatPullRequestTitle, formatFixSummary } from './format.ts';
 import type { GitHubGateway } from './github.ts';
 import type { Store } from './store.ts';
 import type { IssueSource } from './issueSource.ts';
@@ -272,9 +272,10 @@ export class Scheduler {
         head: outcome.branchName,
         base: outcome.baseBranch,
       });
-      this.store.recordResult(repoStr, issue.number, 'PR_OPEN', { prNumber: pr.number, prUrl: pr.url });
+      const opened = { prNumber: pr.number, prUrl: pr.url, reason: formatFixSummary(outcome.explanation, outcome.filesChanged, outcome.verifyRan, outcome.verified) };
+      this.store.recordResult(repoStr, issue.number, 'PR_OPEN', opened);
       this.onChange();
-      await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'PR_OPEN', { prNumber: pr.number, prUrl: pr.url });
+      await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'PR_OPEN', opened);
       this.logger.info({ repo: repoStr, issue: issue.number, pr: pr.url }, 'Opened pull request');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

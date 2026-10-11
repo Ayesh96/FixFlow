@@ -15,8 +15,18 @@ const stateWord = (i: TrackerIssue) => {
   return copy.stages[STAGE_KEYS[lifecycleOf(i).reached]!].label;
 };
 
-/** The one-line read under a title: triage's message when there is one, else why the resolver stopped. */
-const note = (i: TrackerIssue) => (i.triageStatus === 'COMPLETED' ? i.triageMessage : i.triageStatus === 'PENDING' ? `${copy.triage.status.PENDING}…` : i.resolverReason);
+/** An opened pull request says which one and what it changed, since that is what the row is now about. */
+const prNote = (i: TrackerIssue) => [i.resolverPrNumber != null ? `PR #${i.resolverPrNumber}` : 'PR', i.resolverReason].filter(Boolean).join(' · ');
+
+/** The one-line read under a title: the pull request when there is one, else triage's message, else why the resolver stopped. */
+const note = (i: TrackerIssue) =>
+  i.resolverStatus === 'PR_OPEN'
+    ? prNote(i)
+    : i.triageStatus === 'COMPLETED'
+      ? i.triageMessage
+      : i.triageStatus === 'PENDING'
+        ? `${copy.triage.status.PENDING}…`
+        : i.resolverReason;
 
 /** One error as a row: title and triage's read, how far it got, how often, and when. Opens its detail on click. */
 export function ErrorRow({ issue, onOpen }: { issue: TrackerIssue; onOpen: () => void }) {
@@ -32,7 +42,7 @@ export function ErrorRow({ issue, onOpen }: { issue: TrackerIssue; onOpen: () =>
         <span className="block truncate font-mono text-sm font-medium" title={issue.title}>
           {issue.title}
         </span>
-        <span className="block truncate text-xs text-muted-foreground" title={issue.triageMessage ?? undefined}>
+        <span className="block truncate text-xs text-muted-foreground" title={(issue.resolverStatus === 'PR_OPEN' ? note(issue) : issue.triageMessage) ?? undefined}>
           {[issue.service, issue.githubIssueNumber !== null ? `#${issue.githubIssueNumber}` : null, note(issue)].filter(Boolean).join(' · ') || ' '}
         </span>
       </span>

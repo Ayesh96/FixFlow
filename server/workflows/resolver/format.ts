@@ -3,6 +3,7 @@ import type { GitHubIssue } from './types.ts';
 const MAX_TITLE_LENGTH = 120;
 /** GitHub rejects PR bodies over 65,536 characters. */
 const MAX_BODY_LENGTH = 60_000;
+const MAX_SUMMARY_LENGTH = 1_000;
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -24,6 +25,17 @@ export function formatVerifyNote(verifyRan: boolean, verified: boolean): string 
   return verified
     ? '_Verified — the configured verify command passed after this change._'
     : '_Unverified — the configured verify command still fails after this change. Review carefully before merging._';
+}
+
+/**
+ * What a fix did, in a sentence or two, for the dashboard: the model's own words, the files it touched
+ * and whether the project's check passed. It is the pull request body's content without the markdown, kept
+ * with the attempt so a row can say what changed without a trip to GitHub.
+ */
+export function formatFixSummary(explanation: string, filesChanged: string[], verifyRan: boolean, verified: boolean): string {
+  const files = filesChanged.length > 0 ? ` Changed: ${filesChanged.join(', ')}.` : '';
+  const check = !verifyRan ? ' Not verified: no verify command.' : verified ? ' Verified: the verify command passed.' : ' The verify command still fails.';
+  return truncate(`${explanation.trim()}${files}${check}`, MAX_SUMMARY_LENGTH);
 }
 
 export function formatPullRequestBody(

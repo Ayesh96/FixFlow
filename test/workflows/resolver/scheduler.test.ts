@@ -319,6 +319,8 @@ describe('Scheduler', () => {
     assert.equal(attempt?.status, 'PR_OPEN');
     assert.equal(attempt?.prNumber, 42);
     assert.equal(attempt?.prUrl, 'https://github.com/acme/app/pull/42');
+    // What it did is kept with the attempt, so the dashboard can say so without a trip to GitHub.
+    assert.equal(attempt?.reason, 'added a null check Changed: src/user.ts. Verified: the verify command passed.');
   });
 
   it('records FAILED (not crash) when opening the pull request itself throws', async () => {
@@ -473,7 +475,10 @@ describe('Scheduler', () => {
     // First that the resolver is working on it, then how it ended.
     assert.deepEqual(reported.map((r) => r.status), ['IN_PROGRESS', 'PR_OPEN']);
     assert.equal(reported[1]?.fingerprintHash, 'fp-1');
-    assert.deepEqual(reported[1]?.details, { prNumber: 42, prUrl: 'https://github.com/acme/app/pull/42' });
+    const details = reported[1]?.details as { prNumber?: number; prUrl?: string; reason?: string } | undefined;
+    assert.equal(details?.prNumber, 42);
+    assert.equal(details?.prUrl, 'https://github.com/acme/app/pull/42');
+    assert.match(details?.reason ?? '', /Changed: src\/user\.ts/);
   });
 
   it('does not change the recorded attempt when reporting to error-tracker fails', async () => {

@@ -239,7 +239,13 @@ export const copy = {
       /** One section per stage, each with its own state, text and action. */
       stage: {
         triage: { title: 'Triage', notRead: 'Not read yet. This error was tracked before triage was recorded.' },
-        issue: { title: 'GitHub issue', filed: (n: number) => `Filed #${n}`, notFiled: 'Not filed' },
+        issue: {
+          title: 'GitHub issue',
+          filed: (n: number) => `Filed #${n}`,
+          notFiled: 'Not filed',
+          aboutLabel: 'Where it was filed',
+          about: (n: number | null, repo: string | null) => `${n === null ? 'Filed' : `Filed as #${n}`}${repo ? ` in ${repo}` : ''}. This is the issue the resolver works from.`,
+        },
         resolver: {
           title: 'Resolver',
           notTried: 'Not tried',
@@ -248,11 +254,13 @@ export const copy = {
           working: 'Working on a fix. This can take a minute or two.',
           skippedWhy: 'Why it was skipped',
           failedWhy: 'What went wrong',
+          changedWhat: 'What it changed',
         },
-        pr: { title: 'Pull request', open: 'Open', none: 'Not opened' },
+        pr: { title: 'Pull request', open: 'Open', none: 'Not opened', aboutLabel: 'Where it is', about: 'Opened by the resolver with its fix. Review it on GitHub before merging.' },
       },
       openIssue: 'Open issue',
       openPr: 'Open pull request',
+      openPrNumbered: (n: number) => `Open pull request #${n}`,
     },
     kpi: {
       issues: { label: 'Issues', sub: 'distinct errors grouped' },

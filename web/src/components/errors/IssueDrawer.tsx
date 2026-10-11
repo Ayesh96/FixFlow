@@ -75,10 +75,10 @@ function Stage({ id, title, state, children }: { id: string; title: string; stat
   );
 }
 
-/** A short passage under a stage, set off from the plain text around it. */
-function Note({ label, children }: { label: string; children: ReactNode }) {
+/** A passage under a stage: a small muted label, then its text. Every stage says things this way, with no box. */
+function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-1 rounded-md border bg-background p-3">
+    <div className="space-y-1">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-sm break-words">{children}</p>
     </div>
@@ -156,11 +156,8 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
             <Stage id="stage-triage" title={stage.triage.title} state={issue.triageStatus ? <TriageLabel status={issue.triageStatus} /> : null}>
               {issue.triageStatus === 'COMPLETED' && (
                 <>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">{copy.triage.message}</p>
-                    <p className="text-sm break-words">{issue.triageMessage}</p>
-                  </div>
-                  <Note label={copy.triage.suggestion}>{issue.triageSuggestion}</Note>
+                  <Detail label={copy.triage.message}>{issue.triageMessage}</Detail>
+                  <Detail label={copy.triage.suggestion}>{issue.triageSuggestion}</Detail>
                   <TagChips tags={issue.triageTags ?? []} />
                   {issue.triageSource && <p className="text-xs text-muted-foreground">{copy.triage.source[issue.triageSource]}</p>}
                 </>
@@ -195,9 +192,12 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
               }
             >
               {issueUrl ? (
-                <ExternalLink href={issueUrl} className="text-sm">
-                  {c.openIssue}
-                </ExternalLink>
+                <>
+                  <Detail label={stage.issue.aboutLabel}>{stage.issue.about(issue.githubIssueNumber, issue.githubRepo)}</Detail>
+                  <ExternalLink href={issueUrl} className="text-sm">
+                    {c.openIssue}
+                  </ExternalLink>
+                </>
               ) : null}
             </Stage>
 
@@ -215,8 +215,9 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
               }
             >
               {resolver === 'IN_PROGRESS' && <Muted>{stage.resolver.working}</Muted>}
+              {resolver === 'PR_OPEN' && issue.resolverReason && <Detail label={stage.resolver.changedWhat}>{issue.resolverReason}</Detail>}
               {(resolver === 'SKIPPED' || resolver === 'FAILED') && issue.resolverReason && (
-                <Note label={resolver === 'SKIPPED' ? stage.resolver.skippedWhy : stage.resolver.failedWhy}>{issue.resolverReason}</Note>
+                <Detail label={resolver === 'SKIPPED' ? stage.resolver.skippedWhy : stage.resolver.failedWhy}>{issue.resolverReason}</Detail>
               )}
               {resolver === null && <Muted>{filed ? stage.resolver.notTriedBody : `${stage.resolver.notTriedBody} ${stage.resolver.needsIssue}`}</Muted>}
               {canRun && (
@@ -243,9 +244,12 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
               }
             >
               {prUrl ? (
-                <ExternalLink href={prUrl} className="text-sm">
-                  {c.openPr}
-                </ExternalLink>
+                <>
+                  <Detail label={stage.pr.aboutLabel}>{stage.pr.about}</Detail>
+                  <ExternalLink href={prUrl} className="text-sm">
+                    {issue?.resolverPrNumber != null ? c.openPrNumbered(issue.resolverPrNumber) : c.openPr}
+                  </ExternalLink>
+                </>
               ) : null}
             </Stage>
             </div>

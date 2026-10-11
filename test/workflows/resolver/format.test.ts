@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { formatPullRequestBody, formatPullRequestTitle, formatVerifyNote } from '../../../server/workflows/resolver/format.ts';
+import { formatFixSummary, formatPullRequestBody, formatPullRequestTitle, formatVerifyNote } from '../../../server/workflows/resolver/format.ts';
 import type { GitHubIssue } from '../../../server/workflows/resolver/types.ts';
 
 const issue: GitHubIssue = {
@@ -59,5 +59,20 @@ describe('formatPullRequestBody', () => {
   it('truncates very long bodies to stay under GitHub limits', () => {
     const body = formatPullRequestBody(issue, 'x'.repeat(100_000), [], false, false);
     assert.ok(body.length <= 60_000);
+  });
+});
+
+describe('formatFixSummary', () => {
+  it('says what changed, in which files, and whether the check passed', () => {
+    assert.equal(
+      formatFixSummary('Added a null check.', ['src/user.ts', 'src/db.ts'], true, true),
+      'Added a null check. Changed: src/user.ts, src/db.ts. Verified: the verify command passed.',
+    );
+    assert.match(formatFixSummary('x', ['a.py'], true, false), /verify command still fails/);
+    assert.match(formatFixSummary('x', ['a.py'], false, false), /Not verified: no verify command/);
+  });
+
+  it('is cut to a length a row can hold', () => {
+    assert.ok(formatFixSummary('y'.repeat(5000), ['a.py'], false, false).length <= 1000);
   });
 });

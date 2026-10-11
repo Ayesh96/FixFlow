@@ -1,51 +1,38 @@
-import { useEffect, useState } from 'react';
-import { api, type AttemptPage, type ResolverStatus } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, type ResolverStatus } from '@/lib/api';
+import { startPolling, type Poller } from '@/lib/poll';
 
-const POLL_MS = 5000;
+const ACTIVE_MS = 3000;
+const IDLE_MS = 15000;
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
- * Polls the resolver workflow while the tab is mounted (the Resolver tab unmounts when inactive) and the
- * page is visible. `error` is set when the resolver can't be read; the last good data is kept meanwhile.
+ * Polls the resolver's status while the panel is mounted and the page is visible: when it last ran, whether it
+ * is running now, and its counts. (The list of attempts is not read here; nothing on this page shows it.)
  */
 export function useResolverAttempts() {
   const [status, setStatus] = useState<ResolverStatus | null>(null);
-  const [attempts, setAttempts] = useState<AttemptPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const poller = useRef<Poller | null>(null);
+  const running = useRef(false);
+  /** Reads again now, e.g. right after starting a run. */
+  const refresh = useCallback(async () => void (await poller.current?.now()), []);
 
   useEffect(() => {
-    let stopped = false;
-    let timer: number | undefined;
-
-    const refresh = async () => {
-      const [nextStatus, nextAttempts] = await Promise.allSettled([api.errorResolver.status(), api.errorResolver.attempts()]);
-      if (stopped) return;
-      if (nextStatus.status === 'fulfilled') setStatus(nextStatus.value);
-      if (nextAttempts.status === 'fulfilled') {
-        setAttempts(nextAttempts.value);
+    const load = async () => {
+      try {
+        const next = await api.errorResolver.status();
+        setStatus(next);
         setError(null);
-      } else {
-        setError(message(nextAttempts.reason));
+        running.current = next.polling;
+      } catch (err) {
+        setError(message(err));
       }
     };
-    const tick = async () => {
-      if (!document.hidden) await refresh();
-      if (!stopped) timer = window.setTimeout(() => void tick(), POLL_MS);
-    };
-    const onVisibility = () => {
-      if (document.hidden) return;
-      window.clearTimeout(timer);
-      void tick();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    void tick();
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
+    poller.current = startPolling(load, () => (running.current ? ACTIVE_MS : IDLE_MS));
+    return () => poller.current?.stop();
   }, []);
 
-  return { status, attempts, error };
+  return { status, error, refresh };
 }

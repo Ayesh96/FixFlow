@@ -1,17 +1,19 @@
-import { Check, Circle, RotateCw } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, CircleCheck, CircleDashed, GitPullRequest, LoaderCircle, Play, RotateCw } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ExternalLink, When } from '@/components/Bits';
-import { ResolverLabel, TagChips, TriageLabel } from '@/components/StatusLabel';
+import { ResolverLabel, StateLabel, TagChips, TriageLabel } from '@/components/StatusLabel';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api, type TrackerIssue } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { formatCount } from '@/lib/format';
-import { lifecycleOf, safeUrl } from '@/lib/lifecycle';
+import { safeUrl } from '@/lib/lifecycle';
 import { cn } from '@/lib/utils';
 
 const c = copy.errors.detail;
+const stage = c.stage;
+const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** One error with the project it belongs to, as the drawer shows it. */
 export interface InboxItem {
@@ -21,49 +23,115 @@ export interface InboxItem {
   branch: string | null;
 }
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="space-y-0.5">
+    <div className={cn('min-w-0 space-y-0.5', className)}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{children}</dd>
+      <dd className="truncate text-sm">{children}</dd>
     </div>
   );
 }
 
-/** Detail for one error: what it is, how often, and a timeline of how far the pipeline got with it. */
+/**
+ * One stage of an error's journey. Closed, every stage looks the same: its name and its own state on one line.
+ * A stage with something more to say (the triage read, a skip reason, a link, an action) opens on click; one with
+ * nothing more is just the line, with no chevron.
+ */
+function Stage({ id, title, state, children }: { id: string; title: string; state: ReactNode; children?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const expandable = children !== undefined && children !== null && children !== false;
+  const head = (
+    <>
+      <h3 id={id} className="text-sm font-medium">
+        {title}
+      </h3>
+      <span className="flex items-center gap-2">
+        {state}
+        {expandable && <ChevronDown className={cn('size-4 text-muted-foreground transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-180')} aria-hidden />}
+      </span>
+    </>
+  );
+  return (
+    <section aria-labelledby={id} className="border-b last:border-b-0">
+      {expandable ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`${id}-details`}
+          onClick={() => setOpen((o) => !o)}
+          className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left outline-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset"
+        >
+          {head}
+        </button>
+      ) : (
+        <div className="flex min-h-14 items-center justify-between gap-3 px-4 py-3">{head}</div>
+      )}
+      {expandable && open && (
+        <div id={`${id}-details`} className="space-y-3 px-4 pb-4">
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** A short passage under a stage, set off from the plain text around it. */
+function Note({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1 rounded-md border bg-background p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm break-words">{children}</p>
+    </div>
+  );
+}
+
+const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
+
+/** Detail for one error: what it is, then four stages (triage, GitHub issue, resolver, pull request), each with its own state. */
 export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | null; onClose: () => void; onChanged?: () => void }) {
   const [asking, setAsking] = useState(false);
+  const [forcing, setForcing] = useState(false);
   const issue = item?.issue;
-  const life = issue ? lifecycleOf(issue) : null;
   const issueUrl = safeUrl(issue?.githubIssueUrl);
   const prUrl = safeUrl(issue?.resolverPrUrl);
 
-  const triaged = life !== null && life.reached >= 1;
-  const again = async () => {
+  const triageAgain = async () => {
     if (!issue) return;
     setAsking(true);
     try {
       await api.errorTracker.retriage(issue.fingerprintHash);
       onChanged?.(); // the server has marked it Analyzing; show that now rather than at the next poll
     } catch (err) {
-      toast.error(copy.triage.againFailed, { description: err instanceof Error ? err.message : String(err) });
+      toast.error(copy.triage.againFailed, { description: errorText(err) });
     } finally {
       setAsking(false);
     }
   };
 
-  const steps = issue && life && [
-    { key: 'reported', done: true, text: c.steps.reported.done, link: null },
-    { key: 'triaged', done: triaged, text: issue.triageStatus === 'ERRORED' ? c.steps.triaged.failed : triaged ? c.steps.triaged.done : c.steps.triaged.todo, link: null },
-    { key: 'filed', done: life.reached >= 2, text: issue.githubIssueNumber !== null ? c.steps.filed.done(issue.githubIssueNumber) : c.steps.filed.todo, link: issueUrl && { href: issueUrl, label: c.openIssue } },
-    { key: 'fixing', done: life.reached >= 3, text: life.reached >= 3 ? c.steps.fixing.done : c.steps.fixing.todo, link: null },
-    { key: 'review', done: life.reached >= 4, text: life.reached >= 4 ? c.steps.review.done : c.steps.review.todo, link: prUrl && { href: prUrl, label: c.openPr } },
-  ];
+  const runResolver = async () => {
+    if (!issue) return;
+    setForcing(true);
+    try {
+      await api.errorResolver.runIssue(issue.fingerprintHash);
+      toast.success(copy.resolver.forceRunStarted);
+      onChanged?.();
+    } catch (err) {
+      toast.error(copy.resolver.forceRunFailed, { description: errorText(err) });
+    } finally {
+      setForcing(false);
+    }
+  };
+
+  const resolver = issue?.resolverStatus ?? null;
+  const filed = issue?.githubIssueNumber != null;
+  const analyzing = issue?.triageStatus === 'PENDING';
+  // Needs a GitHub issue to work from; a pull request already open would only be duplicated.
+  const canRun = filed && resolver !== 'PR_OPEN' && resolver !== 'IN_PROGRESS';
 
   return (
     <Sheet open={item !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
-        {item && issue && steps && (
+        {item && issue && (
           <>
             <SheetHeader className="gap-2 border-b pr-12">
               <SheetTitle className="break-words font-mono text-sm leading-relaxed">{issue.title}</SheetTitle>
@@ -73,7 +141,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
               </SheetDescription>
             </SheetHeader>
 
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-b p-4">
+            <dl className="grid grid-cols-4 gap-x-3 border-b p-4">
               <Fact label={c.facts.seen}>{formatCount(issue.count)}</Fact>
               <Fact label={c.facts.app}>{issue.service ?? '—'}</Fact>
               <Fact label={c.facts.first}>
@@ -84,79 +152,103 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
               </Fact>
             </dl>
 
-            <section className="space-y-3 border-b p-4" aria-labelledby="triage">
-              <div className="flex items-center justify-between gap-2">
-                <h3 id="triage" className="text-sm font-medium">
-                  {copy.triage.heading}
-                </h3>
-                <div className="flex items-center gap-2">
-                  {issue.triageStatus && <TriageLabel status={issue.triageStatus} />}
-                  <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs" disabled={asking || issue.triageStatus === 'PENDING'} onClick={() => void again()}>
-                    <RotateCw className={asking ? 'size-3.5 animate-spin motion-reduce:animate-none' : 'size-3.5'} aria-hidden />
-                    {copy.triage.again}
-                  </Button>
-                </div>
-              </div>
-
+            <div key={issue.fingerprintHash}>
+            <Stage id="stage-triage" title={stage.triage.title} state={issue.triageStatus ? <TriageLabel status={issue.triageStatus} /> : null}>
               {issue.triageStatus === 'COMPLETED' && (
                 <>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">{copy.triage.message}</p>
                     <p className="text-sm break-words">{issue.triageMessage}</p>
                   </div>
-                  <div className="space-y-1 rounded-md border bg-background p-3">
-                    <p className="text-xs text-muted-foreground">{copy.triage.suggestion}</p>
-                    <p className="text-sm break-words">{issue.triageSuggestion}</p>
-                  </div>
+                  <Note label={copy.triage.suggestion}>{issue.triageSuggestion}</Note>
                   <TagChips tags={issue.triageTags ?? []} />
                   {issue.triageSource && <p className="text-xs text-muted-foreground">{copy.triage.source[issue.triageSource]}</p>}
                 </>
               )}
-              {issue.triageStatus === 'PENDING' && <p className="text-sm text-muted-foreground">{copy.triage.status.PENDING}…</p>}
+              {analyzing && <Muted>{copy.triage.status.PENDING}…</Muted>}
               {issue.triageStatus === 'ERRORED' && (
-                <div className="space-y-1">
+                <>
                   <p className="text-sm">{copy.triage.failed}</p>
                   {issue.triageMessage && <p className="text-xs break-words text-muted-foreground">{issue.triageMessage}</p>}
-                </div>
+                </>
               )}
-              {!issue.triageStatus && <p className="text-sm text-muted-foreground">{copy.triage.notYet}</p>}
-            </section>
+              {!issue.triageStatus && <Muted>{stage.triage.notRead}</Muted>}
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={asking} onClick={() => void triageAgain()}>
+                <RotateCw className={cn('size-3.5', (asking || analyzing) && 'animate-spin motion-reduce:animate-none')} aria-hidden />
+                {copy.triage.again}
+              </Button>
+            </Stage>
 
-            <section className="space-y-4 p-4" aria-labelledby="journey">
-              <div className="flex items-center justify-between gap-2">
-                <h3 id="journey" className="text-sm font-medium">
-                  {c.journey}
-                </h3>
-                {issue.resolverStatus && <ResolverLabel status={issue.resolverStatus} />}
-              </div>
+            <Stage
+              id="stage-issue"
+              title={stage.issue.title}
+              state={
+                filed ? (
+                  <StateLabel icon={CircleCheck} tone="text-status-running">
+                    {stage.issue.filed(issue.githubIssueNumber!)}
+                  </StateLabel>
+                ) : (
+                  <StateLabel icon={CircleDashed} tone="text-status-stopped">
+                    {stage.issue.notFiled}
+                  </StateLabel>
+                )
+              }
+            >
+              {issueUrl ? (
+                <ExternalLink href={issueUrl} className="text-sm">
+                  {c.openIssue}
+                </ExternalLink>
+              ) : null}
+            </Stage>
 
-              <ol className="relative space-y-5">
-                {steps.map((step, i) => (
-                  <li key={step.key} className="relative flex gap-3">
-                    {i < steps.length - 1 && <span className={cn('absolute top-6 left-[11px] h-[calc(100%-4px)] w-px', step.done && steps[i + 1]!.done ? 'bg-foreground' : 'bg-border')} aria-hidden />}
-                    <span className={cn('z-10 flex size-6 shrink-0 items-center justify-center rounded-full border', step.done ? 'border-foreground bg-foreground text-background' : 'bg-card text-muted-foreground')}>
-                      {step.done ? <Check className="size-3.5" aria-hidden /> : <Circle className="size-2" aria-hidden />}
-                      <span className="sr-only">{step.done ? '(done)' : '(not yet)'}</span>
-                    </span>
-                    <div className="min-w-0 space-y-1 pt-0.5">
-                      <p className={cn('text-sm', !step.done && 'text-muted-foreground')}>{step.text}</p>
-                      {step.link && (
-                        <ExternalLink href={step.link.href} className="text-sm">
-                          {step.link.label}
-                        </ExternalLink>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-
-              {issue.resolverReason && (
-                <div className="space-y-1 rounded-md border bg-background p-3">
-                  <p className="text-xs text-muted-foreground">Why</p>
-                  <p className="text-sm break-words">{issue.resolverReason}</p>
-                </div>
+            <Stage
+              id="stage-resolver"
+              title={stage.resolver.title}
+              state={
+                resolver ? (
+                  <ResolverLabel status={resolver} />
+                ) : (
+                  <StateLabel icon={CircleDashed} tone="text-status-stopped">
+                    {stage.resolver.notTried}
+                  </StateLabel>
+                )
+              }
+            >
+              {resolver === 'IN_PROGRESS' && <Muted>{stage.resolver.working}</Muted>}
+              {(resolver === 'SKIPPED' || resolver === 'FAILED') && issue.resolverReason && (
+                <Note label={resolver === 'SKIPPED' ? stage.resolver.skippedWhy : stage.resolver.failedWhy}>{issue.resolverReason}</Note>
               )}
-            </section>
+              {resolver === null && <Muted>{filed ? stage.resolver.notTriedBody : `${stage.resolver.notTriedBody} ${stage.resolver.needsIssue}`}</Muted>}
+              {canRun && (
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={forcing} onClick={() => void runResolver()}>
+                  {forcing ? <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> : <Play className="size-3.5" aria-hidden />}
+                  {resolver === null ? copy.resolver.runOne : copy.resolver.forceRun}
+                </Button>
+              )}
+            </Stage>
+
+            <Stage
+              id="stage-pr"
+              title={stage.pr.title}
+              state={
+                resolver === 'PR_OPEN' ? (
+                  <StateLabel icon={GitPullRequest} tone="text-status-running">
+                    {stage.pr.open}
+                  </StateLabel>
+                ) : (
+                  <StateLabel icon={CircleDashed} tone="text-status-stopped">
+                    {stage.pr.none}
+                  </StateLabel>
+                )
+              }
+            >
+              {prUrl ? (
+                <ExternalLink href={prUrl} className="text-sm">
+                  {c.openPr}
+                </ExternalLink>
+              ) : null}
+            </Stage>
+            </div>
           </>
         )}
       </SheetContent>

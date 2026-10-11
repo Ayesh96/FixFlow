@@ -65,6 +65,10 @@ export const api = {
   },
   errorResolver: {
     status: () => request<ResolverStatus>('GET', '/api/ext/resolver/status'),
+    /** Runs a cycle now; answers at once. Rejects if one is already running. */
+    run: () => request<{ run: 'started' }>('POST', '/api/ext/resolver/run', {}),
+    /** Tries one error now even if it was skipped or failed before. Answers at once; the outcome follows. */
+    runIssue: (fingerprintHash: string) => request<{ run: 'started' }>('POST', `/api/ext/resolver/issues/${encodeURIComponent(fingerprintHash)}/run`, {}),
     attempts: (limit: number = 50, offset: number = 0) =>
       request<AttemptPage>('GET', `/api/ext/resolver/attempts?limit=${limit}&offset=${offset}`),
   },

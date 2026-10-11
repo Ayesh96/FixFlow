@@ -26,7 +26,7 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 export function ProjectsPanel() {
   const { data, error, announcement, refresh } = useProjects();
   const { groups, status: tracker, refresh: refreshErrors } = useErrorGroups();
-  const { status: resolver } = useResolverAttempts();
+  const { status: resolver, refresh: refreshResolver } = useResolverAttempts();
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<ProjectView | null>(null);
   const [editing, setEditing] = useState<ProjectView | null>(null);
@@ -89,7 +89,7 @@ export function ProjectsPanel() {
       </div>
       )}
 
-      {routeId === null && projects && projects.length > 0 && <Overview groups={groups} tracker={tracker} resolver={resolver} />}
+      {routeId === null && projects && projects.length > 0 && <Overview groups={groups} tracker={tracker} resolver={resolver} onResolverChanged={() => void refreshResolver()} />}
 
       {error && (
         <Alert variant="destructive">

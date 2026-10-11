@@ -6,7 +6,7 @@ export interface IssueSource {
   listIssues(): Promise<TrackedIssue[]>;
   reportResolverStatus(
     fingerprintHash: string,
-    status: Exclude<AttemptStatus, 'PENDING' | 'IN_PROGRESS'>,
+    status: Exclude<AttemptStatus, 'PENDING'>,
     details?: { prNumber?: number | null; prUrl?: string | null; reason?: string | null },
   ): Promise<void>;
 }
@@ -34,7 +34,7 @@ export class StoreIssueSource implements IssueSource {
 
   async reportResolverStatus(
     fingerprintHash: string,
-    status: Exclude<AttemptStatus, 'PENDING' | 'IN_PROGRESS'>,
+    status: Exclude<AttemptStatus, 'PENDING'>,
     details: { prNumber?: number | null; prUrl?: string | null; reason?: string | null } = {},
   ): Promise<void> {
     this.store.setResolverStatus(fingerprintHash, status, details);

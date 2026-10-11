@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {
   resolveInWorkDir,
+  mapToRepoPath,
   readFileTool,
   listDirectoryTool,
   grepTool,
@@ -23,6 +24,20 @@ describe('agent-tools', () => {
 
   afterEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  describe('mapToRepoPath - absolute paths from a stack trace', () => {
+    it('maps the reporter\'s absolute path onto the same file in the checkout', async () => {
+      await fs.mkdir(path.join(tempDir, 'macremote'), { recursive: true });
+      await fs.writeFile(path.join(tempDir, 'macremote', 'run.py'), 'x', 'utf8');
+      assert.equal(await mapToRepoPath(tempDir, '/Users/someone/code/MacRemote/macremote/run.py'), path.join('macremote', 'run.py'));
+      assert.equal(await readFileTool(tempDir, '/Users/someone/code/MacRemote/macremote/run.py'), 'x');
+    });
+
+    it('leaves a path with no match in the checkout to the sandbox check', async () => {
+      assert.equal(await mapToRepoPath(tempDir, '/etc/passwd'), '/etc/passwd');
+      await assert.rejects(() => readFileTool(tempDir, '/etc/passwd'), ToolPathError);
+    });
   });
 
   describe('resolveInWorkDir - path containment', () => {
@@ -496,7 +511,7 @@ describe('agent-tools', () => {
         tempDir
       );
       assert.ok(typeof result === 'string');
-      assert.match(result, /error.*escapes/);
+      assert.match(result, /error.*outside the repository root/);
     });
 
     it('has correct TOOL_DEFINITIONS export', () => {

@@ -1,4 +1,5 @@
 import type { Router } from 'express';
+import { HttpError } from '../../errors.ts';
 import type { ProjectStore } from '../../projects/store.ts';
 import type { AttemptPage, ResolverStatus } from '../../types.ts';
 import type { Store as ErrorsStore } from '../errors/store.ts';
@@ -69,6 +70,22 @@ export class ResolverWorkflow implements Workflow {
   routes(router: Router): void {
     router.get('/status', (_req, res) => {
       res.json({ ...this.scheduler.status(), stats: this.store.stats() } satisfies ResolverStatus);
+    });
+
+    // Runs a cycle now instead of waiting for the next poll. Answers at once; the attempts follow.
+    router.post('/run', (_req, res) => {
+      if (!this.scheduler.runNow()) throw new HttpError(409, 'A cycle is already running');
+      res.status(202).json({ run: 'started' });
+    });
+
+    // Tries one error again now, even if the resolver already skipped or failed it, and asks the model not to give up.
+    router.post('/issues/:fingerprint/run', async (req, res) => {
+      const outcome = await this.scheduler.forceIssue(req.params.fingerprint as string);
+      if (outcome === 'unknown') throw new HttpError(404, 'No such error');
+      if (outcome === 'busy') throw new HttpError(409, 'This error is already being worked on');
+      if (outcome === 'has-pr') throw new HttpError(409, 'This error already has a pull request open');
+      if (outcome === 'unavailable') throw new HttpError(409, 'This error has no open GitHub issue to work from');
+      res.status(202).json({ run: 'started' });
     });
 
     router.get('/attempts', (req, res) => {

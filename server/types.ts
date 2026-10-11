@@ -92,6 +92,7 @@ export interface ResolverStats {
 export interface ResolverStatus {
   lastPollAt: string | null;
   lastPollError: string | null;
+  polling: boolean;
   stats: ResolverStats;
 }
 

@@ -228,6 +228,28 @@ describe('Scheduler', () => {
     assert.equal(fixCalled, true);
   });
 
+  it('forces a skipped issue to run again, and refuses one that has a pull request', async () => {
+    const store = newStore();
+    store.beginAttempt('acme/app', 7, 'fp-1');
+    store.recordResult('acme/app', 7, 'SKIPPED', { reason: 'not confident' });
+    const issueSource: IssueSource = { listIssues: async () => [tracked()], reportResolverStatus: async () => {} };
+    const github: GitHubGateway = { getIssue: async () => openIssue, getDefaultBranch: async () => 'main', createPullRequest: async () => ({ number: 1, url: 'x' }) };
+    const forced: (boolean | undefined)[] = [];
+    const attemptFix = async (input: { force?: boolean }): Promise<FixOutcome> => {
+      forced.push(input.force);
+      return { kind: 'skipped', reason: 'still no' };
+    };
+    const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
+
+    assert.equal(await scheduler.forceIssue('nope'), 'unknown');
+    assert.equal(await scheduler.forceIssue('fp-1'), 'started');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(forced, [true]);
+
+    store.recordResult('acme/app', 7, 'PR_OPEN', { prNumber: 1, prUrl: 'x' });
+    assert.equal(await scheduler.forceIssue('fp-1'), 'has-pr');
+  });
+
   it('records SKIPPED without opening a pull request', async () => {
     const store = newStore();
     const issueSource: IssueSource = { listIssues: async () => [tracked()], reportResolverStatus: async () => {} };
@@ -376,6 +398,25 @@ describe('Scheduler', () => {
     assert.match(scheduler.status().lastPollError ?? '', /tracker unreachable/);
   });
 
+  it('runs a cycle on demand, and refuses while one is already running', async () => {
+    const store = newStore();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const issueSource: IssueSource = { listIssues: async () => (await gate, []), reportResolverStatus: async () => {} };
+    const github: GitHubGateway = { getIssue: async () => openIssue, getDefaultBranch: async () => 'main', createPullRequest: async () => ({ number: 1, url: 'x' }) };
+    const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent });
+
+    assert.equal(scheduler.runNow(), true);
+    assert.equal(scheduler.status().polling, true);
+    assert.equal(scheduler.runNow(), false);
+    release();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(scheduler.status().polling, false);
+    assert.ok(scheduler.status().lastPollAt);
+  });
+
   it('skips a poll cycle that starts while the previous one is still running', async () => {
     const store = newStore();
     let listCalls = 0;
@@ -430,10 +471,10 @@ describe('Scheduler', () => {
     const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
     await scheduler.pollOnce();
 
-    assert.equal(reported.length, 1);
-    assert.equal(reported[0]?.fingerprintHash, 'fp-1');
-    assert.equal(reported[0]?.status, 'PR_OPEN');
-    assert.deepEqual(reported[0]?.details, { prNumber: 42, prUrl: 'https://github.com/acme/app/pull/42' });
+    // First that the resolver is working on it, then how it ended.
+    assert.deepEqual(reported.map((r) => r.status), ['IN_PROGRESS', 'PR_OPEN']);
+    assert.equal(reported[1]?.fingerprintHash, 'fp-1');
+    assert.deepEqual(reported[1]?.details, { prNumber: 42, prUrl: 'https://github.com/acme/app/pull/42' });
   });
 
   it('does not change the recorded attempt when reporting to error-tracker fails', async () => {

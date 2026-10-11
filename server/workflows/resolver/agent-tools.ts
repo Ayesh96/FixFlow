@@ -1,6 +1,6 @@
 import type { Dirent } from 'node:fs';
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 const MAX_READ_BYTES = 100_000;
 const MAX_FILE_STAT_BYTES = MAX_READ_BYTES * 2;
@@ -25,9 +25,33 @@ export function resolveInWorkDir(cwd: string, relativePath: string): string {
   const root = resolve(cwd);
   const target = resolve(root, relativePath);
   if (target !== root && !target.startsWith(root + sep)) {
-    throw new ToolPathError(`path "${relativePath}" escapes the repository root`);
+    throw new ToolPathError(`path "${relativePath}" is outside the repository root; use a path relative to it`);
   }
   return target;
+}
+
+/**
+ * Stack traces carry the reporting machine's absolute paths (/Users/me/app/src/x.py), which exist
+ * nowhere in the checkout. For an absolute path outside the repository, this finds the longest tail
+ * of it that is a real file or directory under the repository and returns that, so the agent can
+ * follow a trace without being told to translate it. Anything else comes back unchanged and still
+ * goes through the strict sandbox check.
+ */
+export async function mapToRepoPath(cwd: string, path: string): Promise<string> {
+  if (!isAbsolute(path)) return path;
+  const root = resolve(cwd);
+  if (resolve(path).startsWith(root + sep)) return path;
+  const parts = path.split(/[\\/]+/).filter(Boolean);
+  for (let i = 0; i < parts.length; i++) {
+    const candidate = parts.slice(i).join(sep);
+    try {
+      await stat(resolveInWorkDir(cwd, candidate));
+      return candidate;
+    } catch {
+      // not in this checkout; try a shorter tail
+    }
+  }
+  return path;
 }
 
 async function walk(root: string, dir: string, out: string[], limit: number): Promise<void> {
@@ -47,7 +71,8 @@ async function walk(root: string, dir: string, out: string[], limit: number): Pr
   }
 }
 
-export async function readFileTool(cwd: string, path: string): Promise<string> {
+export async function readFileTool(cwd: string, rawPath: string): Promise<string> {
+  const path = await mapToRepoPath(cwd, rawPath);
   const target = resolveInWorkDir(cwd, path);
   const info = await stat(target);
   if (!info.isFile()) return `${path} is not a file`;
@@ -56,7 +81,8 @@ export async function readFileTool(cwd: string, path: string): Promise<string> {
   return content.length > MAX_READ_BYTES ? `${content.slice(0, MAX_READ_BYTES)}\n...(truncated)` : content;
 }
 
-export async function listDirectoryTool(cwd: string, path = '.'): Promise<string> {
+export async function listDirectoryTool(cwd: string, rawPath = '.'): Promise<string> {
+  const path = await mapToRepoPath(cwd, rawPath);
   const target = resolveInWorkDir(cwd, path);
   const root = resolve(cwd);
   const out: string[] = [];
@@ -64,7 +90,8 @@ export async function listDirectoryTool(cwd: string, path = '.'): Promise<string
   return out.length > 0 ? out.sort().join('\n') : '(no files)';
 }
 
-export async function grepTool(cwd: string, pattern: string, path = '.'): Promise<string> {
+export async function grepTool(cwd: string, pattern: string, rawPath = '.'): Promise<string> {
+  const path = await mapToRepoPath(cwd, rawPath);
   const target = resolveInWorkDir(cwd, path);
   const root = resolve(cwd);
   let regex: RegExp;
@@ -95,11 +122,22 @@ export async function grepTool(cwd: string, pattern: string, path = '.'): Promis
   return matches.length > 0 ? matches.join('\n') : '(no matches)';
 }
 
-export async function editFileTool(cwd: string, path: string, oldString: string, newString: string): Promise<string> {
+/** What the file actually says near where a failed edit was aimed, so the model can retry with the real text. */
+function nearbyLines(content: string, oldString: string): string {
+  const lines = content.split('\n');
+  const needle = (oldString.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 30);
+  const at = needle ? lines.findIndex((l) => l.includes(needle)) : -1;
+  const from = at >= 0 ? Math.max(0, at - 3) : 0;
+  const shown = lines.slice(from, from + 12).map((l, i) => `${from + i + 1}: ${l}`);
+  return `${at >= 0 ? 'Closest match' : 'Start of the file'}:\n${shown.join('\n')}`;
+}
+
+export async function editFileTool(cwd: string, rawPath: string, oldString: string, newString: string): Promise<string> {
+  const path = await mapToRepoPath(cwd, rawPath);
   const target = resolveInWorkDir(cwd, path);
   const content = await readFile(target, 'utf8');
   const occurrences = content.split(oldString).length - 1;
-  if (occurrences === 0) return `old_string not found in ${path}`;
+  if (occurrences === 0) return `old_string not found in ${path}. It must match the file exactly, including whitespace. ${nearbyLines(content, oldString)}`;
   if (occurrences > 1) return `old_string appears ${occurrences} times in ${path}; include more surrounding context so it is unique`;
   await writeFile(target, content.replace(oldString, newString), 'utf8');
   return `edited ${path}`;

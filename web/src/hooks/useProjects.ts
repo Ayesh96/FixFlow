@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type ProjectList } from '@/lib/api';
+import { startPolling, type Poller } from '@/lib/poll';
 
 /** Quickly while a clone is running, so progress feels live; slowly otherwise. */
-const BUSY_MS = 1500;
-const IDLE_MS = 6000;
+const BUSY_MS = 2000;
+const IDLE_MS = 15000;
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
@@ -17,16 +18,13 @@ export function useProjects() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const previous = useRef<Record<string, string>>({});
-  const refreshRef = useRef<() => Promise<void>>(async () => undefined);
+  const poller = useRef<Poller | null>(null);
+  const refresh = useCallback(async () => void (await poller.current?.now()), []);
 
   useEffect(() => {
-    let stopped = false;
-    let timer: number | undefined;
-
-    const refresh = async () => {
+    const load = async () => {
       try {
         const next = await api.projects.list();
-        if (stopped) return;
         setData(next);
         setError(null);
         for (const project of next.projects) {
@@ -36,31 +34,12 @@ export function useProjects() {
           previous.current[project.id] = project.setup.state;
         }
       } catch (err) {
-        if (!stopped) setError(message(err));
+        setError(message(err));
       }
     };
-    refreshRef.current = refresh;
-
-    const tick = async () => {
-      if (!document.hidden) await refresh();
-      if (stopped) return;
-      const working = Object.values(previous.current).includes('working');
-      timer = window.setTimeout(() => void tick(), working ? BUSY_MS : IDLE_MS);
-    };
-    const onVisibility = () => {
-      if (document.hidden) return;
-      window.clearTimeout(timer);
-      void tick();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    void tick();
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
+    poller.current = startPolling(load, () => (Object.values(previous.current).includes('working') ? BUSY_MS : IDLE_MS));
+    return () => poller.current?.stop();
   }, []);
 
-  const refresh = useCallback(() => refreshRef.current(), []);
   return { data, error, announcement, refresh };
 }

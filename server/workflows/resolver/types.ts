@@ -68,4 +68,6 @@ export interface AttemptStats {
 export interface PollStatus {
   lastPollAt: string | null;
   lastPollError: string | null;
+  /** True while a cycle is running, so the dashboard can disable "Run now". */
+  polling: boolean;
 }

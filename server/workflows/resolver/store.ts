@@ -89,6 +89,11 @@ export class Store {
     `);
   }
 
+  listInProgress(): AttemptRecord[] {
+    const rows = this.db.prepare("SELECT * FROM attempts WHERE status = 'IN_PROGRESS'").all() as unknown as Row[];
+    return rows.map(toRecord);
+  }
+
   getAttempt(repo: string, issueNumber: number): AttemptRecord | null {
     const row = this.stmtGetAttempt.get(repo, issueNumber) as unknown as Row | undefined;
     return row ? toRecord(row) : null;

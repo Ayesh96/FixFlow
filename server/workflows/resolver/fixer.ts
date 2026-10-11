@@ -1,4 +1,4 @@
-import { executeTool, TOOL_DEFINITIONS } from './agent-tools.ts';
+import { executeTool, mapToRepoPath, readFileTool, TOOL_DEFINITIONS } from './agent-tools.ts';
 import type { Config } from './config.ts';
 import * as git from './git.ts';
 import { AnthropicClient, FallbackClient } from './anthropic-client.ts';
@@ -33,7 +33,45 @@ const NUDGE =
   'No one is here to answer that. Either call a tool yourself to get the information you need, or, ' +
   'if you already know enough, end your message with a FIX: or SKIP: line right now.';
 
-function buildPrompt(issue: GitHubIssue): string {
+const FORCE_NOTE =
+  'A person has asked for this issue to be fixed after an earlier attempt gave up on it. Do not give up ' +
+  'because the cause looks unclear or the code is only indirectly involved: find the code in this ' +
+  'repository that triggers the error and make the most defensible small change, such as handling the ' +
+  'failing case. Only SKIP if there is genuinely nothing in this repository you can change.';
+
+const SOURCE_FILE = /([\w@.\-/\\]+\.(?:py|ts|tsx|js|jsx|mjs|go|rb|java|kt|swift|rs|php|cs|cpp|c|h))(?:["']?,? line |:)?(\d+)?/g;
+const MAX_PREREAD_FILES = 3;
+const PREREAD_WINDOW = 60;
+const PREREAD_WHOLE_FILE_LINES = 250;
+
+/**
+ * The source files a stack trace names, read ahead of time. A small model that has to find and open them
+ * itself often guesses at their contents and then fails to edit; with the code in front of it, it can
+ * point at the real lines. The newest frames come last in a trace, so the last files named win.
+ */
+export async function referencedSources(cwd: string, body: string): Promise<string> {
+  const seen = new Map<string, number | null>();
+  for (const match of body.matchAll(SOURCE_FILE)) seen.set(match[1] as string, match[2] ? Number(match[2]) : null);
+  const picked = [...seen].reverse();
+  const out: string[] = [];
+  for (const [named, line] of picked) {
+    if (out.length >= MAX_PREREAD_FILES) break;
+    const path = await mapToRepoPath(cwd, named);
+    let text: string;
+    try {
+      text = await readFileTool(cwd, path);
+    } catch {
+      continue; // not in this checkout (a dependency, the standard library)
+    }
+    const lines = text.split('\n');
+    const from = lines.length <= PREREAD_WHOLE_FILE_LINES || line === null ? 0 : Math.max(0, line - PREREAD_WINDOW);
+    const to = lines.length <= PREREAD_WHOLE_FILE_LINES || line === null ? Math.min(lines.length, PREREAD_WHOLE_FILE_LINES) : Math.min(lines.length, line + PREREAD_WINDOW);
+    out.push(`--- ${path} (lines ${from + 1}-${to}) ---`, ...lines.slice(from, to).map((l, i) => `${from + i + 1}: ${l}`));
+  }
+  return out.join('\n');
+}
+
+function buildPrompt(issue: GitHubIssue, force = false, sources = ''): string {
   return [
     `Issue #${issue.number}: ${issue.title}`,
     '',
@@ -44,6 +82,7 @@ function buildPrompt(issue: GitHubIssue): string {
     issue.body,
     '-----END ISSUE BODY-----',
     '',
+    ...(sources ? ['Source files this error names, as they are in the repository now (line numbers are not part of the code):', sources, ''] : []),
     "Task: find the root cause in this repository's own source code. If, and only if, you can fix it " +
       'with high confidence in a small, localized change (a handful of lines in one or two files), make ' +
       'that fix with edit_file.',
@@ -57,6 +96,7 @@ function buildPrompt(issue: GitHubIssue): string {
     'End your final message with exactly one of these two lines, and nothing after it:',
     'FIX: <one sentence describing what you changed and why it fixes the issue>',
     'SKIP: <one sentence describing why you could not confidently fix it>',
+    ...(force ? ['', FORCE_NOTE] : []),
   ].join('\n');
 }
 
@@ -73,13 +113,15 @@ export type AgentVerdict = { kind: 'fix'; explanation: string } | { kind: 'skip'
 export interface RunFixAgentOptions {
   cwd: string;
   client: ChatClient;
+  /** A person asked for this attempt, so the model is told not to give up on a hard-to-place cause. */
+  force?: boolean;
 }
 
 /** Runs the fix agent, scoped to `cwd` with read/list/grep/edit only — no Bash, no network, no git. */
 export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOptions): Promise<AgentVerdict> {
   const messages: OllamaMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: buildPrompt(issue) },
+    { role: 'user', content: buildPrompt(issue, options.force, await referencedSources(options.cwd, issue.body).catch(() => '')) },
   ];
 
   let nudged = false;
@@ -165,6 +207,8 @@ export interface AttemptFixInput {
   localRepoPath?: string | null;
   /** The project's own check, run through a shell before and after the fix. Without one fixes go out unverified. */
   verifyCommand?: string | null;
+  /** Set when a person asked for this attempt; see FORCE_NOTE. */
+  force?: boolean;
 }
 
 /**
@@ -201,6 +245,7 @@ export async function attemptFix(
 
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
+      force: input.force === true,
       client: createChatClient(config, (err) => console.warn(`[error-resolver] hosted model failed, falling back to ${config.ollamaModel}:`, err instanceof Error ? err.message : err)),
     });
     if (verdict.kind === 'error') return { kind: 'failed', error: verdict.message };

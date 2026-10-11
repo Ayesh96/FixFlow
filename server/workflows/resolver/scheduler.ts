@@ -71,6 +71,8 @@ export class Scheduler {
   private readonly attemptFix: typeof defaultAttemptFix;
   private timer: ReturnType<typeof setInterval> | null = null;
   private polling = false;
+  /** Fingerprints being worked on because a person asked, so a poll leaves them alone. */
+  private readonly forcing = new Set<string>();
   private lastPollAt: string | null = null;
   private lastPollError: string | null = null;
 
@@ -86,19 +88,62 @@ export class Scheduler {
   }
 
   status(): PollStatus {
-    return { lastPollAt: this.lastPollAt, lastPollError: this.lastPollError };
+    return { lastPollAt: this.lastPollAt, lastPollError: this.lastPollError, polling: this.polling };
   }
 
   /** Starts polling immediately, then on `config.pollIntervalMs`. */
   start(): void {
     if (this.timer) return;
+    void this.recoverInterrupted();
     void this.pollOnce();
     this.timer = setInterval(() => void this.pollOnce(), this.config.pollIntervalMs).unref();
+  }
+
+  /** An attempt still marked in progress when the process starts was cut off by a restart; leaving it would show "working" forever. */
+  private async recoverInterrupted(): Promise<void> {
+    for (const attempt of this.store.listInProgress()) {
+      const reason = 'interrupted by a restart; try again';
+      this.store.recordResult(attempt.repo, attempt.issueNumber, 'FAILED', { reason });
+      await this.reportToTracker(attempt.fingerprintHash, attempt.repo, attempt.issueNumber, 'FAILED', { reason });
+    }
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+  }
+
+  /** Starts a cycle without waiting for it; false when one is already running. */
+  runNow(): boolean {
+    if (this.polling) return false;
+    void this.pollOnce();
+    return true;
+  }
+
+  /**
+   * Attempts one issue now, whatever happened before, and tells the model not to give up on it.
+   * Answers once the attempt is under way; its outcome lands on the issue like any other.
+   * An issue that already has a pull request is refused: another attempt would open a duplicate.
+   */
+  async forceIssue(fingerprintHash: string): Promise<'started' | 'unknown' | 'busy' | 'has-pr' | 'unavailable'> {
+    if (this.forcing.has(fingerprintHash)) return 'busy';
+    const item = (await this.issues.listIssues()).find((i) => i.fingerprintHash === fingerprintHash);
+    if (!item) return 'unknown';
+    const repo = item.githubRepo ? parseRepo(item.githubRepo) : null;
+    const project = this.projects.get(item.projectId);
+    if (!item.githubIssueNumber || !item.githubRepo || !repo || !project) return 'unavailable';
+
+    const existing = this.store.getAttempt(item.githubRepo, item.githubIssueNumber);
+    if (existing?.status === 'IN_PROGRESS') return 'busy';
+    if (existing?.status === 'PR_OPEN') return 'has-pr';
+
+    const github = this.githubFor(project.resolverToken ?? project.token);
+    const issue = await github.getIssue(repo, item.githubIssueNumber);
+    if (!issue || issue.state !== 'open') return 'unavailable';
+
+    this.forcing.add(fingerprintHash);
+    void this.processCandidate({ repo, issue, fingerprintHash, project, github }, true).finally(() => this.forcing.delete(fingerprintHash));
+    return 'started';
   }
 
   async pollOnce(): Promise<void> {
@@ -124,6 +169,7 @@ export class Scheduler {
   private async selectCandidates(tracked: TrackedIssue[]): Promise<Candidate[]> {
     const candidates: Candidate[] = [];
     for (const item of tracked) {
+      if (this.forcing.has(item.fingerprintHash)) continue;
       if (!item.githubIssueNumber || !item.githubRepo) continue;
       const repo = parseRepo(item.githubRepo);
       if (!repo) continue;
@@ -160,7 +206,7 @@ export class Scheduler {
     fingerprintHash: string,
     repoStr: string,
     issueNumber: number,
-    status: Exclude<AttemptStatus, 'PENDING' | 'IN_PROGRESS'>,
+    status: Exclude<AttemptStatus, 'PENDING'>,
     details: { prNumber?: number | null; prUrl?: string | null; reason?: string | null },
   ): Promise<void> {
     try {
@@ -182,9 +228,11 @@ export class Scheduler {
     return learned;
   }
 
-  private async processCandidate({ repo, issue, fingerprintHash, project, github }: Candidate): Promise<void> {
+  private async processCandidate({ repo, issue, fingerprintHash, project, github }: Candidate, force = false): Promise<void> {
     const repoStr = formatRepo(repo);
     this.store.beginAttempt(repoStr, issue.number, fingerprintHash);
+    // Shown on the issue right away, so the dashboard can say the resolver is working rather than going quiet.
+    await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'IN_PROGRESS', {});
     const workDir = join(tmpdir(), 'error-resolver', randomUUID());
 
     try {
@@ -193,7 +241,7 @@ export class Scheduler {
       // Pull the latest code first. A fix written against stale or missing code is worse than no fix, so a
       // failure here ends the attempt instead of falling back to whatever happens to be on disk.
       const localRepoPath = this.repos ? await this.repos.ensure({ repo: repoStr, branch: baseBranch, token }) : null;
-      const outcome = await this.attemptFix({ repo, issue, workDir, token, baseBranch, localRepoPath, verifyCommand: project.verifyCommand }, this.config);
+      const outcome = await this.attemptFix({ repo, issue, workDir, token, baseBranch, localRepoPath, verifyCommand: project.verifyCommand, force }, this.config);
 
       if (outcome.kind === 'skipped') {
         this.store.recordResult(repoStr, issue.number, 'SKIPPED', { reason: outcome.reason });

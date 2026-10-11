@@ -1,7 +1,11 @@
+---
+description: What happens to an error in FixFlow between arriving and becoming a GitHub issue, scenario by scenario.
+---
+
 # Triage scenarios
 
 What happens to an error between arriving and (maybe) becoming a GitHub issue. The executable version is
-[`test/workflows/errors/scenarios.test.ts`](../test/workflows/errors/scenarios.test.ts); this is the index.
+[`test/workflows/errors/scenarios.test.ts`](https://github.com/Ayesh96/FixFlow/blob/main/test/workflows/errors/scenarios.test.ts); this is the index.
 
 ## The two questions
 

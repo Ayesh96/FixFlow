@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% if page and page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "FixFlow",
+    "description": "Self-hosted, Sentry-compatible error tracking that files GitHub issues and opens AI fix pull requests.",
+    "url": "https://ayesh96.github.io/FixFlow/",
+    "codeRepository": "https://github.com/Ayesh96/FixFlow",
+    "programmingLanguage": "TypeScript",
+    "runtimePlatform": "Node.js 24 or newer",
+    "license": "https://github.com/Ayesh96/FixFlow/blob/main/LICENSE",
+    "author": { "@type": "Person", "name": "Ayesh" }
+  }
+  </script>
+  {% endif %}
+{% endblock %}

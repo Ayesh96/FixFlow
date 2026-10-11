@@ -1,3 +1,7 @@
+---
+description: Before and after results of FixFlow error triage on 12 replayed situations, with rules only and with a local qwen2.5-coder model.
+---
+
 # Triage: before and after the fixes
 
 The same 12 situations, replayed against a copy of MacRemote with five bugs added (a removed guard, a typo'd name,
@@ -11,7 +15,7 @@ Each case was run four ways, before and after the fixes:
 | **Current MacRemote Sentry settings** (`dsn` only) | table 1 | table 3 |
 | **Richer settings** (`attach_stacktrace`, `environment`, `release`, a `service` tag) | table 2 | table 4 |
 
-Raw results are kept in [`triage-results/`](triage-results/) (`before-*` and `after-*`). Regenerate any table with
+Raw results are kept in [`triage-results/`](https://github.com/Ayesh96/FixFlow/tree/main/docs/triage-results) (`before-*` and `after-*`). Regenerate any table with
 `python3 docs/triage-results/compare.py docs/triage-results/before-rich docs/triage-results/after-rich rules`.
 Changed cells are **bold**.
 

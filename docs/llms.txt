@@ -1,0 +1,20 @@
+# FixFlow
+
+> FixFlow is self-hosted, Sentry-compatible error tracking. It groups errors from Sentry SDKs, opens one GitHub issue per new error, and can have a model (local Ollama, DeepSeek or Anthropic) attempt a fix and open a pull request. Single user, runs on one machine with Node 24+ and git. Source-available under FSL-1.1-ALv2 (not an OSI open-source license).
+
+Limits worth knowing: no performance tracing, session replay, alert rules or multi-user accounts; Windows is untested; fix quality depends on the model and has not been measured.
+
+## Docs
+
+- [Quick start](https://ayesh96.github.io/FixFlow/#quick-start): install and first error in a few minutes.
+- [Self-hosted error tracking](https://ayesh96.github.io/FixFlow/self-hosted-error-tracking/): what runs, what it stores and where.
+- [Sentry alternative](https://ayesh96.github.io/FixFlow/sentry-alternative/): what FixFlow does and does not replace.
+- [Sentry errors to GitHub issues](https://ayesh96.github.io/FixFlow/sentry-errors-to-github-issues/): grouping, filing rules, what the issue contains.
+- [AI fixes as pull requests](https://ayesh96.github.io/FixFlow/ai-bug-fix-pull-requests/): how the resolver works and its limits.
+- [Local LLM error triage with Ollama](https://ayesh96.github.io/FixFlow/local-llm-error-triage/): triage labels and model setup.
+- [Reference](https://ayesh96.github.io/FixFlow/reference/): projects, ports, security and every setting.
+
+## Source
+
+- [Repository](https://github.com/Ayesh96/FixFlow)
+- [Releases](https://github.com/Ayesh96/FixFlow/releases)

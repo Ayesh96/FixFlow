@@ -1,0 +1,44 @@
+site_name: FixFlow
+site_description: FixFlow is self-hosted, Sentry-compatible error tracking that files GitHub issues and opens AI fix pull requests, using a local Ollama model, DeepSeek or Anthropic.
+site_url: https://ayesh96.github.io/FixFlow/
+repo_url: https://github.com/Ayesh96/FixFlow
+repo_name: Ayesh96/FixFlow
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  custom_dir: overrides
+  features:
+    - navigation.sections
+    - content.code.copy
+
+# Drafts and raw data stay in the repo but are not published.
+exclude_docs: |
+  launch/
+  good-first-issues.md
+  triage-results/
+  assets/social-preview.*
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Self-hosted error tracking: self-hosted-error-tracking.md
+      - Sentry alternative: sentry-alternative.md
+      - Sentry errors to GitHub issues: sentry-errors-to-github-issues.md
+      - AI fixes as pull requests: ai-bug-fix-pull-requests.md
+      - Local LLM error triage with Ollama: local-llm-error-triage.md
+  - Reference:
+      - Projects, ports and settings: reference.md
+      - Triage test results: TRIAGE-BEFORE-AFTER.md
+      - Triage scenarios: TRIAGE-SCENARIOS.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

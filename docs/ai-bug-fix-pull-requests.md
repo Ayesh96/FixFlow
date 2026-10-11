@@ -21,10 +21,10 @@ The pull request says what changed, which files, and whether the check passed. W
 
 - **Retries.** A failed attempt waits 15 minutes, doubling each time, and stops after 3 attempts (`ORCH_RESOLVER_MAX_ATTEMPTS`). Running an issue from the dashboard ignores the limit.
 - **Concurrency.** Three fixes at once by default.
-- **Cost.** With DeepSeek or Anthropic, each attempt is paid model calls. A local Ollama model has no per-call cost.
-- **Quality.** Fix quality depends on the model. The default local model is `qwen2.5-coder:7b`. There is no measured success rate for fixes yet, so review every pull request as you would a stranger's.
+- **Cost.** With DeepSeek or Anthropic, each attempt is paid model calls. A model served locally by Ollama has no per-call cost, only your own hardware.
+- **Quality.** Fix quality depends on the model. The default model for Ollama is `qwen2.5-coder:7b`, a small model, so expect it to manage only simple changes. There is no measured success rate for fixes yet, so review every pull request as you would a stranger's.
 - **Execution.** The check command runs through a shell, as you, on your machine. Only set commands you would run yourself.
 
 ## Choosing a model
 
-Set `ORCH_LLM_PROVIDERS` (default `ollama,deepseek,anthropic`) to the models to try in order. The first available one is used and the rest are fallbacks. See [local LLM triage](local-llm-error-triage.md) for Ollama setup and the [reference](reference.md) for keys and URLs.
+Set `ORCH_LLM_PROVIDERS` (default `ollama,deepseek,anthropic`) to the providers to try, in order. The first one that is set up is used and the rest are fallbacks. See [local LLM triage](local-llm-error-triage.md) for Ollama setup and the [reference](reference.md) for keys and URLs.

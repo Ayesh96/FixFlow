@@ -5,7 +5,7 @@ description: FixFlow groups errors from Sentry SDKs, opens a GitHub issue for ea
 
 # FixFlow
 
-FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and can then try a fix with an AI model, so you get a pull request to review. It runs on your own machine with a local Ollama model, DeepSeek or Anthropic.
+FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and can then try a fix with an AI model, so you get a pull request to review. It runs on your own machine. The model can be served locally by Ollama or called through the DeepSeek or Anthropic API.
 
 Source and releases: [github.com/Ayesh96/FixFlow](https://github.com/Ayesh96/FixFlow).
 

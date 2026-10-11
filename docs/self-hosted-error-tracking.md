@@ -30,7 +30,7 @@ Raw events older than 30 days are pruned hourly (`ORCH_ERRORS_RETENTION_DAYS`; `
 
 ## What leaves the machine
 
-Only requests to GitHub (issues, clones, pushes, pull requests) and to the model you choose. With a local Ollama model, no code is sent to a model provider. With DeepSeek or Anthropic configured, stack frames and code excerpts go to that provider.
+Only requests to GitHub (issues, clones, pushes, pull requests) and to the model you choose. With a model served locally by Ollama, no code is sent to a third-party provider. With DeepSeek or Anthropic configured, stack frames and code excerpts go to that provider.
 
 ## Backups and upgrades
 

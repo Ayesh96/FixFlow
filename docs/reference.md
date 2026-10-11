@@ -53,14 +53,14 @@ Everything is optional. Copy `.env.example` to `.env`.
 | `ORCH_DATA_DIR` | `~/.fixflow` | Where the token, databases, key and clones live. |
 | `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
 | `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
-| `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. The resolver always has a local Ollama to try (`http://localhost:11434`); triage uses it only when this is set. |
-| `ORCH_OLLAMA_MODEL` | `qwen2.5-coder:7b` | |
-| `ORCH_DEEPSEEK_API_KEY` | unset | Turns on DeepSeek as a model for triage and the resolver. |
+| `ORCH_OLLAMA_URL` | unset | Address of a local Ollama server, which runs the model for triage and fixes. The resolver always tries Ollama at `http://localhost:11434`; triage uses it only when this is set. |
+| `ORCH_OLLAMA_MODEL` | `qwen2.5-coder:7b` | The model Ollama is asked to run. |
+| `ORCH_DEEPSEEK_API_KEY` | unset | Turns on DeepSeek as a provider for triage and the resolver. |
 | `ORCH_DEEPSEEK_MODEL` | `deepseek-flash` | Or `deepseek-v4-pro`. Thinking mode is always off. |
 | `ORCH_DEEPSEEK_API_URL` | `https://api.deepseek.com` | |
-| `ORCH_ANTHROPIC_API_KEY` | unset | Turns on Anthropic as a model for triage and the resolver. |
+| `ORCH_ANTHROPIC_API_KEY` | unset | Turns on Anthropic as a provider for triage and the resolver. |
 | `ORCH_ANTHROPIC_MODEL` | `claude-haiku-4-5` | |
-| `ORCH_LLM_PROVIDERS` | `ollama,deepseek,anthropic` | The models to try, in order, for both triage and the resolver; the first is used and the rest are fallbacks when it fails. A model that is not set up is skipped by default, and is an error when you name it here. |
+| `ORCH_LLM_PROVIDERS` | `ollama,deepseek,anthropic` | The providers to try, in order, for both triage and the resolver; the first is used and the rest are fallbacks when it fails. A provider that is not set up is skipped by default, and is an error when you name it here. |
 | `ORCH_TRIAGE_PROVIDERS` / `ORCH_RESOLVER_PROVIDERS` | `ORCH_LLM_PROVIDERS` | The same, for one purpose only. |
 
 With no model set up for triage, new errors are triaged by the rule-based heuristic. When models are set up and all of them fail, the error is recorded as ERRORED and can be triaged again.

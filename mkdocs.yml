@@ -1,5 +1,5 @@
 site_name: FixFlow
-site_description: FixFlow is self-hosted, Sentry-compatible error tracking that files GitHub issues and opens AI fix pull requests, using a local Ollama model, DeepSeek or Anthropic.
+site_description: FixFlow is self-hosted, Sentry-compatible error tracking that files GitHub issues and opens AI fix pull requests, with models served by local Ollama or called through the DeepSeek or Anthropic API.
 site_url: https://ayesh96.github.io/FixFlow/
 repo_url: https://github.com/Ayesh96/FixFlow
 repo_name: Ayesh96/FixFlow

@@ -1,17 +1,17 @@
 ---
 title: Local LLM error triage with Ollama: what FixFlow's labels mean
-description: Triage production errors with a local Ollama model: how to enable it in FixFlow, the labels it applies and what each means, how it falls back to rules, and what was measured.
+description: Triage production errors with a model served by local Ollama: how to enable it in FixFlow, the labels it applies and what each means, how it falls back to rules, and what was measured.
 ---
 
 # Local LLM error triage with Ollama
 
-Triage decides whether a new error looks like a small, fixable bug or needs a person. FixFlow can use a local Ollama model, DeepSeek or Anthropic, and falls back to built-in rules.
+Triage decides whether a new error looks like a small, fixable bug or needs a person. FixFlow can get its model from a local Ollama server, or from the DeepSeek or Anthropic API, and falls back to built-in rules when none is available.
 
-## Enable Ollama
+## Use Ollama
 
-1. Install [Ollama](https://ollama.com) and pull a model: `ollama pull qwen2.5-coder:7b` (the default).
+1. Install [Ollama](https://ollama.com), the runtime that serves models locally, and pull a model: `ollama pull qwen2.5-coder:7b` (the default).
 2. Start FixFlow with `ORCH_OLLAMA_URL=http://localhost:11434` set. Triage uses Ollama only when this is set. The resolver always tries a local Ollama at that address.
-3. Change the model with `ORCH_OLLAMA_MODEL`.
+3. Use another model that Ollama can serve with `ORCH_OLLAMA_MODEL`.
 
 With no model configured, the rule-based triage runs. If models are configured and all fail, the error is recorded as `ERRORED` and can be triaged again.
 
@@ -34,4 +34,4 @@ Some facts cannot be overruled by the model. For example, `bot-safe` is not comb
 
 ## What was measured
 
-Twelve replayed situations were run against a copy of a real project with injected bugs, before and after fixes, with rules only and with `qwen2.5-coder:7b`. The tables are in [Triage test results](TRIAGE-BEFORE-AFTER.md). The test covers triage only, not the quality of fixes.
+Twelve replayed situations were run against a copy of a real project with injected bugs, before and after fixes, with rules only and with the `qwen2.5-coder:7b` model served by Ollama. The tables are in [Triage test results](TRIAGE-BEFORE-AFTER.md). The test covers triage only, not the quality of fixes.

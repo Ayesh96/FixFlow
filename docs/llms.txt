@@ -1,6 +1,6 @@
 # FixFlow
 
-> FixFlow is self-hosted, Sentry-compatible error tracking. It groups errors from Sentry SDKs, opens one GitHub issue per new error, and can have a model (local Ollama, DeepSeek or Anthropic) attempt a fix and open a pull request. Single user, runs on one machine with Node 24+ and git. Source-available under FSL-1.1-ALv2 (not an OSI open-source license).
+> FixFlow is self-hosted, Sentry-compatible error tracking. It groups errors from Sentry SDKs, opens one GitHub issue per new error, and can have a model attempt a fix and open a pull request. The model comes from a local Ollama server or the DeepSeek or Anthropic API. Single user, runs on one machine with Node 24+ and git. Source-available under FSL-1.1-ALv2 (not an OSI open-source license).
 
 Limits worth knowing: no performance tracing, session replay, alert rules or multi-user accounts; Windows is untested; fix quality depends on the model and has not been measured.
 

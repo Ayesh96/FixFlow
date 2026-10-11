@@ -1,6 +1,6 @@
 # FixFlow
 
-FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and then tries a fix with an AI model, so you get a pull request to review. It runs on your own machine with a local Ollama model, DeepSeek or Anthropic, and works with the Sentry SDKs your app already uses.
+FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and then tries a fix with an AI model, so you get a pull request to review. It runs on your own machine. The model can be served locally by Ollama (default model `qwen2.5-coder:7b`) or called through the DeepSeek or Anthropic API, and it works with the Sentry SDKs your app already uses.
 
 [![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)](LICENSE)
 [![CI](https://github.com/Ayesh96/FixFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayesh96/FixFlow/actions/workflows/ci.yml)
@@ -39,15 +39,15 @@ To check the receiving side without an app, `curl http://localhost:3000/healthz`
 
 No build step is needed if you use a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) instead: verify it with `sha256sums.txt`, unpack it, and run `node bin/fixflow.mjs`.
 
-Triage works without any model (a rule-based fallback is used). To let the resolver write fixes, run [Ollama](https://ollama.com) locally, or set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. See the [reference](docs/reference.md#configuration).
+Triage works with no model at all (a rule-based fallback is used). To let the resolver write fixes you need a model provider: run [Ollama](https://ollama.com) locally and pull a coding model (the default is `qwen2.5-coder:7b`), or set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. See the [reference](docs/reference.md#configuration).
 
 ## Features
 
 - **Sentry-compatible ingest.** Accepts the Sentry `store` and `envelope` endpoints, including gzip, so you change a DSN and nothing else in your app.
 - **Grouping.** Errors are grouped by exception type, crashing file and line, so the same error 2,000 times is one issue with a count.
-- **Triage.** A local or hosted model, or a rule-based fallback, labels each error (for example `bot-safe` or `needs-human`) and says why.
+- **Triage.** A model (local through Ollama, or hosted) or a rule-based fallback, labels each error (for example `bot-safe` or `needs-human`) and says why.
 - **One GitHub issue per new error**, with the stack trace, and comments at 100, 1,000 and 10,000 events by default.
-- **Resolver.** Fetches your branch, lets a model attempt a fix in a throwaway worktree, runs your check command before and after, and opens a pull request. It marks the pull request unverified when the check is missing or fails.
+- **Resolver.** Fetches your branch, lets the model attempt a fix in a throwaway worktree, runs your check command before and after, and opens a pull request. It marks the pull request unverified when the check is missing or fails.
 
 ## How it works
 
@@ -69,13 +69,13 @@ The dashboard (`127.0.0.1:7420`) and the ingest endpoint (`127.0.0.1:3000`) are 
 |---|---|---|---|
 | Receives Sentry SDK events | Yes | Yes | Yes |
 | Opens GitHub issues from errors | Yes, built in | Yes (integration) | Varies; check each project |
-| Tries a code fix and opens a pull request | Yes, with your own model | Yes, through Seer, a paid Sentry feature | No |
+| Tries a code fix and opens a pull request | Yes, with a model you provide | Yes, through Seer, a paid Sentry feature | No |
 | Runs on one machine with no extra services | Yes (Node and git) | Heavy; the self-hosted stack needs several services | Lighter than Sentry |
 | Performance tracing, session replay, alert rules, release health | **No** | **Yes** | Partial or none |
 | Multiple users, teams, roles | **No**, single user on loopback | **Yes** | Yes |
 | Quality of the fixes | Depends on the model you give it; no measured success rate yet | Likely better models and context | n/a |
 
-Choose Sentry if you need tracing, alerting, teams or a large SDK and integration ecosystem. Choose GlitchTip or Bugsink if you want a mature, multi-user, self-hosted tracker and do not need automated fixes. Choose FixFlow if you want the loop from error to reviewable pull request on your own machine, for a small project, and you accept that it is young. General coding agents that work from a GitHub issue, such as GitHub's Copilot coding agent, are broader than FixFlow and may give better fixes; FixFlow's difference is the Sentry intake and that a local model can be used.
+Choose Sentry if you need tracing, alerting, teams or a large SDK and integration ecosystem. Choose GlitchTip or Bugsink if you want a mature, multi-user, self-hosted tracker and do not need automated fixes. Choose FixFlow if you want the loop from error to reviewable pull request on your own machine, for a small project, and you accept that it is young. General coding agents that work from a GitHub issue, such as GitHub's Copilot coding agent, are broader than FixFlow and may give better fixes; FixFlow's difference is the Sentry intake and that the model can run locally.
 
 Triage was measured on 12 replayed situations; see [docs/TRIAGE-BEFORE-AFTER.md](docs/TRIAGE-BEFORE-AFTER.md). Fix quality has not been measured.
 

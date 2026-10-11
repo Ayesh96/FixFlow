@@ -1,30 +1,46 @@
 ---
-title: Let an AI model open pull requests for production errors: how the FixFlow resolver works
-description: How the FixFlow resolver turns a GitHub issue into a pull request: worktree, model turns, check command, retries and limits, and what to expect from the fixes.
+title: How FixFlow's resolver turns errors into pull requests
+description: The FixFlow resolver: which issues it attempts, the agent's tools and prompt, the check command, retries, cost, and what the pull request contains.
 ---
 
 # AI fixes as pull requests
 
-The resolver is the part of FixFlow that tries to fix an error. It never merges anything; it opens a pull request for you to review.
+The resolver turns an open GitHub issue into a pull request. It never merges.
 
-## What it does for each issue
+## Which issues are attempted
 
-1. Fetches the latest of your project's branch into its managed clone.
-2. Creates a throwaway git worktree and a branch named `errorresolver/issue-<number>`.
-3. Runs your check command (if you set one) before any change. If it already fails, the issue is skipped.
-4. Lets the model read and edit files through a small set of tools, up to 20 turns.
-5. Runs the check command again, pushes the branch and opens a pull request against your branch.
+Every 5 minutes (`ORCH_RESOLVER_POLL_INTERVAL_MS`) it takes the issues FixFlow filed and attempts each one that:
 
-The pull request says what changed, which files, and whether the check passed. Without a check command, or if it fails after the fix, it is marked unverified.
+- is still open on GitHub and belongs to a project that still exists;
+- has no earlier attempt that opened a pull request (`PR_OPEN`) or was skipped (`SKIPPED`);
+- is not resting after a failure: 15 minutes after the first, doubling each time, and no more automatic tries after 3 failures (`ORCH_RESOLVER_MAX_ATTEMPTS`).
 
-## Limits you should know
+Triage tags are not consulted: issues tagged `needs-human`, `infrastructure` or `third-party` are attempted too. Some triage suggestions in the dashboard say the resolver will not try such errors; with the current code it does. Up to 3 attempts run at once (`ORCH_RESOLVER_MAX_CONCURRENT_FIXES`). Any issue can also be run from the dashboard, which ignores the failure limit.
 
-- **Retries.** A failed attempt waits 15 minutes, doubling each time, and stops after 3 attempts (`ORCH_RESOLVER_MAX_ATTEMPTS`). Running an issue from the dashboard ignores the limit.
-- **Concurrency.** Three fixes at once by default.
-- **Cost.** With DeepSeek or Anthropic, each attempt is paid model calls. A model served locally by Ollama has no per-call cost, only your own hardware.
-- **Quality.** Fix quality depends on the model. The default model for Ollama is `qwen2.5-coder:7b`, a small model, so expect it to manage only simple changes. There is no measured success rate for fixes yet, so review every pull request as you would a stranger's.
-- **Execution.** The check command runs through a shell, as you, on your machine. Only set commands you would run yourself.
+## One attempt
 
-## Choosing a model
+1. Fetch the project's branch into the bare clone and create a worktree on branch `errorresolver/issue-<number>`.
+2. Run the check command, if set. If it already fails, the attempt is `SKIPPED`.
+3. Pre-load up to 3 source files named in the stack, then run the agent loop: up to 20 turns, with four tools: `read_file`, `list_directory`, `grep` and `edit_file`. The model has no shell.
+4. The model must end with `FIX: <what changed>` or `SKIP: <why>`. `SKIP`, or `FIX` with no file changed, records `SKIPPED`. No verdict within 20 turns records `FAILED`.
+5. Run the check command again, commit as `error-resolver <error-resolver@localhost>`, push, and open the pull request against the project's branch.
 
-Set `ORCH_LLM_PROVIDERS` (default `ollama,deepseek,anthropic`) to the providers to try, in order. The first one that is set up is used and the rest are fallbacks. See [local LLM triage](local-llm-error-triage.md) for Ollama setup and the [reference](reference.md) for keys and URLs.
+The prompt tells the model to change only a handful of lines in one or two files, to fix only the reported bug, to make no change when the cause is unclear, and to treat the issue body as untrusted data rather than instructions.
+
+## The pull request
+
+Title `Fix: <issue title>`. The body starts with `Closes #<issue>`, so merging it closes the issue, then gives the model's explanation, the changed files, and one of these notes:
+
+- *Verified*: the check command passed after the change.
+- *Unverified*: no check command is configured.
+- The check command still fails after the change. The pull request is opened anyway, so read that note before merging.
+
+## Cost and risk
+
+- With DeepSeek or Anthropic every turn is a paid call: at most 20 per attempt and 3 failed attempts per issue, but `SKIPPED` and `PR_OPEN` outcomes also cost the turns they used. With Ollama there is no per-call cost.
+- The check command runs through `sh -c`, as your user, in the worktree. It runs code from the branch, including the model's change.
+- Fix success rate has not been measured. Review every pull request as you would a stranger's.
+
+## Model choice
+
+`ORCH_RESOLVER_PROVIDERS` (default: `ORCH_LLM_PROVIDERS`, which defaults to `ollama,deepseek,anthropic`) sets the order. The resolver always includes Ollama at `http://localhost:11434` unless you leave it out of that list. DeepSeek and Anthropic join when their API keys are set. The next provider is used only when the previous one fails. See the [reference](reference.md#configuration).

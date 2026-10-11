@@ -1,6 +1,6 @@
 ---
-title: FixFlow reference: projects, ports, security and configuration
-description: Reference for FixFlow, a self-hosted Sentry-compatible error tracker: how projects and tokens work, the two listeners, security model, every environment variable, and the code layout.
+title: FixFlow configuration and security reference
+description: FixFlow reference: projects and tokens, the dashboard and ingest listeners, the security model, every environment variable, and the code layout.
 ---
 
 # Reference
@@ -15,7 +15,7 @@ A **project** is a repository, the **branch** to work on, and the **GitHub token
 - Tokens are stored **encrypted** (AES-256-GCM) in `projects.db`, never in `.env`, and are never sent to the browser (only the last 4 characters, to tell tokens apart). The key is `secret.key` (mode 0600), beside it.
 - **What that does and does not protect:** a copied database or backup contains no usable token. Someone who can read your user's files can still read the key beside it, so this is the same trust as an SSH private key, not an OS keychain.
 - A project can have a separate token for the resolver (pushing a branch and opening a pull request need more access than filing issues). Without one, the main token is used.
-- Each project's repository is cloned once, when it is added, into `repos/`, and fetched up to date before every fix. One clone serves every branch of a repo.
+- Each project's repository is cloned once, when it is added, into `repos/` as a bare, shallow (`--depth 1`), single-branch clone, and fetched before every fix. One clone serves every branch of a repo.
 - **The check command** runs through a shell, in a throwaway copy of the repository, before and after each fix. If it already fails before the fix, the resolver skips the issue; if it fails after, the pull request says it is unverified. It runs as you, on your machine, so only put commands there that you would run yourself.
 
 All of it lives in one data folder, `~/.fixflow` by default (`ORCH_DATA_DIR`).
@@ -51,6 +51,7 @@ Everything is optional. Copy `.env.example` to `.env`.
 |---|---|---|
 | `PORT` | `7420` | The dashboard. |
 | `ORCH_DATA_DIR` | `~/.fixflow` | Where the token, databases, key and clones live. |
+| `ORCH_TOKEN_FILE`, `ORCH_SECRET_KEY_FILE`, `ORCH_PROJECTS_DB`, `ORCH_REPOS_DIR` | inside `ORCH_DATA_DIR` | Move one of those out of the data folder. |
 | `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
 | `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
 | `ORCH_OLLAMA_URL` | unset | Address of a local Ollama server, which runs the model for triage and fixes. The resolver always tries Ollama at `http://localhost:11434`; triage uses it only when this is set. |
@@ -60,10 +61,11 @@ Everything is optional. Copy `.env.example` to `.env`.
 | `ORCH_DEEPSEEK_API_URL` | `https://api.deepseek.com` | |
 | `ORCH_ANTHROPIC_API_KEY` | unset | Turns on Anthropic as a provider for triage and the resolver. |
 | `ORCH_ANTHROPIC_MODEL` | `claude-haiku-4-5` | |
+| `ORCH_ANTHROPIC_API_URL` | `https://api.anthropic.com` | |
 | `ORCH_LLM_PROVIDERS` | `ollama,deepseek,anthropic` | The providers to try, in order, for both triage and the resolver; the first is used and the rest are fallbacks when it fails. A provider that is not set up is skipped by default, and is an error when you name it here. |
 | `ORCH_TRIAGE_PROVIDERS` / `ORCH_RESOLVER_PROVIDERS` | `ORCH_LLM_PROVIDERS` | The same, for one purpose only. |
 
-With no model set up for triage, new errors are triaged by the rule-based heuristic. When models are set up and all of them fail, the error is recorded as ERRORED and can be triaged again.
+With no provider set up for triage, new errors are triaged by built-in rules. When providers are set up and all of them fail, the rules are not used as a substitute: the error is recorded as `ERRORED` and can be triaged again from the dashboard.
 
 ### Errors
 
@@ -74,12 +76,12 @@ With no model set up for triage, new errors are triaged by the rule-based heuris
 | `ORCH_ERRORS_INGEST_HOST` | `127.0.0.1` | |
 | `ORCH_ERRORS_DSN_PUBLIC_KEY` | unset | When set, ingest requests must carry this `sentry_key`. |
 | `ORCH_ERRORS_GITHUB_LABELS` | none | Labels applied to new issues. |
-| `ORCH_ERRORS_MIN_LEVEL` | `error` | |
-| `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the issue. |
+| `ORCH_ERRORS_MIN_LEVEL` | `error` | Lowest level that is filed on GitHub. Lower levels are still stored and triaged. |
+| `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the GitHub issue. |
 | `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
 | `ORCH_ERRORS_DB` | `<data>/errors.db` | |
 
-**What reaches GitHub.** Every error is kept in the Errors tab. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file and its line, not the message, so an error with changing ids in its text is still one issue.
+**What reaches GitHub.** Every error is kept in the Errors tab. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing ids in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
 
 ### Resolver
 
@@ -89,10 +91,10 @@ With no model set up for triage, new errors are triaged by the rule-based heuris
 | `ORCH_RESOLVER_DB` | `<data>/resolver.db` | |
 | `ORCH_RESOLVER_POLL_INTERVAL_MS` | `300000` | Minimum 30000. |
 | `ORCH_RESOLVER_MAX_CONCURRENT_FIXES` | `3` | |
-| `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How often one issue is attempted before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
+| `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How many failed attempts one issue gets before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
 | `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
 
-A fix attempt clones a repo, runs a model and may run your check command, so it does real work on your machine as you. A model call costs money, so a single attempt is also capped at 20 turns (`AGENT_MAX_TURNS` in `server/constants.ts`).
+The resolver attempts every open GitHub issue FixFlow filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at 20 model turns (`AGENT_MAX_TURNS` in `server/constants.ts`). It runs your check command as you, on your machine.
 
 ## Development
 
@@ -104,7 +106,7 @@ server/                Express API (TypeScript, run natively by Node)
   workflows/
     errors/            Sentry ingest, grouping, triage, GitHub issues
     resolver/          polls those issues, attempts a fix, opens a PR
-web/                   React + Vite + Tailwind v4 + shadcn/ui (Radix). See [DESIGN.md](https://github.com/Ayesh96/FixFlow/blob/main/DESIGN.md)
+web/                   React + Vite + Tailwind v4 + shadcn/ui (Radix). See DESIGN.md
 test/                  real git and real SQLite; only GitHub's network API and the paid model are faked
 ```
 

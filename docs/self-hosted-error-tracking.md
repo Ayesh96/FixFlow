@@ -1,39 +1,42 @@
 ---
-title: Self-hosted error tracking with FixFlow: what runs and where data lives
-description: How FixFlow works as a self-hosted error tracker: one Node process, two loopback ports, SQLite files in one data folder, encrypted GitHub tokens, and what leaves your machine.
+title: Self-hosted error tracking with FixFlow
+description: FixFlow runs as one Node process with SQLite: two loopback ports, one data folder, encrypted GitHub tokens. What it stores and what leaves your machine.
 ---
 
 # Self-hosted error tracking
 
-FixFlow is a single Node process. There is no database server, queue or cache to run. It needs Node 24 or newer (it uses the built-in `node:sqlite`) and git.
+FixFlow is one Node 24+ process. Storage is SQLite through Node's built-in `node:sqlite`; there is no database server, queue or cache. The only runtime npm dependency is `express`. git is needed for the resolver.
 
-## What listens
+## Listeners
 
-| | Dashboard | Error ingest |
+| | Dashboard | Ingest |
 |---|---|---|
-| Default address | `127.0.0.1:7420` | `127.0.0.1:3000` |
-| Auth | secret token cookie, `Host` allow-list, `Origin` check | optional `sentry_key` |
-| Serves | the UI and API | the Sentry `store` and `envelope` endpoints and `/healthz` |
+| Address | `127.0.0.1:7420` (fixed host, `PORT` changes the port) | `127.0.0.1:3000` (`ORCH_ERRORS_INGEST_HOST`, `ORCH_ERRORS_INGEST_PORT`) |
+| Auth | token cookie, `Host` allow-list, `Origin`/`Sec-Fetch-Site` check | optional `sentry_key` (`ORCH_ERRORS_DSN_PUBLIC_KEY`) |
+| Routes | UI and `/api` | `store`, `envelope`, `/healthz` |
 
-Both bind to loopback by default, so only apps on the same machine can report errors. To accept errors from other machines, set `ORCH_ERRORS_INGEST_HOST=0.0.0.0` and `ORCH_ERRORS_DSN_PUBLIC_KEY`; the server prints a warning at startup. Put a reverse proxy with TLS in front of it if the traffic crosses a network. FixFlow does not do TLS itself.
+To accept events from other machines, set `ORCH_ERRORS_INGEST_HOST=0.0.0.0` and a DSN key. FixFlow serves plain HTTP, so put a TLS-terminating reverse proxy in front if events cross a network.
 
-## What is stored
+## Data folder
 
-Everything lives in one data folder, `~/.fixflow` by default (`ORCH_DATA_DIR`):
+`~/.fixflow` by default (`ORCH_DATA_DIR`):
 
-- `errors.db`, `resolver.db`, `projects.db`: SQLite files.
-- `token`: the dashboard's secret (mode 0600).
-- `secret.key`: the key that encrypts GitHub tokens in `projects.db` (AES-256-GCM, mode 0600).
-- `repos/`: one shallow clone per repository, used to make fix worktrees.
+| Path | Contents |
+|---|---|
+| `errors.db` | groups, events, triage results |
+| `resolver.db` | fix attempts |
+| `projects.db` | projects; GitHub tokens AES-256-GCM encrypted |
+| `secret.key` | the encryption key, mode 0600 |
+| `token` | the dashboard secret, mode 0600 |
+| `repos/` | one bare, shallow clone per repository |
 
-Raw events older than 30 days are pruned hourly (`ORCH_ERRORS_RETENTION_DAYS`; `0` keeps everything). Issue rows and counters stay.
+Raw events older than 30 days are deleted hourly (`ORCH_ERRORS_RETENTION_DAYS`, `0` keeps them). Groups and counts stay.
+
+A copy of `projects.db` alone holds no usable token, but `secret.key` sits beside it. Back up and protect the folder as you would `~/.ssh`.
 
 ## What leaves the machine
 
-Only requests to GitHub (issues, clones, pushes, pull requests) and to the model you choose. With a model served locally by Ollama, no code is sent to a third-party provider. With DeepSeek or Anthropic configured, stack frames and code excerpts go to that provider.
+- **GitHub:** issue creation and comments, clone and fetch, branch push, pull request creation.
+- **Model provider, if it is DeepSeek or Anthropic:** for triage, the message, request method and path, and up to 8 stack frames with their source lines and the local variables of your own frames. For fixes, the issue, up to 3 files from the stack that are pre-loaded, and any file the model reads with its tools. With Ollama on the same machine, nothing goes to a third party.
 
-## Backups and upgrades
-
-Copy the data folder. A copied database contains no usable GitHub token without `secret.key`, which sits beside it, so treat the folder like an SSH key directory. Releases are tarballs; unpack a new one and start it against the same data folder.
-
-See the [reference](reference.md) for every setting.
+Local variables never go into the GitHub issue, but they do go to the model. If your SDK captures locals (the Python SDK does by default) and they can hold personal data, keep the model local or turn locals off in the SDK.

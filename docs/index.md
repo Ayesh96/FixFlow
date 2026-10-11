@@ -1,24 +1,27 @@
 ---
-title: FixFlow: self-hosted Sentry-compatible error tracking with AI fix pull requests
-description: FixFlow groups errors from Sentry SDKs, opens a GitHub issue for each new one, and can have a local or hosted model attempt a fix and open a pull request. Runs on one machine with Node and git.
+title: FixFlow: Sentry-compatible error tracking with AI fix PRs
+description: Self-hosted error tracker for Sentry SDKs. Groups errors, files GitHub issues, and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests.
 ---
 
 # FixFlow
 
-FixFlow is self-hosted, Sentry-compatible error tracking that opens a GitHub issue for each new error and can then try a fix with an AI model, so you get a pull request to review. It runs on your own machine. The model can be served locally by Ollama or called through the DeepSeek or Anthropic API.
+FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors your app's Sentry SDK sends, opens a GitHub issue for each new one, and has an LLM attempt a fix that it opens as a pull request for you to review. The model runs locally through Ollama (default `qwen2.5-coder:7b`) or through the DeepSeek or Anthropic API.
 
 Source and releases: [github.com/Ayesh96/FixFlow](https://github.com/Ayesh96/FixFlow).
 
-## What it does
+## Pipeline
 
-1. **Track.** Errors arrive through a Sentry-compatible endpoint and are grouped, so the same error 2,000 times is one issue with a count.
-2. **Triage.** A model, or a rule-based fallback, decides whether the error looks like a small fix.
-3. **File.** One GitHub issue per new error with a stack trace.
-4. **Resolve.** A model attempts a fix in a throwaway worktree, your check command runs, and a pull request is opened against your branch.
+1. **Ingest.** Sentry `store` and `envelope` endpoints on `127.0.0.1:3000`.
+2. **Group.** By exception type, crashing file and that frame's source line text.
+3. **Triage.** A model, or built-in rules when no provider is set up, tags the error (`bot-safe`, `needs-human`, …).
+4. **File.** One GitHub issue per new group that has a stack trace.
+5. **Resolve.** For each open issue it filed, the model edits a throwaway worktree, your check command runs before and after, and a pull request is opened against your branch.
+
+The resolver does not read triage tags yet; it attempts every open issue FixFlow filed.
 
 ## Quick start
 
-You need Node 24 or newer and git, on Linux or macOS.
+Needs Node 24+ and git, on Linux or macOS.
 
 ```bash
 git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
@@ -26,19 +29,17 @@ npm install
 npm start
 ```
 
-Open the link it prints (`http://localhost:7420/?token=…`) once. Then add a project on the **Projects** tab (repository, GitHub token, branch) and paste the project's DSN, such as `http://fixflow@localhost:3000/1`, into your app's Sentry SDK settings.
-
-Check the receiving side with `curl http://localhost:3000/healthz`, which returns `200`.
+Open the printed `http://localhost:7420/?token=…` link once. Add a project on the **Projects** tab (repository, GitHub token, branch) and set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. From another terminal, `curl http://localhost:3000/healthz` should answer `200`.
 
 ## Guides
 
-- [Self-hosted error tracking](self-hosted-error-tracking.md): what runs and where data lives.
-- [Sentry alternative](sentry-alternative.md): what it replaces and what it does not.
-- [Sentry errors to GitHub issues](sentry-errors-to-github-issues.md): grouping and filing rules.
-- [AI fixes as pull requests](ai-bug-fix-pull-requests.md): how the resolver works and where it fails.
-- [Local LLM error triage with Ollama](local-llm-error-triage.md): labels and model setup.
-- [Reference](reference.md): ports, security and every setting.
+- [Self-hosted error tracking](self-hosted-error-tracking.md): processes, ports, files, what leaves the machine.
+- [Sentry alternative](sentry-alternative.md): what it replaces, and a comparison with Sentry, GlitchTip and Bugsink.
+- [Sentry errors to GitHub issues](sentry-errors-to-github-issues.md): grouping, filing rules, issue contents, token permissions.
+- [AI fixes as pull requests](ai-bug-fix-pull-requests.md): which issues are attempted, the agent loop, retries, cost.
+- [Error triage with Ollama](local-llm-error-triage.md): tags, the prompt's definition of a small fix, guardrails.
+- [Reference](reference.md): every setting and the security model.
 
 ## Limits
 
-No performance tracing, session replay, alert rules or multiple users. Windows is untested. Fix quality depends on the model and has not been measured. FixFlow is source-available under the Functional Source License (FSL-1.1-ALv2), which is not an OSI open-source license.
+Errors only: no tracing, session replay or alert rules. One user, loopback by default. Windows untested. Fix success rate not measured. Source-available under FSL-1.1-ALv2, not an OSI open-source license.

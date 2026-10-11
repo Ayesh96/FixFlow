@@ -1,38 +1,53 @@
 ---
-title: Send Sentry errors to GitHub issues automatically with FixFlow
-description: How FixFlow turns errors from Sentry SDKs into GitHub issues: the DSN setup, how errors are grouped, when an issue is filed, what it contains and how counts are updated.
+title: Sentry errors to GitHub issues, automatically
+description: FixFlow turns Sentry SDK events into GitHub issues: DSN setup, token permissions, grouping, filing rules, issue contents and count comments.
 ---
 
 # Sentry errors to GitHub issues
 
-FixFlow receives events from a Sentry SDK and opens one GitHub issue per new error group.
+FixFlow receives events from any Sentry SDK and opens one GitHub issue per new error group, without a Sentry account.
 
 ## Setup
 
 1. Start FixFlow and open the dashboard link it prints.
-2. **Projects → Add project**: enter `owner/name`, a GitHub token and the branch to work on. The token and repository are checked with GitHub before saving.
-3. Copy the project's DSN (for example `http://fixflow@localhost:3000/1`) into your app's Sentry SDK `dsn` option.
+2. **Projects → Add project**: `owner/name`, a GitHub token and the branch. FixFlow checks the token and repository with GitHub before saving and clones the repository.
+3. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The trailing number is the project id.
 
-The token needs to create issues in the repository. A separate token can be set for the resolver, which also needs to push branches and open pull requests.
+## Token permissions
 
-## How errors are grouped
+For a fine-grained token on the repository:
 
-The fingerprint is the exception type plus the crashing file and line, not the message. An error whose text contains changing ids is still one group. Each group has a count and a first and last seen time.
+| Purpose | Permission |
+|---|---|
+| Clone, open issues, comment | Contents: read, Issues: read and write |
+| Resolver: push a branch, open a pull request | Contents: read and write, Pull requests: read and write |
+
+A project can hold a second token used only by the resolver, so the main token does not need write access to code. If the token cannot push, the GitHub check warns that pull requests will fail; issues still work.
+
+## Grouping
+
+Default key: exception type, the crashing frame's file path (origin, query string and content hashes stripped), and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so `User 42 not found` and `User 7 not found` from the same line are one group, and a line-number shift does not split it.
+
+Without a stack, the key is the message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint`, including `{{ default }}`, overrides the key. Groups are scoped per project and per `service` tag.
 
 ## When an issue is filed
 
-- Only for errors that carry a stack trace. A bare log line gives little to act on.
-- Errors without one are kept on the **Errors** tab. A project setting, *Also file errors without a stack trace on GitHub*, files them too.
-- Errors below `ORCH_ERRORS_MIN_LEVEL` (default `error`) are not filed.
+- The group is new, and its first event (or a later one) has a stack trace. A project can opt in to filing stack-less errors too.
+- The level is at least `ORCH_ERRORS_MIN_LEVEL` (default `error`). Lower levels are stored and triaged but not filed.
+- Filing waits for triage, so the `bot-safe` label can be set at creation. If GitHub fails, the next event retries after a minute.
 
-## What the issue contains
+## Issue contents
 
-The title and stack trace, the request method and path when the event has one, the source line, and library frames folded away. Local variables are never put in the issue because the repository may be public. They go to the model only.
+- Title: `[Error] <Type>: <message>`.
+- A table: environment, platform, level, time, release, server, culprit, request method and path, event id, fingerprint.
+- The message, and the stack newest frame first: your own frames with their source line, runs of library frames folded to `… N library frames`, and chained causes as `Caused by:`.
+- SDK tags.
+- Labels: `ORCH_ERRORS_GITHUB_LABELS`, plus `bot-safe` when triage set it.
 
-## Updating the issue
+Local variables and request bodies are never written to the issue.
 
-FixFlow comments on the issue when the event count passes 100, 1,000 and 10,000 (`ORCH_ERRORS_COMMENT_THRESHOLDS`). Labels from `ORCH_ERRORS_GITHUB_LABELS` are applied to new issues, plus `bot-safe` when triage thinks the error looks like a small fix.
+When the count reaches 100, 1,000 or 10,000 (`ORCH_ERRORS_COMMENT_THRESHOLDS`), FixFlow comments with the count and last-seen time.
 
-## Supported SDK traffic
+## SDK coverage
 
-The `store` and `envelope` endpoints, with gzip, deflate or brotli bodies, and CORS so browser SDKs can post. The test run documented in [Triage test results](TRIAGE-BEFORE-AFTER.md) used a real Sentry SDK against a Python app. Other SDKs should work through the same endpoints but have not been tested here.
+The endpoints are the standard `/api/<id>/store/` and `/api/<id>/envelope/`, with gzip, deflate or brotli bodies and CORS for browsers. The [triage test run](TRIAGE-BEFORE-AFTER.md) used a real Sentry SDK in a Python app. Other SDKs use the same endpoints but have not been tested here.

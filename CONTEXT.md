@@ -4,7 +4,7 @@
 
 **Managed clone**: the single bare, shallow copy of a project's repo that FixFlow keeps to fetch from and to make fix worktrees. Never worked in directly.
 
-**Error**: one event an app reports through its Sentry SDK. Events are grouped by a fingerprint (exception type, crashing file and line) into one **issue** with a count.
+**Error**: one event an app reports through its Sentry SDK. Events are grouped by a fingerprint (exception type, crashing file, and that frame's source line text) into one **issue** with a count.
 
 **Issue**: a group of identical errors. It may also have a **GitHub issue**, opened for errors that carry a stack trace (or for any error, when the project ticks *Also file errors without a stack trace*).
 

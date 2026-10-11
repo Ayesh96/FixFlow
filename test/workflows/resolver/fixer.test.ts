@@ -92,6 +92,13 @@ describe('parseVerdict', () => {
   it('returns null when neither line is present', () => {
     assert.equal(parseVerdict('just some text with no verdict'), null);
   });
+  it('reads a SKIP followed by the echoed template as a SKIP, not a FIX', () => {
+    const reply = 'SKIP: cannot fix this here\n\nFIX: <one sentence describing what you changed and why it fixes the issue>\nSKIP: <one sentence describing why you could not confidently fix it>';
+    assert.deepEqual(parseVerdict(reply), { kind: 'skip', reason: 'cannot fix this here' });
+  });
+  it('returns null when the only verdict lines are the echoed template', () => {
+    assert.equal(parseVerdict('FIX: <one sentence describing what you changed>\nSKIP: <one sentence describing why>'), null);
+  });
 });
 
 function textClient(content: string): { client: ChatClient; calls: number[] } {
@@ -145,6 +152,44 @@ describe('runFixAgent', () => {
     const verdict = await runFixAgent(issue, { cwd: '/tmp/x', client });
     assert.equal(verdict.kind, 'error');
     assert.match(verdict.kind === 'error' ? verdict.message : '', /did not end with a FIX/);
+  });
+
+  describe('after an edit landed', () => {
+    const editCall = (old: string, replacement: string): OllamaMessage['tool_calls'] => [
+      { id: 'c1', function: { name: 'edit_file', arguments: JSON.stringify({ path: 'a.py', old_string: old, new_string: replacement }) } },
+    ];
+    const scripted = (replies: OllamaMessage[]): ChatClient => ({ chat: async () => replies.shift() ?? { role: 'assistant', content: 'SKIP: out of script' } });
+    const repo = async (): Promise<string> => {
+      const dir = mkdtempSync(join(tmpdir(), 'fixer-test-'));
+      writeFileSync(join(dir, 'a.py'), 'x = out.decode()\n');
+      return dir;
+    };
+
+    it('returns the FIX announced alongside the edit without another turn', async () => {
+      const cwd = await repo();
+      const client = scripted([{ role: 'assistant', content: 'FIX: dropped the decode', tool_calls: editCall('out.decode()', 'out') }]);
+      assert.deepEqual(await runFixAgent(issue, { cwd, client }), { kind: 'fix', explanation: 'dropped the decode' });
+    });
+
+    it('keeps the fix when the model contradicts itself with a SKIP afterwards', async () => {
+      const cwd = await repo();
+      const client = scripted([
+        { role: 'assistant', content: '', tool_calls: editCall('out.decode()', 'out') },
+        { role: 'assistant', content: 'SKIP: not reproducible' },
+      ]);
+      const verdict = await runFixAgent(issue, { cwd, client });
+      assert.equal(verdict.kind, 'fix');
+      assert.match(verdict.kind === 'fix' ? verdict.explanation : '', /Edited a\.py/);
+    });
+
+    it('still skips when the edit itself failed', async () => {
+      const cwd = await repo();
+      const client = scripted([
+        { role: 'assistant', content: 'FIX: tried', tool_calls: editCall('no such text', 'x') },
+        { role: 'assistant', content: 'SKIP: could not edit' },
+      ]);
+      assert.deepEqual(await runFixAgent(issue, { cwd, client }), { kind: 'skip', reason: 'could not edit' });
+    });
   });
 });
 

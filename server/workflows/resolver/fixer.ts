@@ -100,11 +100,17 @@ function buildPrompt(issue: GitHubIssue, force = false, sources = ''): string {
   ].join('\n');
 }
 
+/**
+ * The model's verdict is its first FIX:/SKIP: line. A line whose text is still the `<...>` placeholder from
+ * the prompt is the format being echoed back, not an answer, so it is ignored: otherwise a reply that says
+ * SKIP and then repeats the template reads as a FIX.
+ */
 export function parseVerdict(resultText: string): { kind: 'fix'; explanation: string } | { kind: 'skip'; reason: string } | null {
-  const fix = /(?:^|\n)FIX:\s*(.+)/i.exec(resultText);
-  if (fix?.[1]) return { kind: 'fix', explanation: fix[1].trim() };
-  const skip = /(?:^|\n)SKIP:\s*(.+)/i.exec(resultText);
-  if (skip?.[1]) return { kind: 'skip', reason: skip[1].trim() };
+  for (const match of resultText.matchAll(/^[ \t]*(FIX|SKIP):[ \t]*(.+)$/gim)) {
+    const text = (match[2] as string).trim();
+    if (/^<[^>]*>$/.test(text)) continue;
+    return match[1]!.toUpperCase() === 'FIX' ? { kind: 'fix', explanation: text } : { kind: 'skip', reason: text };
+  }
   return null;
 }
 
@@ -125,6 +131,12 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
   ];
 
   let nudged = false;
+  // An edit that really landed outranks what the model says afterwards: small models often make the
+  // right edit, announce FIX, and then contradict themselves with a SKIP on the next turn.
+  const edited: string[] = [];
+  let claimed: string | null = null;
+  const landedEdit = (): AgentVerdict | null =>
+    edited.length > 0 ? { kind: 'fix', explanation: claimed ?? `Edited ${[...new Set(edited)].join(', ')} in response to the error.` } : null;
 
   try {
     for (let turn = 0; turn < MAX_AGENT_TURNS; turn++) {
@@ -138,6 +150,11 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
 
       if (!reply.tool_calls || reply.tool_calls.length === 0) {
         const verdict = parseVerdict(reply.content ?? '');
+        if (verdict?.kind === 'fix') return verdict;
+        if (verdict || nudged) {
+          const landed = landedEdit();
+          if (landed) return landed;
+        }
         if (verdict) return verdict;
 
         // The model stalled — asked a question, or trailed off without calling a tool or
@@ -152,6 +169,12 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
       for (const call of reply.tool_calls) {
         const result = await executeTool({ id: call.id, name: call.function.name, arguments: call.function.arguments }, options.cwd);
         messages.push({ role: 'tool', tool_call_id: call.id, content: result });
+        if (call.function.name === 'edit_file' && result.startsWith('edited ')) edited.push(result.slice('edited '.length));
+      }
+      const announced = parseVerdict(reply.content ?? '');
+      if (announced?.kind === 'fix') {
+        claimed = announced.explanation;
+        if (edited.length > 0) return announced;
       }
     }
     return { kind: 'error', message: 'agent exceeded the maximum number of turns without a FIX: or SKIP: verdict' };

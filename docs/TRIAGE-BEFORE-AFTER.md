@@ -2,7 +2,7 @@
 
 The same 12 situations, replayed against a copy of MacRemote with five bugs added (a removed guard, a typo'd name,
 a `None` method call, a missing macOS permission, a hanging command) plus a logged failure and six messages sent on purpose.
-Real Sentry SDK, real Errorflow, a fake GitHub (nothing reached a real repo), and `osascript`/`pmset` replaced by stubs.
+Real Sentry SDK, real FixFlow, a fake GitHub (nothing reached a real repo), and `osascript`/`pmset` replaced by stubs.
 
 Each case was run four ways, before and after the fixes:
 
@@ -19,7 +19,7 @@ Changed cells are **bold**.
 
 | Problem found | Fix |
 |---|---|
-| The stack an SDK attaches to a message (`attach_stacktrace`) is in `threads`, which Errorflow ignored, so logged failures were "no stack trace" and never filed | The normalizer reads `threads`; such a message now has a stack, passes the filing gate and names the code that logged it |
+| The stack an SDK attaches to a message (`attach_stacktrace`) is in `threads`, which FixFlow ignored, so logged failures were "no stack trace" and never filed | The normalizer reads `threads`; such a message now has a stack, passes the filing gate and names the code that logged it |
 | Bot-safe rules only knew JavaScript wording | Python's `NameError`, `'NoneType' object has no attribute`, `'NoneType' object is not subscriptable/iterable/callable` and unbound locals are recognised |
 | A missing permission was reported as an ordinary bug | New rule: permission/configuration problems are tagged `infrastructure` and say what to fix, not "change the code" |
 | Locals, request and source lines were sent but unused | The triage prompt gets the request and the app frame's locals; the GitHub issue gets the request (method and path only), the source line, and folds library frames |
@@ -112,7 +112,7 @@ Local variables are deliberately **not** put in the GitHub issue (it may be a pu
 * **Python bugs are now `bot-safe`** (NameError, None-attribute), so the resolver will try them. They were `needs-human` before.
 * **The permission error** is now `infrastructure`: "fix the permission", not "report a code bug".
 * **The real win needs both halves.** With the current SDK settings the logged `pmset` failure is still lost (no stack). With
-  `attach_stacktrace=True` *and* Errorflow reading `threads`, it is filed. Either half alone does nothing.
+  `attach_stacktrace=True` *and* FixFlow reading `threads`, it is filed. Either half alone does nothing.
 * **A message sent as `error` that says "test"** is now filed once it carries a stack. That is the deliberate rule (an error is never assumed to be a test); the cost is one issue for a test sent at the wrong level.
 * **Model run: `third-party` was over-applied** (to app code, and to an exception with no stack). A guard was added *after* this run and is covered by a unit test; the model tables above show the behaviour before that guard.
 * The model results vary slightly between runs; the rules results are deterministic.

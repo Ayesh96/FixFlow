@@ -10,9 +10,8 @@ import { Ingestor } from './ingest.ts';
 import { ingestRoutes } from './ingestRoutes.ts';
 import { Store } from './store.ts';
 import { modelTriager } from './triage.ts';
+import { ERRORS_ISSUE_LIST_LIMIT, ERRORS_PRUNE_INTERVAL_MS } from '../../constants.ts';
 
-const ISSUE_LIMIT = 200;
-const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
 export interface ErrorsDeps {
   logger?: Logger;
@@ -54,7 +53,7 @@ export class ErrorsWorkflow implements Workflow {
 
   start(): void {
     this.prune();
-    this.pruneTimer = setInterval(() => this.prune(), PRUNE_INTERVAL_MS).unref();
+    this.pruneTimer = setInterval(() => this.prune(), ERRORS_PRUNE_INTERVAL_MS).unref();
   }
 
   async stop(): Promise<void> {
@@ -65,12 +64,12 @@ export class ErrorsWorkflow implements Workflow {
 
   routes(router: Router): void {
     router.get('/issues', (_req, res) => {
-      res.json({ issues: this.store.listIssues(ISSUE_LIMIT, 0) satisfies TrackerIssue[] });
+      res.json({ issues: this.store.listIssues(ERRORS_ISSUE_LIST_LIMIT, 0) satisfies TrackerIssue[] });
     });
 
     // The Errors tab: every project with its own errors, then any whose project has been deleted.
     router.get('/projects', (_req, res) => {
-      const issues: TrackerIssue[] = this.store.listIssues(ISSUE_LIMIT, 0);
+      const issues: TrackerIssue[] = this.store.listIssues(ERRORS_ISSUE_LIST_LIMIT, 0);
       const projects = this.projects.list();
       const known = new Set(projects.map((project) => project.id));
 

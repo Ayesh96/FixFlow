@@ -1,12 +1,8 @@
 import type { Dirent } from 'node:fs';
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { AGENT_MAX_FILE_STAT_BYTES, AGENT_MAX_GREP_FILES, AGENT_MAX_GREP_MATCHES, AGENT_MAX_LIST_ENTRIES, AGENT_MAX_READ_BYTES } from '../../constants.ts';
 
-const MAX_READ_BYTES = 100_000;
-const MAX_FILE_STAT_BYTES = MAX_READ_BYTES * 2;
-const MAX_LIST_ENTRIES = 500;
-const MAX_GREP_FILES = 2000;
-const MAX_GREP_MATCHES = 200;
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage']);
 
 export class ToolPathError extends Error {
@@ -76,9 +72,9 @@ export async function readFileTool(cwd: string, rawPath: string): Promise<string
   const target = resolveInWorkDir(cwd, path);
   const info = await stat(target);
   if (!info.isFile()) return `${path} is not a file`;
-  if (info.size > MAX_FILE_STAT_BYTES) return `(file too large to read: ${info.size} bytes)`;
+  if (info.size > AGENT_MAX_FILE_STAT_BYTES) return `(file too large to read: ${info.size} bytes)`;
   const content = await readFile(target, 'utf8');
-  return content.length > MAX_READ_BYTES ? `${content.slice(0, MAX_READ_BYTES)}\n...(truncated)` : content;
+  return content.length > AGENT_MAX_READ_BYTES ? `${content.slice(0, AGENT_MAX_READ_BYTES)}\n...(truncated)` : content;
 }
 
 export async function listDirectoryTool(cwd: string, rawPath = '.'): Promise<string> {
@@ -86,7 +82,7 @@ export async function listDirectoryTool(cwd: string, rawPath = '.'): Promise<str
   const target = resolveInWorkDir(cwd, path);
   const root = resolve(cwd);
   const out: string[] = [];
-  await walk(root, target, out, MAX_LIST_ENTRIES);
+  await walk(root, target, out, AGENT_MAX_LIST_ENTRIES);
   return out.length > 0 ? out.sort().join('\n') : '(no files)';
 }
 
@@ -102,11 +98,11 @@ export async function grepTool(cwd: string, pattern: string, rawPath = '.'): Pro
   }
 
   const files: string[] = [];
-  await walk(root, target, files, MAX_GREP_FILES);
+  await walk(root, target, files, AGENT_MAX_GREP_FILES);
 
   const matches: string[] = [];
   for (const file of files) {
-    if (matches.length >= MAX_GREP_MATCHES) break;
+    if (matches.length >= AGENT_MAX_GREP_MATCHES) break;
     let content: string;
     try {
       content = await readFile(resolve(root, file), 'utf8');
@@ -114,7 +110,7 @@ export async function grepTool(cwd: string, pattern: string, rawPath = '.'): Pro
       continue;
     }
     const lines = content.split('\n');
-    for (let i = 0; i < lines.length && matches.length < MAX_GREP_MATCHES; i++) {
+    for (let i = 0; i < lines.length && matches.length < AGENT_MAX_GREP_MATCHES; i++) {
       const line = lines[i] as string;
       if (regex.test(line)) matches.push(`${file}:${i + 1}: ${line.trim()}`);
     }

@@ -4,8 +4,8 @@
  * "resolver" (what proposes the fix), "triage" (deciding whether a fix is small enough to try).
  */
 export const copy = {
-  name: 'Errorflow',
-  tagline: 'From error to pull request',
+  name: 'FixFlow',
+  tagline: 'The coding factory',
   offline: "Can't reach the dashboard server. Retrying…",
   locked: {
     title: 'This dashboard is locked',

@@ -94,7 +94,7 @@
   "labels": null
  },
  {
-  "title": "Message: errorflow test from MacRemote",
+  "title": "Message: fixflow test from MacRemote",
   "level": "info",
   "service": "macremote",
   "count": 1,
@@ -104,7 +104,7 @@
    "test-event",
    "no-stack-trace"
   ],
-  "message": "This appears to be a test or noise message from the errorflow service on your MacRemote platform.",
+  "message": "This appears to be a test or noise message from the fixflow service on your MacRemote platform.",
   "suggestion": "Don't report it",
   "filed": null,
   "labels": null

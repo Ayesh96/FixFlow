@@ -2,6 +2,7 @@ import type { LlmGateway } from '../../llm/index.ts';
 import { hasCodeToFix, isBotSafe } from './botsafe.ts';
 import { stackOf } from './stack.ts';
 import { TRIAGE_TAGS, type NormalizedEvent, type StackFrame, type TriageResult, type TriageTag } from './types.ts';
+import { TRIAGE_MAX_FRAMES, TRIAGE_MAX_TEXT_CHARS } from '../../constants.ts';
 
 /** Reads an error and says what it is, what to do about it, and which tags apply. Throws when it cannot (the error is then recorded as ERRORED). */
 export type Triager = (event: NormalizedEvent) => Promise<TriageResult>;
@@ -10,8 +11,6 @@ export interface ModelTriageOptions {
   timeoutMs?: number;
 }
 
-const MAX_FRAMES = 8;
-const MAX_TEXT = 500;
 
 /** Words that mark a message as one somebody sent on purpose to see it arrive. */
 const TEST_WORDS = /\b(tests?|testing|hello world|please ignore|ignore me)\b/i;
@@ -23,7 +22,7 @@ const INFRA = /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|timed? ?
 /** The machine or account is not set up to allow this; no code change fixes it. */
 const PERMISSION = /\b(not allowed|permission denied|operation not permitted|access denied|assistive access|EACCES|EPERM|unauthori[sz]ed|forbidden)\b/i;
 
-const clip = (text: string, max = MAX_TEXT) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+const clip = (text: string, max = TRIAGE_MAX_TEXT_CHARS) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
 /** The newest frame in the app's own code, else the newest frame at all: where the error was thrown or logged from. */
 function culpritOf(frames: StackFrame[]): { text: string; inApp: boolean } | null {
@@ -36,7 +35,7 @@ function culpritOf(frames: StackFrame[]): { text: string; inApp: boolean } | nul
 function describe(event: NormalizedEvent): string {
   const thrown = event.exceptions.at(-1);
   const frames = stackOf(event)
-    .slice(-MAX_FRAMES)
+    .slice(-TRIAGE_MAX_FRAMES)
     .reverse()
     .flatMap((f) => [
       `  at ${f.function ?? '<anonymous>'} (${f.filename ?? '?'}:${f.lineno ?? '?'})${f.inApp ? ' [app]' : ''}`,

@@ -1,4 +1,6 @@
-# Errorflow
+# FixFlow
+
+**The coding factory.** Errors go in; pull requests come out.
 
 Self-hosted error tracking, triage and automated fixes. Give it a GitHub repository and point your app's Sentry SDK at it:
 
@@ -9,17 +11,32 @@ Self-hosted error tracking, triage and automated fixes. Give it a GitHub reposit
 
 Everything runs on your own machine. Your code and tokens never leave it, except to GitHub and the model you choose.
 
+## Install
+
+You need **Node 24 or newer** and **git** on Linux or macOS. The server runs its TypeScript directly (no compile step) and uses Node's built-in `node:sqlite`. Windows is not tested.
+
+**From a release** (no build step): download `fixflow-v<version>.tar.gz` and `sha256sums.txt` from the [latest release](https://github.com/Ayesh96/FixFlow/releases/latest), then:
+
 ```bash
+shasum -a 256 -c sha256sums.txt        # on Linux: sha256sum -c sha256sums.txt
+tar -xzf fixflow-v*.tar.gz && cd fixflow-v*
+node bin/fixflow.mjs
+```
+
+**From a clone** (to develop or to run the latest commit):
+
+```bash
+git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
 npm install     # also installs the UI's dependencies
 npm start       # builds the UI if it is stale, then serves it
 ```
 
-`npm start` prints a link like `http://localhost:7420/?token=…`. **Open that link once**; your browser remembers it (see [Security](#security)). Requires Node 24+ (it runs the TypeScript directly, with no compile step for the server, and uses the built-in `node:sqlite`). Nothing in it is specific to one operating system.
+Either prints a link like `http://localhost:7420/?token=…`. **Open that link once**; your browser remembers it (see [Security](#security)). On an older Node it stops with a message saying so.
 
 ## Using it
 
 1. **Projects tab → Add project.** Enter the repository (`owner/name`), a GitHub token, then pick the branch to work on from the repo's own branches. Optionally set a command that checks a fix (for example `npm ci && npm test`). The token and repo are checked with GitHub before anything is saved, and the repository is cloned straight away.
-2. **Point your app at the project's error address**, shown on its row (copy it with the icon): a DSN such as `http://errorflow@localhost:3000/1`.
+2. **Point your app at the project's error address**, shown on its row (copy it with the icon): a DSN such as `http://fixflow@localhost:3000/1`.
 3. Errors show up on the **Errors** tab, grouped by project. The **Resolver** tab shows what it tried, skipped, or failed, with links to each issue and pull request.
 
 A project's **gear icon** changes everything except the repository: branch, token, a separate pull-request token, the check command, and whether errors without a stack trace also go to GitHub.
@@ -35,7 +52,7 @@ A **project** is a repository, the **branch** to work on, and the **GitHub token
 - Each project's repository is cloned once, when it is added, into `repos/`, and fetched up to date before every fix. One clone serves every branch of a repo.
 - **The check command** runs through a shell, in a throwaway copy of the repository, before and after each fix. If it already fails before the fix, the resolver skips the issue; if it fails after, the pull request says it is unverified. It runs as you, on your machine, so only put commands there that you would run yourself.
 
-All of it lives in one data folder, `~/.errorflow` by default (`ORCH_DATA_DIR`).
+All of it lives in one data folder, `~/.fixflow` by default (`ORCH_DATA_DIR`).
 
 ## Two listeners
 
@@ -67,7 +84,7 @@ Everything is optional. Copy `.env.example` to `.env`.
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `7420` | The dashboard. |
-| `ORCH_DATA_DIR` | `~/.errorflow` | Where the token, databases, key and clones live. |
+| `ORCH_DATA_DIR` | `~/.fixflow` | Where the token, databases, key and clones live. |
 | `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
 | `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
 | `ORCH_OLLAMA_URL` | unset | Local Ollama: triages new errors and writes fixes. The resolver always has a local Ollama to try (`http://localhost:11434`); triage uses it only when this is set. |
@@ -135,3 +152,13 @@ npm run typecheck
 To add another workflow, implement `Workflow` from `server/workflows/types.ts` (`id`, `title`, `routes(router)`, optional `start`/`stop`, and `ingestRoutes(router)` only if it needs unauthenticated outside traffic), switch it on in `server/workflows/index.ts`, and register a panel for its `id` in `web/src/components/extensions.ts`.
 
 `DESIGN.md` documents the tokens, components, accessibility rules and copy conventions.
+
+## License
+
+FixFlow is **source-available** under the [Functional Source License, version 1.1](LICENSE) (`FSL-1.1-ALv2`), not an OSI open-source license.
+
+- You may **use, run, modify and self-host it**, including inside a company, for free.
+- You may **not** use it to offer a competing commercial product or service.
+- Each release converts to the **Apache License 2.0 two years after** it is published.
+
+"FixFlow" is the name of this project; a fork has to use another name. To report a suspected violation, open an issue or contact the maintainer. See [CONTRIBUTING.md](CONTRIBUTING.md) to send changes.

@@ -6,6 +6,7 @@ import { HttpError } from '../../errors.ts';
 import { parseEnvelope } from './sentry/envelope.ts';
 import { normalizeEvent } from './sentry/normalize.ts';
 import type { NormalizedEvent } from './types.ts';
+import { INGEST_MAX_BODY_BYTES, INGEST_MAX_DECODED_BYTES } from '../../constants.ts';
 
 /** All these routes need of the Ingestor; a seam so they can be tested without a store. */
 export interface EventSink {
@@ -16,10 +17,6 @@ const gunzipAsync = promisify(gunzip);
 const inflateAsync = promisify(inflate);
 const brotliAsync = promisify(brotliDecompress);
 
-/** Compressed request size limit; also bounds memory per in-flight request. */
-const MAX_BODY_BYTES = 2 * 1024 * 1024;
-/** Decompressed size limit, to defuse zip bombs. */
-const MAX_DECODED_BYTES = 10 * 1024 * 1024;
 
 /** Browser SDKs POST cross-origin, so ingest routes must answer preflights. */
 const CORS_HEADERS: Record<string, string> = {
@@ -77,7 +74,7 @@ async function decodeBody(req: Request): Promise<Buffer> {
   if (!Buffer.isBuffer(body) || body.length === 0) throw new HttpError(400, 'Empty request body');
 
   const encoding = String(req.headers['content-encoding'] ?? 'identity').trim().toLowerCase();
-  const limits = { maxOutputLength: MAX_DECODED_BYTES };
+  const limits = { maxOutputLength: INGEST_MAX_DECODED_BYTES };
   try {
     switch (encoding) {
       case 'identity':
@@ -127,7 +124,7 @@ export function ingestRoutes(router: Router, sink: EventSink, dsnPublicKey: stri
     res.status(204).end();
   });
 
-  router.use(rawBody(MAX_BODY_BYTES));
+  router.use(rawBody(INGEST_MAX_BODY_BYTES));
 
   const authenticate = (req: Request): void => {
     if (!dsnPublicKey) return;

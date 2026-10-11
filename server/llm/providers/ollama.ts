@@ -1,4 +1,4 @@
-import { LLM_TIMEOUT_MS } from '../../constants.ts';
+import { LLM_TIMEOUT_MS, OLLAMA_CONTEXT_TOKENS } from '../../constants.ts';
 import { HttpChatProvider } from '../http-provider.ts';
 import { recoverToolCalls, toolNames } from '../tool-call-recovery.ts';
 import { LlmError, type ChatMessage, type ChatOptions, type ToolCall } from '../types.ts';
@@ -16,10 +16,8 @@ export interface OllamaProviderOptions {
   model: string;
 }
 
-/** Ollama's own default window is small enough that a stack trace and the files it names get cut off. */
-const DEFAULT_CONTEXT_TOKENS = 32_768;
 
-/** Ollama expects tool_calls[].function.arguments as an object; inside Errorflow it is a JSON string, so convert it on the way out. */
+/** Ollama expects tool_calls[].function.arguments as an object; inside FixFlow it is a JSON string, so convert it on the way out. */
 function toWireMessage(message: ChatMessage): unknown {
   if (!message.tool_calls) return message;
   return {
@@ -76,7 +74,7 @@ export class OllamaProvider extends HttpChatProvider {
       stream: false,
       ...(options.json ? { format: 'json' } : {}),
       options: {
-        num_ctx: options.contextTokens ?? DEFAULT_CONTEXT_TOKENS,
+        num_ctx: options.contextTokens ?? OLLAMA_CONTEXT_TOKENS,
         ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
       },
     };

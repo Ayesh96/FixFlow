@@ -10,7 +10,7 @@ describe('serviceName', () => {
 });
 
 describe('guides', () => {
-  const dsn = 'http://errorflow@localhost:3080/1';
+  const dsn = 'http://fixflow@localhost:3080/1';
   const g = guides(dsn, 'macremote');
 
   it('puts the project address and service into every language', () => {

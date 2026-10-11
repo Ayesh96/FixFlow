@@ -2,8 +2,8 @@ import { join } from 'node:path';
 import type { LlmGateway } from '../../llm/index.ts';
 import { parseDatabaseUrl } from '../../shared/database-url.ts';
 import { ConfigError } from '../../shared/errors.ts';
+import { RESOLVER_MIN_POLL_INTERVAL_MS } from '../../constants.ts';
 
-const MIN_POLL_INTERVAL_MS = 30_000;
 
 export interface Config {
   /** The GitHub API address. Tokens belong to projects now (see server/projects). */
@@ -47,7 +47,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
     }
     return value;
   };
-  const pollIntervalMs = integer('ORCH_RESOLVER_POLL_INTERVAL_MS', 300_000, MIN_POLL_INTERVAL_MS);
+  const pollIntervalMs = integer('ORCH_RESOLVER_POLL_INTERVAL_MS', 300_000, RESOLVER_MIN_POLL_INTERVAL_MS);
   const maxConcurrentFixes = integer('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', 3, 1);
 
   const databaseUrl = text('ORCH_RESOLVER_DB') || join(dataDir, 'resolver.db');

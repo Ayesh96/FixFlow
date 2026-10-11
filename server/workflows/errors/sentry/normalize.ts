@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PayloadError } from '../../../errors.ts';
 import { LEVELS, type ExceptionInfo, type Level, type NormalizedEvent, type StackFrame } from '../types.ts';
 import { asNumber, asString, isRecord } from './util.ts';
+import { EVENT_MAX_VARS, EVENT_MAX_VAR_CHARS } from '../../../constants.ts';
 
 const LEVEL_ALIASES: Record<string, Level> = { warn: 'warning', critical: 'fatal', log: 'info' };
 
@@ -30,17 +31,15 @@ function parseFrame(value: unknown): StackFrame | null {
   };
 }
 
-const MAX_VARS = 12;
-const MAX_VAR_LENGTH = 120;
 
 /** Local variables arrive as an object of already-stringified values (Python) or raw JSON values; keep a short readable form. */
 function parseVars(value: unknown): Record<string, string> | null {
   if (!isRecord(value)) return null;
   const entries = Object.entries(value)
-    .slice(0, MAX_VARS)
+    .slice(0, EVENT_MAX_VARS)
     .map(([name, v]) => {
       const text = typeof v === 'string' ? v : (JSON.stringify(v) ?? String(v));
-      return [name, text.length > MAX_VAR_LENGTH ? `${text.slice(0, MAX_VAR_LENGTH - 1)}…` : text] as const;
+      return [name, text.length > EVENT_MAX_VAR_CHARS ? `${text.slice(0, EVENT_MAX_VAR_CHARS - 1)}…` : text] as const;
     });
   return entries.length > 0 ? Object.fromEntries(entries) : null;
 }

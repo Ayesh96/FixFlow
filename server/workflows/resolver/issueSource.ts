@@ -1,5 +1,6 @@
 import type { Store as ErrorsStore } from '../errors/store.ts';
 import type { AttemptStatus, TrackedIssue } from './types.ts';
+import { GITHUB_ISSUES_PAGE_SIZE } from '../../constants.ts';
 
 /** What the scheduler needs from a tracked-issue source; a seam for tests. */
 export interface IssueSource {
@@ -11,8 +12,6 @@ export interface IssueSource {
   ): Promise<void>;
 }
 
-/** Issues the resolver will never act on, so there's no point paging them in. */
-const PAGE_SIZE = 1000;
 
 /**
  * Reads issues straight out of the errors workflow's store.
@@ -29,7 +28,7 @@ export class StoreIssueSource implements IssueSource {
   }
 
   async listIssues(): Promise<TrackedIssue[]> {
-    return this.store.listIssues(PAGE_SIZE, 0);
+    return this.store.listIssues(GITHUB_ISSUES_PAGE_SIZE, 0);
   }
 
   async reportResolverStatus(

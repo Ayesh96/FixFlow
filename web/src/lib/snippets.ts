@@ -37,7 +37,7 @@ Sentry.init({
   attachStacktrace: true, // logged messages carry the stack
   initialScope: { tags: { service: ${str(service)} } },
 });`;
-  const jsTest = `Sentry.captureMessage("errorflow connection test", "info");
+  const jsTest = `Sentry.captureMessage("fixflow connection test", "info");
 await Sentry.flush(2000); // send now rather than at exit`;
   const jsNames = ['dsn', 'environment', 'release', 'attachStacktrace', 'initialScope.tags.service'];
 
@@ -55,7 +55,7 @@ sentry_sdk.init(
     attach_stacktrace=True,  # logged messages carry the stack
 )
 sentry_sdk.set_tag("service", ${str(service)})  # names the app on every error`,
-      test: `sentry_sdk.capture_message("errorflow connection test", level="info")
+      test: `sentry_sdk.capture_message("fixflow connection test", level="info")
 sentry_sdk.flush(2)  # send now rather than at exit`,
       names: ['dsn', 'environment', 'release', 'attach_stacktrace', 'set_tag("service", …)'],
     },

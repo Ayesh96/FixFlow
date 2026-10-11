@@ -27,7 +27,7 @@ The one thing filing takes from triage is the `bot-safe` label, which is what th
 
 | Situation | Tags | Suggestion | Filed |
 |---|---|---|---|
-| Test message at `info` ("errorflow test from MacRemote") | `test-event` `no-stack-trace` | Don't report it | no |
+| Test message at `info` ("fixflow test from MacRemote") | `test-event` `no-stack-trace` | Don't report it | no |
 | "hello world ping" at `debug` | `test-event` `no-stack-trace` | Don't report it | no |
 | "testing the alert pipeline, please ignore" at `warning` | `test-event` `no-stack-trace` | Don't report it | no |
 | "sentry test please ignore" sent as `error` | `no-stack-trace` `needs-human` | Report it only if someone recognises it | no (filed*) |

@@ -4,10 +4,9 @@ import * as git from './git.ts';
 import type { ChatClient, ChatMessage } from '../../llm/index.ts';
 import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
+import { AGENT_MAX_TURNS, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
 export const BRANCH_PREFIX = 'errorresolver/issue-';
-const MAX_AGENT_TURNS = 20;
-const MAX_COMMIT_MESSAGE_LENGTH = 72;
 
 const SYSTEM_PROMPT =
   'You are a narrow bug-fixing agent. You only have four tools: read_file, list_directory, grep, and ' +
@@ -33,9 +32,6 @@ const FORCE_NOTE =
   'failing case. Only SKIP if there is genuinely nothing in this repository you can change.';
 
 const SOURCE_FILE = /([\w@.\-/\\]+\.(?:py|ts|tsx|js|jsx|mjs|go|rb|java|kt|swift|rs|php|cs|cpp|c|h))(?:["']?,? line |:)?(\d+)?/g;
-const MAX_PREREAD_FILES = 3;
-const PREREAD_WINDOW = 60;
-const PREREAD_WHOLE_FILE_LINES = 250;
 
 /**
  * The source files a stack trace names, read ahead of time. A small model that has to find and open them
@@ -48,7 +44,7 @@ export async function referencedSources(cwd: string, body: string): Promise<stri
   const picked = [...seen].reverse();
   const out: string[] = [];
   for (const [named, line] of picked) {
-    if (out.length >= MAX_PREREAD_FILES) break;
+    if (out.length >= AGENT_PREREAD_FILES) break;
     const path = await mapToRepoPath(cwd, named);
     let text: string;
     try {
@@ -57,8 +53,8 @@ export async function referencedSources(cwd: string, body: string): Promise<stri
       continue; // not in this checkout (a dependency, the standard library)
     }
     const lines = text.split('\n');
-    const from = lines.length <= PREREAD_WHOLE_FILE_LINES || line === null ? 0 : Math.max(0, line - PREREAD_WINDOW);
-    const to = lines.length <= PREREAD_WHOLE_FILE_LINES || line === null ? Math.min(lines.length, PREREAD_WHOLE_FILE_LINES) : Math.min(lines.length, line + PREREAD_WINDOW);
+    const from = lines.length <= AGENT_PREREAD_WHOLE_FILE_LINES || line === null ? 0 : Math.max(0, line - AGENT_PREREAD_WINDOW_LINES);
+    const to = lines.length <= AGENT_PREREAD_WHOLE_FILE_LINES || line === null ? Math.min(lines.length, AGENT_PREREAD_WHOLE_FILE_LINES) : Math.min(lines.length, line + AGENT_PREREAD_WINDOW_LINES);
     out.push(`--- ${path} (lines ${from + 1}-${to}) ---`, ...lines.slice(from, to).map((l, i) => `${from + i + 1}: ${l}`));
   }
   return out.join('\n');
@@ -132,7 +128,7 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
     edited.length > 0 ? { kind: 'fix', explanation: claimed ?? `Edited ${[...new Set(edited)].join(', ')} in response to the error.` } : null;
 
   try {
-    for (let turn = 0; turn < MAX_AGENT_TURNS; turn++) {
+    for (let turn = 0; turn < AGENT_MAX_TURNS; turn++) {
       const reply = await options.client.chat(messages, TOOL_DEFINITIONS);
       messages.push(reply);
       // Log every turn so a SKIP or FAILED can be traced to what the model actually did.
@@ -178,7 +174,7 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
 
 function commitMessage(title: string): string {
   const message = `Fix: ${title}`;
-  return message.length > MAX_COMMIT_MESSAGE_LENGTH ? `${message.slice(0, MAX_COMMIT_MESSAGE_LENGTH - 1)}…` : message;
+  return message.length > COMMIT_SUBJECT_MAX_CHARS ? `${message.slice(0, COMMIT_SUBJECT_MAX_CHARS - 1)}…` : message;
 }
 
 /** The git/verify/agent operations this module drives — a seam for tests. */

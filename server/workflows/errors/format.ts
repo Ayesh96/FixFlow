@@ -1,8 +1,7 @@
-import { MAX_BODY_LENGTH, MAX_TITLE_LENGTH } from '../../constants.ts';
+import { ISSUE_BODY_MAX_FRAMES, MAX_BODY_LENGTH, MAX_TITLE_LENGTH } from '../../constants.ts';
 import { fence, truncate } from '../../shared/text.ts';
 import type { ExceptionInfo, NormalizedEvent, StackFrame } from './types.ts';
 
-const MAX_FRAMES = 40;
 
 const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
@@ -27,8 +26,8 @@ function formatFrame(frame: StackFrame): string {
 function formatFrames(oldestFirst: StackFrame[]): string[] {
   const frames = oldestFirst.slice().reverse();
   if (!frames.some((f) => f.inApp)) {
-    const shown = frames.slice(0, MAX_FRAMES).map(formatFrame);
-    if (frames.length > MAX_FRAMES) shown.push(`    … ${frames.length - MAX_FRAMES} more frames`);
+    const shown = frames.slice(0, ISSUE_BODY_MAX_FRAMES).map(formatFrame);
+    if (frames.length > ISSUE_BODY_MAX_FRAMES) shown.push(`    … ${frames.length - ISSUE_BODY_MAX_FRAMES} more frames`);
     return shown;
   }
   const lines: string[] = [];
@@ -47,7 +46,7 @@ function formatFrames(oldestFirst: StackFrame[]): string[] {
     if (frame.contextLine) lines.push(`        ${oneLine(frame.contextLine)}`);
   }
   flush();
-  return lines.slice(0, MAX_FRAMES * 2);
+  return lines.slice(0, ISSUE_BODY_MAX_FRAMES * 2);
 }
 
 function formatException(exception: ExceptionInfo): string {

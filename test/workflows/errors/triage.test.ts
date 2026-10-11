@@ -89,7 +89,7 @@ describe('rulesTriage: more of what real apps send', () => {
   });
 
   it('still reads a test message as a test when it came with a stack', () => {
-    const r = rulesTriage(logged('errorflow test from MacRemote', 'info'));
+    const r = rulesTriage(logged('fixflow test from MacRemote', 'info'));
     assert.deepEqual(r.tags, ['test-event'], 'there is a stack, so no no-stack-trace tag');
     assert.match(r.suggestion, /^Don't report it/);
   });
@@ -130,7 +130,7 @@ describe('modelTriager: what the model does not get to overrule', () => {
     const real = await ask(crash('HTTPException', 'osascript is not allowed assistive access'), { small_fix: false, message: 'Permissions.', suggestion: "Don't report it. Ask your admin.", tags: ['infrastructure'] });
     assert.doesNotMatch(real.suggestion, /^Don't report it/);
     assert.equal(real.message, 'Permissions.', 'its explanation is kept');
-    const test = normalized({ event_id: 't'.repeat(32), platform: 'python', level: 'info', message: 'errorflow test from MacRemote' });
+    const test = normalized({ event_id: 't'.repeat(32), platform: 'python', level: 'info', message: 'fixflow test from MacRemote' });
     const kept = await ask(test, { small_fix: false, message: 'A test.', suggestion: "Don't report it", tags: ['test-event'] });
     assert.deepEqual([kept.tags, kept.suggestion], [['test-event', 'no-stack-trace'], "Don't report it"]);
   });
@@ -161,7 +161,7 @@ describe('rulesTriage', () => {
   const message = (text: string, level = 'info') => normalized({ event_id: 'm'.repeat(32), platform: 'python', level, message: text, tags: { service: 'macremote' } });
 
   it('calls a test message a test message, names no culprit, and says not to report it', () => {
-    const r = rulesTriage(message('errorflow test from MacRemote'));
+    const r = rulesTriage(message('fixflow test from MacRemote'));
     assert.deepEqual(r.tags, ['test-event', 'no-stack-trace']);
     assert.match(r.message, /test message/i);
     assert.match(r.message, /no culprit/i);

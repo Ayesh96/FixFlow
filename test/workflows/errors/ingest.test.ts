@@ -253,7 +253,7 @@ describe('Ingestor triage', () => {
     const ingestor = new Ingestor(store, () => tracker, { projects: projectsOf(new Map([[P, REPO]])), minIssueLevel: 'error', commentThresholds: [], retryCooldownMs: 0, triage }, log);
     return { store, tracker, ingestor };
   };
-  const testMessage = () => normalized({ event_id: `tst${(++n).toString().padStart(29, '0')}`, platform: 'python', level: 'info', message: 'errorflow test from MacRemote' });
+  const testMessage = () => normalized({ event_id: `tst${(++n).toString().padStart(29, '0')}`, platform: 'python', level: 'info', message: 'fixflow test from MacRemote' });
 
   it('triages an error that is never filed, and says why it is not worth reporting', async () => {
     const { store, tracker, ingestor } = setup();

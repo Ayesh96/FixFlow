@@ -33,7 +33,7 @@ export function loadConfig(env: Env = process.env): Config {
   const port = Number(env.PORT ?? 7420);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`PORT must be 1-65535 (got "${env.PORT}")`);
 
-  const dataDir = env.ORCH_DATA_DIR ?? join(home, '.errorflow');
+  const dataDir = env.ORCH_DATA_DIR ?? join(home, '.fixflow');
 
   // The models are read once and shared: both workflows ask for one by purpose, never by name.
   const llm = createLlm(loadLlmSettings(env));

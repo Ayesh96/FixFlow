@@ -6,7 +6,7 @@ CASES = [  # (label, substring of the error title)
     ("No Accessibility permission: HTTPException", "assistive access"),
     ("osascript hangs: TimeoutExpired", "TimeoutExpired"),
     ("pmset fails, logged as a message", "display sleep failed"),
-    ("Test message, info", "errorflow test from MacRemote"),
+    ("Test message, info", "fixflow test from MacRemote"),
     ("'hello world ping', debug", "hello world ping"),
     ("'Failed to ping the database', info", "Failed to ping"),
     ("'sentry test please ignore', sent as error", "sentry test please ignore"),

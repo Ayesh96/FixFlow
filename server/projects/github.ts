@@ -1,3 +1,4 @@
+import { BRANCHES_SHOWN_IN_MESSAGE, GITHUB_BRANCH_LIST_SIZE } from '../constants.ts';
 export interface InspectRequest {
   token: string;
   apiUrl: string;
@@ -26,9 +27,6 @@ export interface RepoInspection {
   warnings: string[];
 }
 
-/** GitHub's largest page. A repo with more branches than this is shown as incomplete, and the user can type the rest. */
-const BRANCH_LIST_SIZE = 100;
-const SHOWN_IN_MESSAGE = 10;
 
 interface Reply {
   status: number;
@@ -50,7 +48,7 @@ export async function inspectRepo({ token, apiUrl, repo, branch, timeoutMs = 10_
   const get = async (url: string): Promise<Reply | null> => {
     try {
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'errorflow', 'X-GitHub-Api-Version': '2022-11-28' },
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'fixflow', 'X-GitHub-Api-Version': '2022-11-28' },
         signal: AbortSignal.timeout(timeoutMs),
         redirect: 'error', // never replay the token to wherever a redirect points
       });
@@ -85,10 +83,10 @@ export async function inspectRepo({ token, apiUrl, repo, branch, timeoutMs = 10_
     result.warnings.push(`This token can read ${repo} but not push to it, so the resolver will not be able to open pull requests. Issues and error tracking still work.`);
   }
 
-  const listed = await get(`${base}/branches?per_page=${BRANCH_LIST_SIZE}`);
+  const listed = await get(`${base}/branches?per_page=${GITHUB_BRANCH_LIST_SIZE}`);
   if (listed?.status === 200 && Array.isArray(listed.body)) {
     result.branches = (listed.body as { name?: unknown }[]).flatMap((b) => (typeof b.name === 'string' ? [b.name] : []));
-    result.branchesTruncated = result.branches.length >= BRANCH_LIST_SIZE;
+    result.branchesTruncated = result.branches.length >= GITHUB_BRANCH_LIST_SIZE;
   }
 
   if (branch !== undefined) {
@@ -96,7 +94,7 @@ export async function inspectRepo({ token, apiUrl, repo, branch, timeoutMs = 10_
     const exists = await get(`${base}/branches/${path}`);
     result.branch = { found: exists?.status === 200 };
     if (!result.branch.found) {
-      const names = result.branches.slice(0, SHOWN_IN_MESSAGE).join(', ');
+      const names = result.branches.slice(0, BRANCHES_SHOWN_IN_MESSAGE).join(', ');
       fail('branch', `${repo} has no branch called "${branch}".${names ? ` Branches that exist: ${names}.` : ''} Check the spelling.`);
     }
   }

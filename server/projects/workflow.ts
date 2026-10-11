@@ -229,6 +229,6 @@ export class ProjectsWorkflow implements Workflow {
 
   private dsnFor(id: string): string | null {
     const { ingest } = this.deps;
-    return ingest ? `http://${ingest.dsnKey ?? 'errorflow'}@${LOOPBACK.has(ingest.host) ? 'localhost' : ingest.host}:${ingest.port}/${id}` : null;
+    return ingest ? `http://${ingest.dsnKey ?? 'fixflow'}@${LOOPBACK.has(ingest.host) ? 'localhost' : ingest.host}:${ingest.port}/${id}` : null;
   }
 }

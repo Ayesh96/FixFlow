@@ -1,9 +1,9 @@
 import type { Router } from 'express';
+import { SSE_HEARTBEAT_MS } from './constants.ts';
 
 /** What can change on screen. Each names the data a page re-reads; it carries no data itself. */
 export type Topic = 'errors' | 'projects' | 'resolver';
 
-const HEARTBEAT_MS = 25_000;
 
 /**
  * Tells the dashboard that something changed, so it reads again instead of asking on a timer.
@@ -32,7 +32,7 @@ export function eventRoutes(router: Router, bus: ChangeBus): void {
 
     const unsubscribe = bus.subscribe((topic) => res.write(`event: change\ndata: ${JSON.stringify({ topic })}\n\n`));
     // A comment line every so often: keeps idle proxies from closing the stream and surfaces a dead peer.
-    const heartbeat = setInterval(() => res.write(': ping\n\n'), HEARTBEAT_MS);
+    const heartbeat = setInterval(() => res.write(': ping\n\n'), SSE_HEARTBEAT_MS);
     req.on('close', () => {
       clearInterval(heartbeat);
       unsubscribe();

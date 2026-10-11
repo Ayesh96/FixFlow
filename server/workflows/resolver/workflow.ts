@@ -10,9 +10,8 @@ import { GitHubClient } from './github.ts';
 import { StoreIssueSource, type IssueSource } from './issueSource.ts';
 import { Scheduler, type RepoSource } from './scheduler.ts';
 import { Store } from './store.ts';
+import { RESOLVER_DEFAULT_PAGE_SIZE, RESOLVER_MAX_PAGE_SIZE } from '../../constants.ts';
 
-const DEFAULT_PAGE_SIZE = 50;
-const MAX_PAGE_SIZE = 200;
 
 export interface ResolverDeps {
   /** Keeps each project's repository cloned and current; without it every attempt clones from the network. */
@@ -93,7 +92,7 @@ export class ResolverWorkflow implements Workflow {
     });
 
     router.get('/attempts', (req, res) => {
-      const limit = Math.max(1, intParam(req.query.limit, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE));
+      const limit = Math.max(1, intParam(req.query.limit, RESOLVER_DEFAULT_PAGE_SIZE, RESOLVER_MAX_PAGE_SIZE));
       const offset = intParam(req.query.offset, 0, Number.MAX_SAFE_INTEGER);
       res.json({ attempts: this.store.listAttempts(limit, offset), limit, offset } satisfies AttemptPage);
     });

@@ -98,7 +98,7 @@
   "labels": []
  },
  {
-  "title": "Message: errorflow test from MacRemote",
+  "title": "Message: fixflow test from MacRemote",
   "level": "info",
   "service": "macremote",
   "count": 1,
@@ -108,7 +108,7 @@
    "test-event",
    "no-stack-trace"
   ],
-  "message": "A log message indicating an errorflow test from MacRemote.",
+  "message": "A log message indicating an fixflow test from MacRemote.",
   "suggestion": "Don't report it",
   "filed": null,
   "labels": null

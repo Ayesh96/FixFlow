@@ -1,8 +1,7 @@
-import { MAX_BODY_LENGTH, MAX_TITLE_LENGTH } from '../../constants.ts';
+import { MAX_BODY_LENGTH, MAX_TITLE_LENGTH, PR_SUMMARY_MAX_CHARS } from '../../constants.ts';
 import { fence, truncate } from '../../shared/text.ts';
 import type { GitHubIssue } from './types.ts';
 
-const MAX_SUMMARY_LENGTH = 1_000;
 
 export function formatPullRequestTitle(issue: GitHubIssue): string {
   return truncate(`Fix: ${issue.title}`, MAX_TITLE_LENGTH);
@@ -23,7 +22,7 @@ export function formatVerifyNote(verifyRan: boolean, verified: boolean): string 
 export function formatFixSummary(explanation: string, filesChanged: string[], verifyRan: boolean, verified: boolean): string {
   const files = filesChanged.length > 0 ? ` Changed: ${filesChanged.join(', ')}.` : '';
   const check = !verifyRan ? ' Not verified: no verify command.' : verified ? ' Verified: the verify command passed.' : ' The verify command still fails.';
-  return truncate(`${explanation.trim()}${files}${check}`, MAX_SUMMARY_LENGTH);
+  return truncate(`${explanation.trim()}${files}${check}`, PR_SUMMARY_MAX_CHARS);
 }
 
 export function formatPullRequestBody(

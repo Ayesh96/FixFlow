@@ -92,7 +92,7 @@
   "labels": null
  },
  {
-  "title": "Message: errorflow test from MacRemote",
+  "title": "Message: fixflow test from MacRemote",
   "level": "info",
   "service": null,
   "count": 1,
@@ -102,7 +102,7 @@
    "test-event",
    "no-stack-trace"
   ],
-  "message": "This looks like a test message, not a real failure. \u201cerrorflow test from MacRemote\u201d was sent on purpose from your python app at level \u201cinfo\u201d. Nothing threw an exception, so there is no culprit to find.",
+  "message": "This looks like a test message, not a real failure. \u201cfixflow test from MacRemote\u201d was sent on purpose from your python app at level \u201cinfo\u201d. Nothing threw an exception, so there is no culprit to find.",
   "suggestion": "Don't report it: this is not a valid issue. It is safe to ignore.",
   "filed": null,
   "labels": null

@@ -1,9 +1,20 @@
 {
-  "name": "errorflow",
+  "name": "fixflow",
   "version": "1.0.0",
-  "description": "Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
-  "license": "MIT",
+  "description": "FixFlow, the coding factory. Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
+  "license": "FSL-1.1-ALv2",
+  "author": "Ayesh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ayesh96/FixFlow.git"
+  },
+  "bugs": "https://github.com/Ayesh96/FixFlow/issues",
+  "homepage": "https://github.com/Ayesh96/FixFlow#readme",
+  "keywords": ["error-tracking", "sentry", "self-hosted", "triage", "github", "ollama", "deepseek"],
   "type": "module",
+  "bin": {
+    "fixflow": "bin/fixflow.mjs"
+  },
   "engines": {
     "node": ">=24"
   },
@@ -22,7 +33,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^22.20.4",
+    "@types/node": "^24.0.0",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   }

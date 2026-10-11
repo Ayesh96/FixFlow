@@ -1,25 +1,13 @@
+import { MAX_BODY_LENGTH, MAX_TITLE_LENGTH } from '../../constants.ts';
+import { fence, truncate } from '../../shared/text.ts';
 import type { ExceptionInfo, NormalizedEvent, StackFrame } from './types.ts';
 
-const MAX_TITLE_LENGTH = 120;
 const MAX_FRAMES = 40;
-/** GitHub rejects bodies over 65,536 characters. */
-const MAX_BODY_LENGTH = 60_000;
 
 const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim();
 
-function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
 /** Inline code that cannot be broken out of by hostile input. */
 const inline = (text: string): string => `\`${oneLine(text).replaceAll('`', "'").replaceAll('|', '\\|')}\``;
-
-/** A fenced block whose fence is longer than any backtick run inside, so payload text can't close it early. */
-function fence(text: string): string {
-  const longestRun = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
-  const marker = '`'.repeat(Math.max(3, longestRun + 1));
-  return `${marker}\n${text}\n${marker}`;
-}
 
 export function formatIssueTitle(event: NormalizedEvent): string {
   const type = event.exceptionType ?? 'Message';

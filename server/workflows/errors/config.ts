@@ -1,5 +1,7 @@
 import { join } from 'node:path';
 import type { LlmGateway } from '../../llm/index.ts';
+import { parseDatabaseUrl } from '../../shared/database-url.ts';
+import { ConfigError } from '../../shared/errors.ts';
 import { LEVELS, type Level } from './types.ts';
 
 export interface Config {
@@ -21,26 +23,7 @@ export interface Config {
   llm: LlmGateway;
 }
 
-export class ConfigError extends Error {
-  readonly problems: string[];
-
-  constructor(problems: string[]) {
-    super(`Invalid configuration:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
-    this.problems = problems;
-    this.name = 'ConfigError';
-  }
-}
-
 type Env = Record<string, string | undefined>;
-
-/**
- * Accepts `sqlite:///abs/path.db`, `sqlite://./rel.db`, `file:./rel.db`, `:memory:` or a bare path.
- * Returns null for anything else (notably postgres:// URLs, which are unsupported).
- */
-export function parseDatabaseUrl(url: string): string | null {
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url) && !/^(sqlite|file):/i.test(url)) return null;
-  return url.replace(/^(?:sqlite|file):(?:\/\/)?/i, '') || null;
-}
 
 export interface LoadOptions {
   dataDir: string;

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
-import { GitHubClient, GitHubError } from '../../../server/workflows/resolver/github.ts';
+import { GitHubError } from '../../../server/shared/errors.ts';
+import { GitHubClient } from '../../../server/workflows/resolver/github.ts';
 
 describe('GitHubClient', () => {
   let server: Server;

@@ -3,6 +3,7 @@ export interface VerifyCommand {
   argv: string[];
 }
 
+import { VERIFY_OUTPUT_MAX_CHARS, VERIFY_TIMEOUT_MS } from '../../constants.ts';
 import { defaultExec, type ExecFn } from './exec.ts';
 
 export interface VerifyResult {
@@ -13,11 +14,10 @@ export interface VerifyResult {
 
 function combine(stdout: string, stderr: string): string {
   const combined = `${stdout}${stderr}`;
-  const maxLength = 4000;
-  if (combined.length <= maxLength) {
+  if (combined.length <= VERIFY_OUTPUT_MAX_CHARS) {
     return combined;
   }
-  return combined.slice(0, maxLength) + '\n... (truncated)';
+  return combined.slice(0, VERIFY_OUTPUT_MAX_CHARS) + '\n... (truncated)';
 }
 
 export async function runVerify(
@@ -31,10 +31,9 @@ export async function runVerify(
 
   const file = command.argv[0]!;
   const args = command.argv.slice(1);
-  const timeoutMs = 5 * 60 * 1000;
 
   try {
-    const result = await exec(file, args, { cwd, timeoutMs });
+    const result = await exec(file, args, { cwd, timeoutMs: VERIFY_TIMEOUT_MS });
     return {
       ran: true,
       passed: true,

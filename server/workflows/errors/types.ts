@@ -50,11 +50,7 @@ export interface NormalizedEvent {
   rawJson: string;
 }
 
-/** A GitHub repository. */
-export interface RepoRef {
-  owner: string;
-  repo: string;
-}
+export type { RepoRef } from '../../shared/repo.ts';
 
 export const RESOLVER_STATUSES = ['IN_PROGRESS', 'PR_OPEN', 'SKIPPED', 'FAILED'] as const;
 export type ResolverStatus = (typeof RESOLVER_STATUSES)[number];

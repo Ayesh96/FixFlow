@@ -1,14 +1,7 @@
-import type { CreatedPullRequest, GitHubIssue, RepoRef } from './types.ts';
-
-export class GitHubError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-    this.name = 'GitHubError';
-  }
-}
+import { GITHUB_REQUEST_TIMEOUT_MS } from '../../constants.ts';
+import { GitHubError } from '../../shared/errors.ts';
+import type { RepoRef } from '../../shared/repo.ts';
+import type { CreatedPullRequest, GitHubIssue } from './types.ts';
 
 export interface GitHubClientOptions {
   token: string;
@@ -21,8 +14,6 @@ export interface GitHubGateway {
   getDefaultBranch(repo: RepoRef): Promise<string>;
   createPullRequest(repo: RepoRef, params: { title: string; body: string; head: string; base: string }): Promise<CreatedPullRequest>;
 }
-
-const REQUEST_TIMEOUT_MS = 10_000;
 
 export class GitHubClient implements GitHubGateway {
   private readonly options: GitHubClientOptions;
@@ -48,7 +39,7 @@ export class GitHubClient implements GitHubGateway {
           'X-GitHub-Api-Version': '2022-11-28',
         },
         ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS),
       });
     } catch (err) {
       throw new GitHubError(

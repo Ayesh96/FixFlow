@@ -14,7 +14,8 @@
     "build": "npm --prefix web run build",
     "postinstall": "npm --prefix web install",
     "typecheck": "tsc --noEmit && npm --prefix web run typecheck",
-    "test": "node --test \"test/*.test.ts\" \"test/llm/*.test.ts\" \"test/projects/*.test.ts\" \"test/workflows/*.test.ts\" \"test/workflows/*/*.test.ts\" && npm --prefix web test"
+    "test": "node --test \"test/*.test.ts\" \"test/llm/*.test.ts\" \"test/projects/*.test.ts\" \"test/workflows/*.test.ts\" \"test/workflows/*/*.test.ts\" && npm --prefix web test",
+    "format": "prettier --write \"server/**/*.ts\" \"test/**/*.ts\""
   },
   "dependencies": {
     "express": "^5.2.1"
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^22.20.4",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   }
 }

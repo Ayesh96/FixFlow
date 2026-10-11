@@ -1,7 +1,4 @@
-export interface RepoRef {
-  owner: string;
-  repo: string;
-}
+export type { RepoRef } from '../../shared/repo.ts';
 
 /** One row from error-tracker's `GET /admin/issues`. */
 export interface TrackedIssue {

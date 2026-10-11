@@ -1,3 +1,4 @@
+import { LLM_TIMEOUT_MS } from '../../constants.ts';
 import { HttpChatProvider } from '../http-provider.ts';
 import { recoverToolCalls, toolNames } from '../tool-call-recovery.ts';
 import { LlmError, type ChatMessage, type ChatOptions, type ToolCall } from '../types.ts';
@@ -15,8 +16,6 @@ export interface OllamaProviderOptions {
   model: string;
 }
 
-/** Local inference is slower than a hosted API; give it real room before timing out. */
-const REQUEST_TIMEOUT_MS = 120_000;
 /** Ollama's own default window is small enough that a stack trace and the files it names get cut off. */
 const DEFAULT_CONTEXT_TOKENS = 32_768;
 
@@ -53,7 +52,7 @@ function normalizeToolCall(raw: unknown, index: number): ToolCall {
 export class OllamaProvider extends HttpChatProvider {
   protected override readonly id = 'ollama' as const;
   protected override readonly label = 'Ollama';
-  protected override readonly timeoutMs = REQUEST_TIMEOUT_MS;
+  protected override readonly timeoutMs = LLM_TIMEOUT_MS.ollama;
   private readonly options: OllamaProviderOptions;
 
   constructor(options: OllamaProviderOptions) {

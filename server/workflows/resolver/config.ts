@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import type { LlmGateway } from '../../llm/index.ts';
-import type { RepoRef } from './types.ts';
+import { parseDatabaseUrl } from '../../shared/database-url.ts';
+import { ConfigError } from '../../shared/errors.ts';
 
 const MIN_POLL_INTERVAL_MS = 30_000;
 
@@ -16,32 +17,7 @@ export interface Config {
   databasePath: string;
 }
 
-export class ConfigError extends Error {
-  readonly problems: string[];
-
-  constructor(problems: string[]) {
-    super(`Invalid configuration:\n${problems.map((p) => `  - ${p}`).join('\n')}`);
-    this.problems = problems;
-    this.name = 'ConfigError';
-  }
-}
-
 type Env = Record<string, string | undefined>;
-
-const REPO_PATTERN = /^([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)\/([A-Za-z0-9._-]+)$/;
-
-export function parseRepo(text: string): RepoRef | null {
-  const match = REPO_PATTERN.exec(text.trim());
-  return match ? { owner: match[1] as string, repo: match[2] as string } : null;
-}
-
-export const formatRepo = ({ owner, repo }: RepoRef): string => `${owner}/${repo}`;
-
-/** Accepts `sqlite:///abs/path.db`, `sqlite://./rel.db`, `file:./rel.db`, `:memory:` or a bare path. */
-export function parseDatabaseUrl(url: string): string | null {
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url) && !/^(sqlite|file):/i.test(url)) return null;
-  return url.replace(/^(?:sqlite|file):(?:\/\/)?/i, '') || null;
-}
 
 export interface LoadOptions {
   dataDir: string;

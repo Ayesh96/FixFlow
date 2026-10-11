@@ -1,3 +1,4 @@
+import { LLM_MAX_OUTPUT_TOKENS, LLM_RETRY_DELAY_MS, LLM_TIMEOUT_MS } from '../../constants.ts';
 import { HttpChatProvider } from '../http-provider.ts';
 import { recoverToolCalls, toolNames } from '../tool-call-recovery.ts';
 import { LlmError, type ChatMessage, type ChatOptions, type ToolCall } from '../types.ts';
@@ -17,8 +18,6 @@ export interface DeepSeekProviderOptions {
   retryDelayMs?: number;
 }
 
-const REQUEST_TIMEOUT_MS = 90_000;
-const MAX_TOKENS = 4096;
 
 interface WireToolCall {
   id: string;
@@ -70,7 +69,7 @@ function readToolCall(raw: unknown, index: number): ToolCall | null {
 export class DeepSeekProvider extends HttpChatProvider {
   protected override readonly id = 'deepseek' as const;
   protected override readonly label = 'DeepSeek';
-  protected override readonly timeoutMs = REQUEST_TIMEOUT_MS;
+  protected override readonly timeoutMs = LLM_TIMEOUT_MS.deepseek;
   protected override readonly maxRetries = 1;
   protected override readonly retryDelayMs: number;
   private readonly options: DeepSeekProviderOptions;
@@ -78,7 +77,7 @@ export class DeepSeekProvider extends HttpChatProvider {
   constructor(options: DeepSeekProviderOptions) {
     super();
     this.options = options;
-    this.retryDelayMs = options.retryDelayMs ?? 1000;
+    this.retryDelayMs = options.retryDelayMs ?? LLM_RETRY_DELAY_MS;
   }
 
   protected override url(): string {
@@ -94,7 +93,7 @@ export class DeepSeekProvider extends HttpChatProvider {
       model: this.options.model,
       messages: messages.map(toWireMessage),
       stream: false,
-      max_tokens: MAX_TOKENS,
+      max_tokens: LLM_MAX_OUTPUT_TOKENS,
       thinking: { type: 'disabled' },
       ...(tools.length > 0 ? { tools } : {}),
       ...(options.json ? { response_format: { type: 'json_object' } } : {}),

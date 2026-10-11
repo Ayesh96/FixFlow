@@ -1,4 +1,6 @@
-import { formatRepo, GitHubError, type CreatedIssue, type IssueTracker } from '../../../server/workflows/errors/github.ts';
+import { GitHubError } from '../../../server/shared/errors.ts';
+import { formatRepo } from '../../../server/shared/repo.ts';
+import type { CreatedIssue, IssueTracker } from '../../../server/workflows/errors/github.ts';
 import type { RepoRef } from '../../../server/workflows/errors/types.ts';
 import type { Project } from '../../../server/projects/store.ts';
 

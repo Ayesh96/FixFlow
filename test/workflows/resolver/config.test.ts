@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { fakeLlm } from '../../llm/fakes.ts';
 import { describe, it } from 'node:test';
-import { ConfigError, loadConfig, parseDatabaseUrl, parseRepo, formatRepo, type LoadOptions } from '../../../server/workflows/resolver/config.ts';
+import { parseDatabaseUrl } from '../../../server/shared/database-url.ts';
+import { ConfigError } from '../../../server/shared/errors.ts';
+import { formatRepo, parseRepo } from '../../../server/shared/repo.ts';
+import { loadConfig, type LoadOptions } from '../../../server/workflows/resolver/config.ts';
 
 const DATA = '/data/test';
 const options: LoadOptions = { dataDir: DATA, githubApiUrl: 'https://api.github.com', llm: fakeLlm() };

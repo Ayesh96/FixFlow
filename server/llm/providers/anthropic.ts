@@ -1,3 +1,4 @@
+import { LLM_MAX_OUTPUT_TOKENS, LLM_TIMEOUT_MS } from '../../constants.ts';
 import { HttpChatProvider } from '../http-provider.ts';
 import { LlmError, type ChatMessage, type ChatOptions, type ToolCall } from '../types.ts';
 
@@ -14,8 +15,6 @@ export interface AnthropicProviderOptions {
   model: string;
 }
 
-const REQUEST_TIMEOUT_MS = 60_000;
-const MAX_TOKENS = 4096;
 const API_VERSION = '2023-06-01';
 
 type Block =
@@ -74,7 +73,7 @@ function toAnthropicTools(tools: readonly unknown[]): unknown[] {
 export class AnthropicProvider extends HttpChatProvider {
   protected override readonly id = 'anthropic' as const;
   protected override readonly label = 'Anthropic';
-  protected override readonly timeoutMs = REQUEST_TIMEOUT_MS;
+  protected override readonly timeoutMs = LLM_TIMEOUT_MS.anthropic;
   private readonly options: AnthropicProviderOptions;
 
   constructor(options: AnthropicProviderOptions) {
@@ -94,7 +93,7 @@ export class AnthropicProvider extends HttpChatProvider {
     const { system, messages: converted } = toAnthropicMessages(messages);
     return {
       model: this.options.model,
-      max_tokens: MAX_TOKENS,
+      max_tokens: LLM_MAX_OUTPUT_TOKENS,
       system,
       messages: converted,
       ...(tools.length > 0 ? { tools: toAnthropicTools(tools) } : {}),

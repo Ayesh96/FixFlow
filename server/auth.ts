@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { SESSION_COOKIE_MAX_AGE_MS } from './constants.ts';
 
 export const COOKIE_NAME = 'orch_token';
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,}$/;
@@ -53,7 +54,7 @@ export function tokenLogin(token: string): RequestHandler {
       res.status(401).type('text/plain').send('Invalid token.');
       return;
     }
-    res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: 'strict', path: '/', maxAge: 365 * 24 * 3600 * 1000 });
+    res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: 'strict', path: '/', maxAge: SESSION_COOKIE_MAX_AGE_MS });
     res.redirect(303, '/');
   };
 }

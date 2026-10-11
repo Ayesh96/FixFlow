@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 import { silentLogger } from '../helpers.ts';
-import { formatRepo } from '../../../server/workflows/errors/github.ts';
+import { formatRepo } from '../../../server/shared/repo.ts';
 import { computeFingerprint, fingerprintScope } from '../../../server/workflows/errors/grouping.ts';
 import { Ingestor } from '../../../server/workflows/errors/ingest.ts';
 import { rulesTriage, type Triager } from '../../../server/workflows/errors/triage.ts';

@@ -1,6 +1,6 @@
+import { ERROR_BODY_PREVIEW_CHARS, LLM_RETRY_DELAY_MS } from '../constants.ts';
 import { LlmError, type ChatClient, type ChatMessage, type ChatOptions, type ProviderId } from './types.ts';
 
-const ERROR_PREVIEW_CHARS = 300;
 
 /**
  * The part every HTTP model API shares: one POST, a timeout, errors turned into `LlmError`, JSON parsed.
@@ -13,7 +13,7 @@ export abstract class HttpChatProvider implements ChatClient {
   protected abstract readonly timeoutMs: number;
   /** Extra attempts after a rate limit or a server error. Zero means none. */
   protected readonly maxRetries: number = 0;
-  protected readonly retryDelayMs: number = 1000;
+  protected readonly retryDelayMs: number = LLM_RETRY_DELAY_MS;
 
   protected abstract url(): string;
   protected abstract headers(): Record<string, string>;
@@ -32,7 +32,7 @@ export abstract class HttpChatProvider implements ChatClient {
         await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs * (attempt + 1)));
         continue;
       }
-      throw this.fail(status, `${this.label} API error ${status}: ${text.slice(0, ERROR_PREVIEW_CHARS)}`);
+      throw this.fail(status, `${this.label} API error ${status}: ${text.slice(0, ERROR_BODY_PREVIEW_CHARS)}`);
     }
   }
 

@@ -2,8 +2,9 @@ import { chmod, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
+import { GIT_NETWORK_TIMEOUT_MS, GIT_STDERR_PREVIEW_CHARS } from '../../constants.ts';
 import { defaultExec, type ExecFn } from './exec.ts';
-import type { RepoRef } from './types.ts';
+import type { RepoRef } from '../../shared/repo.ts';
 
 export class GitError extends Error {
   constructor(message: string) {
@@ -52,7 +53,7 @@ export async function cloneRepo(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git clone failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git clone failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }
@@ -71,11 +72,11 @@ export async function cloneBare(
 ): Promise<void> {
   try {
     await withAskpass(token, (env) =>
-      exec('git', ['clone', '--bare', '--depth', '1', '--single-branch', '--branch', branch, '--', remoteUrl, destDir], { env, timeoutMs: 120_000 }),
+      exec('git', ['clone', '--bare', '--depth', '1', '--single-branch', '--branch', branch, '--', remoteUrl, destDir], { env, timeoutMs: GIT_NETWORK_TIMEOUT_MS }),
     );
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    throw new GitError(`git clone failed: ${String(stderr).slice(0, 500)}`);
+    throw new GitError(`git clone failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`);
   }
 }
 
@@ -88,11 +89,11 @@ export async function fetchBranch(
 ): Promise<void> {
   try {
     await withAskpass(token, (env) =>
-      exec('git', ['-C', repoPath, 'fetch', '--depth', '1', 'origin', `+refs/heads/${branch}:refs/heads/${branch}`], { env, timeoutMs: 120_000 }),
+      exec('git', ['-C', repoPath, 'fetch', '--depth', '1', 'origin', `+refs/heads/${branch}:refs/heads/${branch}`], { env, timeoutMs: GIT_NETWORK_TIMEOUT_MS }),
     );
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    throw new GitError(`git fetch of branch ${branch} failed: ${String(stderr).slice(0, 500)}`);
+    throw new GitError(`git fetch of branch ${branch} failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`);
   }
 }
 
@@ -121,7 +122,7 @@ export async function addWorktree(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git worktree add failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git worktree add failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }
@@ -146,7 +147,7 @@ export async function createBranch(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git checkout -b failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git checkout -b failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }
@@ -160,7 +161,7 @@ export async function hasChanges(dir: string, exec: ExecFn = defaultExec): Promi
     return result.stdout.trim().length > 0;
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git status failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git status failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }
@@ -177,7 +178,7 @@ export async function changedFiles(dir: string, exec: ExecFn = defaultExec): Pro
       .map((line) => line.slice(3));
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git status failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git status failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }
@@ -194,7 +195,7 @@ export async function commitAll(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message_ = `git add -A failed: ${String(stderr).slice(0, 500)}`;
+    const message_ = `git add -A failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message_);
   }
 
@@ -205,7 +206,7 @@ export async function commitAll(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message_ = `git commit failed: ${String(stderr).slice(0, 500)}`;
+    const message_ = `git commit failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message_);
   }
 }
@@ -227,7 +228,7 @@ export async function push(
     });
   } catch (error) {
     const stderr = (error as Record<string, unknown>)?.stderr ?? '';
-    const message = `git push failed: ${String(stderr).slice(0, 500)}`;
+    const message = `git push failed: ${String(stderr).slice(0, GIT_STDERR_PREVIEW_CHARS)}`;
     throw new GitError(message);
   }
 }

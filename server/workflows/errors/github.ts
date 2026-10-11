@@ -1,4 +1,6 @@
-import type { RepoRef } from './types.ts';
+import { GITHUB_REQUEST_TIMEOUT_MS } from '../../constants.ts';
+import { GitHubError } from '../../shared/errors.ts';
+import type { RepoRef } from '../../shared/repo.ts';
 
 export interface CreatedIssue {
   number: number;
@@ -11,33 +13,11 @@ export interface IssueTracker {
   commentOnIssue(repo: RepoRef, issueNumber: number, body: string): Promise<void>;
 }
 
-const REPO_PATTERN = /^([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)\/([A-Za-z0-9._-]+)$/;
-
-/** Parses `owner/repo`; null when it isn't shaped like one. */
-export function parseRepo(text: string): RepoRef | null {
-  const match = REPO_PATTERN.exec(text.trim());
-  return match ? { owner: match[1] as string, repo: match[2] as string } : null;
-}
-
-export const formatRepo = ({ owner, repo }: RepoRef): string => `${owner}/${repo}`;
-
-export class GitHubError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-    this.name = 'GitHubError';
-  }
-}
-
 export interface GitHubClientOptions {
   token: string;
   apiUrl: string;
   labels: string[];
 }
-
-const REQUEST_TIMEOUT_MS = 10_000;
 
 export class GitHubClient implements IssueTracker {
   private readonly options: GitHubClientOptions;
@@ -80,7 +60,7 @@ export class GitHubClient implements IssueTracker {
           'X-GitHub-Api-Version': '2022-11-28',
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS),
       });
     } catch (err) {
       throw new GitHubError(0, `GitHub request failed: ${err instanceof Error ? err.message : String(err)}`);

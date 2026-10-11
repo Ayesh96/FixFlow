@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest a change or addition
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like FixFlow to do?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?

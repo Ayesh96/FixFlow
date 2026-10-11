@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not work as the docs say
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Commands, project settings (without tokens) and the Sentry SDK you use.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: FixFlow version
+      description: From `package.json`, or the release you downloaded.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Node version and OS
+      placeholder: Node 24.x, macOS 15
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Model in use
+      options: [None (rules only), Ollama, DeepSeek, Anthropic]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server log output
+      description: Remove tokens and keys before pasting.
+      render: shell

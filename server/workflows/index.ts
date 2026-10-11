@@ -1,4 +1,5 @@
 import type { Config } from '../config.ts';
+import { ChangeBus } from '../events.ts';
 import { RepoManager } from '../projects/repos.ts';
 import { SecretStore } from '../projects/secrets.ts';
 import { ProjectStore } from '../projects/store.ts';
@@ -13,6 +14,8 @@ export interface LoadedWorkflows {
   projects: ProjectStore;
   /** The managed clones of each project's repository. */
   repos: RepoManager;
+  /** Where the workflows announce changes; hand it to createApp to stream them to the browser. */
+  events: ChangeBus;
 }
 
 /**
@@ -27,17 +30,19 @@ export function loadWorkflows(config: Config): LoadedWorkflows {
   // One clone of each project's repository, made when the project is added and shared with the resolver.
   const repos = new RepoManager({ dir: config.reposDir, remoteUrl: (repo) => config.githubCloneUrl.replaceAll('{repo}', repo) });
 
+  const events = new ChangeBus();
   const workflows: Workflow[] = [
     new ProjectsWorkflow({
       projects,
+      events,
       repos,
       githubApiUrl: config.errors?.github.apiUrl ?? config.resolver?.githubApiUrl ?? 'https://api.github.com',
       ingest: config.errors ? { host: config.errors.ingestHost, port: config.errors.ingestPort, dsnKey: config.errors.dsnPublicKey } : null,
     }),
   ];
-  const errors = config.errors ? new ErrorsWorkflow(config.errors, projects) : null;
+  const errors = config.errors ? new ErrorsWorkflow(config.errors, projects, { events }) : null;
   if (errors) workflows.push(errors);
-  if (config.resolver) workflows.push(new ResolverWorkflow(config.resolver, errors?.store ?? null, projects, { repos }));
+  if (config.resolver) workflows.push(new ResolverWorkflow(config.resolver, errors?.store ?? null, projects, { repos, events }));
 
-  return { workflows, projects, repos };
+  return { workflows, projects, repos, events };
 }

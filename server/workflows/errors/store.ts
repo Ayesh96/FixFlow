@@ -108,6 +108,7 @@ const toRecord = (row: IssueRow): IssueRecord => ({
 
 export class Store {
   private readonly db: DatabaseSync;
+  private readonly onChange: () => void;
   private readonly recordTx: (event: NormalizedEvent, fingerprint: string, title: string, projectId: string, now: string) => IssueRecord | null;
   private readonly getIssueStmt: StatementSync;
   private readonly setGithubStmt: StatementSync;
@@ -118,7 +119,9 @@ export class Store {
   private readonly listStmt: StatementSync;
   private readonly statsStmt: StatementSync;
 
-  constructor(path: string) {
+  /** `onChange` runs after anything an issue list shows is written, so a live view can read again. */
+  constructor(path: string, onChange: () => void = () => {}) {
+    this.onChange = onChange;
     this.db = openDatabase(path);
     this.db.exec(SCHEMA);
     const have = columnsOf(this.db, 'issues');
@@ -181,7 +184,9 @@ export class Store {
    * updated issue, or null when the event_id was already recorded.
    */
   recordEvent(event: NormalizedEvent, fingerprint: string, title: string, projectId: string, now = new Date()): IssueRecord | null {
-    return this.recordTx(event, fingerprint, title, projectId, now.toISOString());
+    const record = this.recordTx(event, fingerprint, title, projectId, now.toISOString());
+    if (record) this.onChange();
+    return record;
   }
 
   getIssue(fingerprint: string): IssueRecord | null {
@@ -191,6 +196,7 @@ export class Store {
 
   setGithubIssue(fingerprint: string, number: number, url: string, repo: string): void {
     this.setGithubStmt.run(number, url, repo, fingerprint);
+    this.onChange();
   }
 
   /** The most recent stored event for an error, exactly as received; null once pruning has removed them all. */
@@ -202,15 +208,18 @@ export class Store {
   /** Marks triage as under way. Clears any earlier finding, so a retry never shows a stale one. */
   setTriagePending(fingerprint: string, now = new Date()): void {
     this.setTriageStmt.run('PENDING', null, null, null, null, now.toISOString(), fingerprint);
+    this.onChange();
   }
 
   setTriageResult(fingerprint: string, result: TriageResult, now = new Date()): void {
     this.setTriageStmt.run('COMPLETED', result.message, result.suggestion, JSON.stringify(result.tags), result.source, now.toISOString(), fingerprint);
+    this.onChange();
   }
 
   /** Triage itself failed; `reason` is what went wrong, shown in place of a finding. */
   setTriageError(fingerprint: string, reason: string, now = new Date()): void {
     this.setTriageStmt.run('ERRORED', reason, null, '[]', null, now.toISOString(), fingerprint);
+    this.onChange();
   }
 
   /**
@@ -231,7 +240,9 @@ export class Store {
       now.toISOString(),
       fingerprint,
     );
-    return changed(result) > 0;
+    const found = changed(result) > 0;
+    if (found) this.onChange();
+    return found;
   }
 
   /** Most recently seen issues first. */

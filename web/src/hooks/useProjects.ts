@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type ProjectList } from '@/lib/api';
-import { startPolling, type Poller } from '@/lib/poll';
-
-/** Quickly while a clone is running, so progress feels live; slowly otherwise. */
-const BUSY_MS = 2000;
-const IDLE_MS = 15000;
+import { startLive, type Live } from '@/lib/live';
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
- * Polls the project list while the Projects tab is mounted and the page is visible. `announcement` is
+ * Reads the project list while the Projects tab is mounted and again whenever a project or its clone changes. `announcement` is
  * a sentence for a screen reader when a clone finishes or fails, since numbers changing silently
  * on screen are not heard.
  */
@@ -18,8 +14,8 @@ export function useProjects() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const previous = useRef<Record<string, string>>({});
-  const poller = useRef<Poller | null>(null);
-  const refresh = useCallback(async () => void (await poller.current?.now()), []);
+  const live = useRef<Live | null>(null);
+  const refresh = useCallback(async () => void (await live.current?.now()), []);
 
   useEffect(() => {
     const load = async () => {
@@ -37,8 +33,8 @@ export function useProjects() {
         setError(message(err));
       }
     };
-    poller.current = startPolling(load, () => (Object.values(previous.current).includes('working') ? BUSY_MS : IDLE_MS));
-    return () => poller.current?.stop();
+    live.current = startLive(load, ['projects']);
+    return () => live.current?.stop();
   }, []);
 
   return { data, error, announcement, refresh };

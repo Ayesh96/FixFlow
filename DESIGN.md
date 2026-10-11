@@ -52,7 +52,7 @@ Motion: 150ms ease-out for hover/focus; sheet/dialog use shadcn's enter/exit; ev
 | **Lifecycle track** | `LifecycleTrack.tsx` | Five segments per row filled to the furthest stage; the state word beside it carries the meaning. |
 | **Responsive rows** | `ErrorInbox.tsx` | Under `md` the row's columns collapse into a second line (track, state, count, time) instead of a horizontally scrolling table. |
 | **Progressive disclosure** | inbox | 25 rows, then "Show N more"; detail only on demand. |
-| **Polling, quiet** | `use*` hooks | 5s poll while the tab is visible; the last good data stays on screen if a poll fails. |
+| **Live, quiet** | `use*` hooks | Server-Sent Events (`/api/events`) say what changed and the hook reads it again; the last good data stays on screen if a read fails. |
 
 **Triage** is stored per error: a status (`PENDING` / `COMPLETED` / `ERRORED`, shown as *Analyzing* / *Triaged* / *Couldn't triage*), a message (what happened, why, and who or what is the culprit), a suggestion (what to do, including "Don't report it"), and tags (`bot-safe`, `needs-human`, `test-event`, `no-stack-trace`, `third-party`, `infrastructure`). It runs for every new error, before and independent of filing; filing only reads the `bot-safe` tag. The drawer shows all of it; each row shows the message as its second line.
 

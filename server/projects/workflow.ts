@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import type { Router } from 'express';
 import { HttpError } from '../errors.ts';
+import type { ChangeBus } from '../events.ts';
 import { prefixedLogger, type Logger, type Workflow } from '../workflows/types.ts';
 import { inspectRepo, type RepoInspection } from './github.ts';
 import type { RepoManager } from './repos.ts';
@@ -21,6 +22,8 @@ export interface ProjectsDeps {
   /** Where apps send errors, so the wizard can show the address. Null when error tracking is off. */
   ingest: { host: string; port: number; dsnKey: string | null } | null;
   logger?: Logger;
+  /** Told when a project or its clone changes, so the dashboard can update without asking. */
+  events?: ChangeBus;
 }
 
 const asText = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -115,6 +118,7 @@ export class ProjectsWorkflow implements Workflow {
       if (!project) throw new HttpError(404, 'No such project');
       this.deps.projects.remove(project.id);
       this.setups.delete(project.id);
+      this.changed();
       // The clone is per repo, shared by every branch of it: only remove it when no other project needs it.
       if (this.deps.projects.findByRepo(project.repo).length === 0) await this.deps.repos.remove(project.repo);
       res.status(204).end();
@@ -133,7 +137,9 @@ export class ProjectsWorkflow implements Workflow {
 
   private add(input: { repo: string; branch: string; token: string; resolverToken: string | null; verifyCommand?: string | null; issuesWithoutStack?: boolean }): Project {
     try {
-      return this.deps.projects.add(input);
+      const project = this.deps.projects.add(input);
+      this.changed();
+      return project;
     } catch (err) {
       if (err instanceof ProjectError) throw new HttpError(err.code === 'duplicate' ? 409 : 422, err.message, err.field ? { [err.field]: err.message } : undefined);
       throw err;
@@ -143,7 +149,9 @@ export class ProjectsWorkflow implements Workflow {
   /** Applies an edit, saying which field is wrong when the store refuses it. */
   private change(id: string, patch: ProjectPatch): Project {
     try {
-      return this.deps.projects.update(id, patch);
+      const project = this.deps.projects.update(id, patch);
+      this.changed();
+      return project;
     } catch (err) {
       if (err instanceof ProjectError) throw new HttpError(err.code === 'duplicate' ? 409 : 422, err.message, err.field ? { [err.field]: err.message } : undefined);
       throw err;
@@ -181,10 +189,12 @@ export class ProjectsWorkflow implements Workflow {
     if (!project.branch) {
       // Imported from the old settings: no branch to clone yet. It is learned, and cloned, on its first fix.
       this.setups.set(project.id, { state: 'idle', message: 'Will clone on its first fix', updatedAt: new Date().toISOString() });
+      this.changed();
       return;
     }
     const update = (state: SetupStatus['state'], message: string): void => {
       this.setups.set(project.id, { state, message, updatedAt: new Date().toISOString() });
+      this.changed();
     };
     update('working', 'Starting');
     // The resolver is what reads the clone, so it is cloned with the token the resolver will use.
@@ -196,6 +206,12 @@ export class ProjectsWorkflow implements Workflow {
         update('failed', message);
       },
     );
+  }
+
+  /** The projects list changed, and so did the errors view, which is grouped by project. */
+  private changed(): void {
+    this.deps.events?.publish('projects');
+    this.deps.events?.publish('errors');
   }
 
   private setupOf(project: Pick<Project, 'id' | 'repo'>): SetupStatus {

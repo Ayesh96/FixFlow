@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import { HttpError } from '../../errors.ts';
+import type { ChangeBus } from '../../events.ts';
 import type { ProjectStore } from '../../projects/store.ts';
 import type { AttemptPage, ResolverStatus } from '../../types.ts';
 import type { Store as ErrorsStore } from '../errors/store.ts';
@@ -19,6 +20,8 @@ export interface ResolverDeps {
   /** Defaults to reading the errors workflow's store; a seam for tests. */
   issueSource?: IssueSource;
   logger?: Logger;
+  /** Told when a cycle starts or ends and when an attempt moves, so the dashboard can update without asking. */
+  events?: ChangeBus;
 }
 
 /** Reads a non-negative integer query parameter, falling back when absent or malformed. */
@@ -55,6 +58,7 @@ export class ResolverWorkflow implements Workflow {
       store: this.store,
       config,
       logger,
+      ...(deps.events ? { onChange: () => deps.events?.publish('resolver') } : {}),
     });
   }
 

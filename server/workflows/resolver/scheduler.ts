@@ -44,6 +44,8 @@ export interface SchedulerOptions {
   store: Store;
   config: Config;
   logger: Logger;
+  /** Runs when the status or an attempt changes, so a live view can read again. */
+  onChange?: () => void;
   /** Overridable for tests; defaults to the real clone/fix/verify pipeline. */
   attemptFix?: typeof defaultAttemptFix;
 }
@@ -69,6 +71,7 @@ export class Scheduler {
   private readonly config: Config;
   private readonly logger: Logger;
   private readonly attemptFix: typeof defaultAttemptFix;
+  private readonly onChange: () => void;
   private timer: ReturnType<typeof setInterval> | null = null;
   private polling = false;
   /** Fingerprints being worked on because a person asked, so a poll leaves them alone. */
@@ -85,6 +88,7 @@ export class Scheduler {
     this.config = options.config;
     this.logger = options.logger;
     this.attemptFix = options.attemptFix ?? defaultAttemptFix;
+    this.onChange = options.onChange ?? (() => {});
   }
 
   status(): PollStatus {
@@ -104,6 +108,7 @@ export class Scheduler {
     for (const attempt of this.store.listInProgress()) {
       const reason = 'interrupted by a restart; try again';
       this.store.recordResult(attempt.repo, attempt.issueNumber, 'FAILED', { reason });
+      this.onChange();
       await this.reportToTracker(attempt.fingerprintHash, attempt.repo, attempt.issueNumber, 'FAILED', { reason });
     }
   }
@@ -152,6 +157,7 @@ export class Scheduler {
       return;
     }
     this.polling = true;
+    this.onChange();
     try {
       const tracked = await this.issues.listIssues();
       const candidates = await this.selectCandidates(tracked);
@@ -163,6 +169,7 @@ export class Scheduler {
     } finally {
       this.lastPollAt = new Date().toISOString();
       this.polling = false;
+      this.onChange();
     }
   }
 
@@ -231,6 +238,7 @@ export class Scheduler {
   private async processCandidate({ repo, issue, fingerprintHash, project, github }: Candidate, force = false): Promise<void> {
     const repoStr = formatRepo(repo);
     this.store.beginAttempt(repoStr, issue.number, fingerprintHash);
+    this.onChange();
     // Shown on the issue right away, so the dashboard can say the resolver is working rather than going quiet.
     await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'IN_PROGRESS', {});
     const workDir = join(tmpdir(), 'error-resolver', randomUUID());
@@ -245,12 +253,14 @@ export class Scheduler {
 
       if (outcome.kind === 'skipped') {
         this.store.recordResult(repoStr, issue.number, 'SKIPPED', { reason: outcome.reason });
+        this.onChange();
         await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'SKIPPED', { reason: outcome.reason });
         this.logger.info({ repo: repoStr, issue: issue.number, reason: outcome.reason }, 'Skipped issue');
         return;
       }
       if (outcome.kind === 'failed') {
         this.store.recordResult(repoStr, issue.number, 'FAILED', { reason: outcome.error });
+        this.onChange();
         await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason: outcome.error });
         this.logger.warn({ repo: repoStr, issue: issue.number, error: outcome.error }, 'Fix attempt failed');
         return;
@@ -263,11 +273,13 @@ export class Scheduler {
         base: outcome.baseBranch,
       });
       this.store.recordResult(repoStr, issue.number, 'PR_OPEN', { prNumber: pr.number, prUrl: pr.url });
+      this.onChange();
       await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'PR_OPEN', { prNumber: pr.number, prUrl: pr.url });
       this.logger.info({ repo: repoStr, issue: issue.number, pr: pr.url }, 'Opened pull request');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.store.recordResult(repoStr, issue.number, 'FAILED', { reason: message });
+      this.onChange();
       await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason: message });
       this.logger.error({ err, repo: repoStr, issue: issue.number }, 'Unexpected error while processing issue');
     }

@@ -1,6 +1,7 @@
 import express, { type ErrorRequestHandler, type Express } from 'express';
 import { requireToken, tokenLogin } from './auth.ts';
 import { HttpError } from './errors.ts';
+import { ChangeBus, eventRoutes } from './events.ts';
 import { localOnly, securityHeaders } from './guard.ts';
 import type { Workflow } from './workflows/types.ts';
 
@@ -12,6 +13,8 @@ export interface AppDeps {
   token: string;
   /** Mounted under /api/ext/<id>; see workflows/types.ts. */
   workflows?: Workflow[];
+  /** What the live stream at /api/events relays. Without one the stream is simply quiet. */
+  events?: ChangeBus;
 }
 
 /** What a workflow id may be: it becomes part of a URL and a tab. */
@@ -36,7 +39,7 @@ const onError: ErrorRequestHandler = (err, _req, res, next) => {
   res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
 };
 
-export function createApp({ port, publicDir, token, workflows = [] }: AppDeps): Express {
+export function createApp({ port, publicDir, token, workflows = [], events = new ChangeBus() }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(localOnly(port));
@@ -55,6 +58,7 @@ export function createApp({ port, publicDir, token, workflows = [] }: AppDeps): 
   api.get('/extensions', (_req, res) => {
     res.json({ extensions: workflows.map(({ id, title }) => ({ id, title })) });
   });
+  eventRoutes(api, events);
   for (const workflow of workflows) {
     if (!WORKFLOW_ID.test(workflow.id)) throw new Error(`Invalid workflow id "${workflow.id}"`);
     const router = express.Router();

@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import { HttpError } from '../../errors.ts';
+import type { ChangeBus } from '../../events.ts';
 import type { ProjectStore } from '../../projects/store.ts';
 import type { TrackerIssue, TrackerProjectGroup, TrackerStatus } from '../../types.ts';
 import { prefixedLogger, type Logger, type Workflow } from '../types.ts';
@@ -15,6 +16,8 @@ const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
 export interface ErrorsDeps {
   logger?: Logger;
+  /** Told when an error appears or changes, so the dashboard can update without asking. */
+  events?: ChangeBus;
 }
 
 /**
@@ -39,7 +42,7 @@ export class ErrorsWorkflow implements Workflow {
     this.config = config;
     this.projects = projects;
     this.logger = deps.logger ?? prefixedLogger('errors');
-    this.store = new Store(config.databasePath);
+    this.store = new Store(config.databasePath, () => deps.events?.publish('errors'));
     this.ingestor = new Ingestor(
       this.store,
       // Each project opens its issues with its own token.

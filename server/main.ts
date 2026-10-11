@@ -13,9 +13,9 @@ try {
 
 const config = loadConfig();
 const token = await loadOrCreateToken(config.tokenFile);
-const { workflows, projects } = loadWorkflows(config);
+const { workflows, projects, events } = loadWorkflows(config);
 await Promise.all(workflows.map(async (workflow) => workflow.start?.()));
-const app = createApp({ port: config.port, publicDir: fileURLToPath(new URL('../web/dist', import.meta.url)), token, workflows });
+const app = createApp({ port: config.port, publicDir: fileURLToPath(new URL('../web/dist', import.meta.url)), token, workflows, events });
 
 // Loopback only: this server holds your GitHub tokens, so it must never be reachable from the network.
 const server = app.listen(config.port, '127.0.0.1', () => {

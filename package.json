@@ -22,6 +22,7 @@
     "start": "node server/main.ts",
     "prestart": "node scripts/ensure-build.mjs",
     "dev": "node scripts/dev.mjs",
+    "setup": "node scripts/setup.mjs",
     "build": "npm --prefix web run build",
     "postinstall": "npm --prefix web install",
     "typecheck": "tsc --noEmit && npm --prefix web run typecheck",

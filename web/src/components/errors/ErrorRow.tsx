@@ -43,7 +43,7 @@ export function ErrorRow({ issue, onOpen }: { issue: TrackerIssue; onOpen: () =>
         <span className="block truncate font-mono text-sm font-medium" title={formatErrorTitle(issue.title)}>
           {formatErrorTitle(issue.title)}
         </span>
-        <span className="block truncate text-xs text-muted-foreground" title={(issue.resolverStatus === 'PR_OPEN' ? note(issue) : issue.triageMessage) ?? undefined}>
+        <span className="block truncate text-[13px] leading-5 text-muted-foreground" title={(issue.resolverStatus === 'PR_OPEN' ? note(issue) : issue.triageMessage) ?? undefined}>
           {[issue.service, issue.githubIssueNumber !== null ? `#${issue.githubIssueNumber}` : null, note(issue)].filter(Boolean).join(' · ') || ' '}
         </span>
       </span>

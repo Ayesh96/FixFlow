@@ -87,7 +87,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
 | `ORCH_ERRORS_DB` | `<data>/errors.db` | |
 
-**What reaches GitHub.** Every error is kept in the Errors tab. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing ids in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
+**What reaches GitHub.** Every error is kept in FixFlow and listed on its project's page. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing ids in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
 
 ### Resolver
 

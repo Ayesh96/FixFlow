@@ -109,6 +109,8 @@ export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetr
         <div className="-mr-2 -mt-1 flex shrink-0">
           {canRetry && <IconAction label={c.actions.forProject(project.setup.state === 'failed' ? c.actions.retry : c.actions.cloneNow, project.repo)} icon={RotateCw} disabled={busy} onClick={onRetry} />}
           <IconAction label={c.actions.forProject(c.actions.settings, project.repo)} icon={Settings} disabled={busy} onClick={onSettings} />
+          {/* Keeps Delete apart from Settings, so a slip of the pointer does not land on it. */}
+          <span className="mx-1.5 my-2 w-px bg-border" aria-hidden />
           <IconAction label={c.actions.forProject(c.actions.delete, project.repo)} icon={Trash2} destructive disabled={busy} onClick={onDelete} />
         </div>
       </header>

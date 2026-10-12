@@ -31,7 +31,7 @@ The first `npm start` in a terminal runs a short setup and writes `.env`. It ask
 
 1. **Projects → Add project**: `owner/name`, a GitHub token, the branch to work on, and optionally a check command such as `npm ci && npm test`.
 2. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`.
-3. Errors appear on the **Errors** tab. Those with a stack trace are filed as GitHub issues.
+3. Errors appear on the project's page (**View errors** on its card). Those with a stack trace are filed as GitHub issues.
 
 From a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) there is no build step: check it with `sha256sums.txt`, unpack, and run `node bin/fixflow.mjs`. The first run asks the same setup questions.
 

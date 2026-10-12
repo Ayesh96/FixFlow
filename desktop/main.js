@@ -15,8 +15,12 @@ let serverProcess = null;
 
 function showOnboarding() {
   onboardingWindow = new BrowserWindow({
-    width: 720,
-    height: 860,
+    width: 680,
+    height: 780,
+    minWidth: 520,
+    minHeight: 560,
+    backgroundColor: '#0a0a0a',
+    autoHideMenuBar: true,
     title: 'Set up FixFlow',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
@@ -64,9 +68,46 @@ async function launchDashboard() {
   await mainWindow.loadURL(url);
 }
 
+// Shared setup helpers (live checks, validation). Network checks run here, in the main process,
+// so API keys never reach the page's own JavaScript beyond the password inputs.
+async function loadSetupChecks() {
+  return import(pathToFileURL(path.join(ROOT, 'scripts', 'setup-checks.mjs')).href);
+}
+
+ipcMain.handle('setup:checkOllama', async (_event, url) => (await loadSetupChecks()).checkOllama(String(url ?? '')));
+ipcMain.handle('setup:checkDeepseek', async (_event, apiKey) => (await loadSetupChecks()).checkDeepSeek(String(apiKey ?? '')));
+ipcMain.handle('setup:checkAnthropic', async (_event, apiKey) => (await loadSetupChecks()).checkAnthropic(String(apiKey ?? '')));
+ipcMain.handle('setup:checkPort', async (_event, port) => (await loadSetupChecks()).checkPort(Number(port)));
+
+ipcMain.handle('setup:constants', async () => {
+  const { LEVELS, POLL_INTERVALS } = await loadSetupChecks();
+  return { LEVELS, POLL_INTERVALS };
+});
+
+ipcMain.handle('setup:pickFolder', async () => {
+  const options = { title: 'Choose the FixFlow data folder', properties: ['openDirectory', 'createDirectory'] };
+  const parent = BrowserWindow.getFocusedWindow() ?? onboardingWindow;
+  const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options);
+  return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+});
+
+// Errors are thrown as JSON of the {field: message} map so the page can show each one under its field.
+// Electron prefixes thrown errors in the renderer; the page strips that prefix.
 ipcMain.handle('setup:save', async (_event, values) => {
   const { buildEnvFile } = await import(pathToFileURL(path.join(ROOT, 'scripts', 'env-template.mjs')).href);
-  fs.writeFileSync(ENV_PATH, buildEnvFile(values));
+  const checks = await loadSetupChecks();
+
+  const { errors = {} } = (await checks.validateValues(values)) ?? {};
+  if (Object.keys(errors).length > 0) throw new Error(JSON.stringify(errors));
+
+  const envText = buildEnvFile(values);
+  const server = await checks.validateWithServer(envText, ROOT);
+  if (!server.ok) {
+    const problems = server.problems?.length ? server.problems : ['These settings did not pass the server checks.'];
+    throw new Error(problems.join('\n'));
+  }
+
+  fs.writeFileSync(ENV_PATH, envText);
   await launchDashboard();
   onboardingWindow?.close();
   onboardingWindow = null;

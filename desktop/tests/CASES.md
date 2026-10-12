@@ -109,4 +109,4 @@ Opened from the app menu (FixFlow › Settings…, ⌘,) once .env exists. Same 
 | S7 | Break a field while editing | Same blocking rules as onboarding (Save disabled, message under the field) |
 | S8 | Stepper | Every step is clickable in settings; in onboarding only steps already reached |
 | S9 | Window size and position | Remembered across launches (setup and dashboard separately) |
-
+| S10 | Settings button in the dashboard header | Visible in the desktop app; opens the settings screen. In a browser it explains `npm run setup` instead |

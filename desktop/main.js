@@ -128,7 +128,14 @@ async function showDashboard(url) {
     return;
   }
   const bounds = boundsFor('dashboard', (area) => centered(area, Math.round(area.width * 0.9), Math.round(area.height * 0.9)));
-  mainWindow = new BrowserWindow({ ...bounds, minWidth: 800, minHeight: 560, backgroundColor: '#0a0a0a', title: 'FixFlow' });
+  mainWindow = new BrowserWindow({
+    ...bounds,
+    minWidth: 800,
+    minHeight: 560,
+    backgroundColor: '#0a0a0a',
+    title: 'FixFlow',
+    webPreferences: { preload: path.join(__dirname, 'dashboard-preload.js'), contextIsolation: true, nodeIntegration: false },
+  });
   if (bounds.maximized) mainWindow.maximize();
   remember(mainWindow, 'dashboard');
   mainWindow.on('closed', () => {
@@ -195,6 +202,8 @@ ipcMain.handle('setup:constants', async () => {
   const { LEVEL_CHOICES, POLL_INTERVALS } = await loadSetupChecks();
   return { LEVEL_CHOICES, POLL_INTERVALS };
 });
+
+ipcMain.handle('app:openSettings', () => openSetup(fs.existsSync(ENV_PATH) ? 'settings' : 'first'));
 
 /** The current settings, for the settings screen to start from; null before onboarding. */
 ipcMain.handle('setup:current', async () => {

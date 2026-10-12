@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { PANELS } from '@/components/extensions';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SettingsButton } from '@/components/SettingsButton';
 import { Toaster } from '@/components/ui/sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -46,6 +47,7 @@ export default function App() {
             <Layers className="size-5" aria-hidden />
             <span className="font-semibold tracking-tight">{copy.name}</span>
             <span className="hidden text-sm text-muted-foreground sm:inline">{copy.tagline}</span>
+            {load.state === 'ready' && <SettingsButton />}
           </div>
           {extensions.length > 1 && (
             <div className="mx-auto max-w-[2000px] overflow-x-auto px-4 sm:px-8">

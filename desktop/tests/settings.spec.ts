@@ -234,6 +234,21 @@ test.describe('S. Settings after onboarding', () => {
     await expect(settings.locator('body')).not.toContainText('already in use');
   });
 
+  test('S10 the dashboard header has a Settings button that opens the settings screen', async ({ launch, fake }, testInfo) => {
+    test.setTimeout(SAVE_TIMEOUT * 2);
+    const { app, page } = await launch();
+    const dashboard = await firstRun(app, page, fake, testInfo.outputPath('data'), await freePorts());
+
+    const button = dashboard.getByRole('button', { name: 'Settings' });
+    await expect(button).toBeVisible();
+    const opened = app.waitForEvent('window');
+    await button.click();
+    const settings = await opened;
+    await settings.waitForLoadState('domcontentloaded');
+    await expect(settings).toHaveTitle('FixFlow settings');
+    await expect(settings.locator('#save')).toHaveText('Save and restart FixFlow');
+  });
+
   test('S4 save is on every step: one change on step 1 saves without walking through the others', async ({ launch, fake }, testInfo) => {
     test.setTimeout(SAVE_TIMEOUT * 2);
     const { app, page, envPath } = await launch();

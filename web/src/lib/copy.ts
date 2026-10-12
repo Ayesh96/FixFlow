@@ -6,6 +6,13 @@
 export const copy = {
   name: 'FixFlow',
   tagline: 'The coding factory',
+  settings: {
+    button: 'Settings',
+    title: 'Change settings',
+    browserHelp: 'Settings live in the .env file next to FixFlow. To change them, stop FixFlow and run this in its folder; it starts from your current settings.',
+    command: 'Command to change settings',
+    browserAfter: 'Then start FixFlow again with npm start. In the desktop app, this button opens the settings screen instead.',
+  },
   offline: "Can't reach the dashboard server. Retrying…",
   locked: {
     title: 'This dashboard is locked',

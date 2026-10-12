@@ -23,6 +23,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "dashboard-preload.js",
       "onboarding.html",
       "fonts/*.woff2"
     ],

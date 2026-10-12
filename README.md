@@ -7,10 +7,9 @@ FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors y
 [![Release](https://img.shields.io/github/v/release/Ayesh96/FixFlow)](https://github.com/Ayesh96/FixFlow/releases/latest)
 [![Stars](https://img.shields.io/github/stars/Ayesh96/FixFlow?style=flat)](https://github.com/Ayesh96/FixFlow/stargazers)
 
-<!--
-DEMO GIF (not recorded yet). Save the recording as docs/assets/demo.gif, then replace this comment with:
-  ![FixFlow: an error arrives, a GitHub issue is filed, a pull request is opened](docs/assets/demo.gif)
--->
+![FixFlow: an error arrives, the model triages it, a GitHub issue is filed and the resolver opens a pull request](docs/assets/demo/fixflow-demo.gif)
+
+[Watch the one-minute demo](docs/assets/demo/fixflow-demo.mp4) (setup wizard, then an error going all the way to a pull request).
 
 ## The problem
 
@@ -49,6 +48,14 @@ From a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) the
 - **Resolver.** For each open issue it filed, FixFlow fetches your branch, gives the model up to 20 tool-use turns in a throwaway worktree, runs your check command before and after, and opens a pull request marked verified or unverified. The model may answer `SKIP` instead.
 
 The resolver does not read triage tags today: it attempts every open issue FixFlow filed, including ones tagged `needs-human` or `infrastructure`. With a paid API that costs money per attempt; a failing issue is tried at most 3 times.
+
+## Screenshots
+
+| Every project at a glance | What triage found | The pull request it opened |
+|---|---|---|
+| ![Projects overview with each project's pipeline](docs/assets/screenshots/05-dashboard-overview.png) | ![An error's triage: what happened and what to do](docs/assets/screenshots/07-error-triage.png) | ![The resolver's change and its pull request](docs/assets/screenshots/08-error-pull-request.png) |
+
+More in [docs/assets/screenshots](docs/assets/screenshots), including the desktop setup wizard.
 
 ## How it works
 

@@ -125,6 +125,23 @@ const askProviderKey = async (name, check) => {
     console.log(`  ${name} rejected that key${r.error ? `: ${r.error}` : ''}. Try again, or leave blank to skip ${name}.`);
   }
 };
+// Asks for the Ollama address until it answers with at least one model. The user can also
+// turn Ollama off instead. Returns { url, model }, or null when Ollama is turned off.
+const askOllama = async () => {
+  let url = 'http://localhost:11434';
+  while (true) {
+    url = await ask('  Ollama URL', url);
+    const check = await checkOllama(url);
+    if (check.ok && check.models?.length) {
+      const model = await pickModel(check.models, 'qwen2.5-coder:7b', '  Ollama model (`ollama pull <model>` first)');
+      return { url, model };
+    }
+    if (check.ok) console.log('  Ollama is running but has no models yet. Get the default with: ollama pull qwen2.5-coder:7b');
+    else console.log(`  Could not reach Ollama at ${url}${check.error ? ` (${check.error})` : ''}.`);
+    const next = await pick('What now?', ['Enter the Ollama address again', 'Turn Ollama off'], 0);
+    if (next === 1) return null;
+  }
+};
 
 async function main() {
   if (existsSync(envPath)) {
@@ -140,48 +157,55 @@ async function main() {
   const port = await askPort('Dashboard port', 7420);
   const dataDir = await askDataDir('Data folder (token, databases, key and clones)', '~/.fixflow');
 
-  console.log('\nModels — triage falls back to built-in rules without one; the resolver needs at least one.');
-  const providers = [];
-  const useOllama = await askYesNo('Set up Ollama (runs a model locally)?', true);
+  console.log('\nModels — at least one is required; the resolver writes fixes with it.');
+  let providers = [];
+  let useOllama = false;
   let ollamaUrl = '';
   let ollamaModel = '';
-  if (useOllama) {
-    providers.push('ollama');
-    ollamaUrl = await ask('  Ollama URL', 'http://localhost:11434');
-    const check = await checkOllama(ollamaUrl);
-    const models = check.ok ? check.models ?? [] : [];
-    if (!check.ok) {
-      console.log(`  Warning: could not reach Ollama at ${ollamaUrl}${check.error ? ` (${check.error})` : ''}. Continuing; type the model name yourself.`);
-    } else if (!models.length) {
-      console.log('  Ollama is running but has no models yet. Get the default with: ollama pull qwen2.5-coder:7b');
-    }
-    ollamaModel = await pickModel(models, 'qwen2.5-coder:7b', '  Ollama model (`ollama pull <model>` first)');
-  }
-  const useDeepseek = await askYesNo('Set up DeepSeek (hosted; sends error text and source code to it)?', false);
   let deepseekKey = '';
   let deepseekModel = '';
-  if (useDeepseek) {
-    const found = await askProviderKey('DeepSeek', checkDeepSeek);
-    deepseekKey = found.key;
-    if (deepseekKey) {
-      providers.push('deepseek');
-      deepseekModel = await pickModel(found.models, 'deepseek-flash', '  DeepSeek model');
-    } else {
-      console.log('  No key entered — skipping DeepSeek.');
-    }
-  }
-  const useAnthropic = await askYesNo('Set up Anthropic (hosted; sends error text and source code to it)?', false);
   let anthropicKey = '';
   let anthropicModel = '';
-  if (useAnthropic) {
-    const found = await askProviderKey('Anthropic', checkAnthropic);
-    anthropicKey = found.key;
-    if (anthropicKey) {
-      providers.push('anthropic');
-      anthropicModel = await pickModel(found.models, 'claude-haiku-4-5', '  Anthropic model');
-    } else {
-      console.log('  No key entered — skipping Anthropic.');
+  while (true) {
+    providers = [];
+    useOllama = false;
+    ollamaUrl = '';
+    ollamaModel = '';
+    if (await askYesNo('Set up Ollama (runs a model locally)?', true)) {
+      const ollama = await askOllama();
+      if (ollama) {
+        useOllama = true;
+        ollamaUrl = ollama.url;
+        ollamaModel = ollama.model;
+        providers.push('ollama');
+      }
     }
+    deepseekKey = '';
+    deepseekModel = '';
+    if (await askYesNo('Set up DeepSeek (hosted; sends error text and source code to it)?', false)) {
+      const found = await askProviderKey('DeepSeek', (key) => checkDeepSeek(key, process.env.ORCH_DEEPSEEK_API_URL || undefined));
+      deepseekKey = found.key;
+      if (deepseekKey) {
+        providers.push('deepseek');
+        deepseekModel = await pickModel(found.models, 'deepseek-flash', '  DeepSeek model');
+      } else {
+        console.log('  No key entered — skipping DeepSeek.');
+      }
+    }
+    anthropicKey = '';
+    anthropicModel = '';
+    if (await askYesNo('Set up Anthropic (hosted; sends error text and source code to it)?', false)) {
+      const found = await askProviderKey('Anthropic', (key) => checkAnthropic(key, process.env.ORCH_ANTHROPIC_API_URL || undefined));
+      anthropicKey = found.key;
+      if (anthropicKey) {
+        providers.push('anthropic');
+        anthropicModel = await pickModel(found.models, 'claude-haiku-4-5', '  Anthropic model');
+      } else {
+        console.log('  No key entered — skipping Anthropic.');
+      }
+    }
+    if (providers.length) break;
+    console.log('Set up at least one model; the resolver needs one to write fixes.');
   }
   let providerOrder = providers.join(',');
   if (providers.length > 1) {
@@ -198,42 +222,25 @@ async function main() {
   }
 
   console.log('\nErrors — the Sentry-compatible ingest endpoint and GitHub issue filing.');
-  const errorsEnabled = await askYesNo('Enable error tracking?', true);
-  let ingestPort = 3000;
-  let ingestHost = '127.0.0.1';
-  let dsnKey = '';
-  let githubLabels = 'bug,sentry';
-  let minLevel = 'error';
-  let commentThresholds = '100,1000,10000';
-  let retentionDays = 30;
-  if (errorsEnabled) {
-    ingestPort = await askPort('  Ingest port (separate from the dashboard)', 3000, port);
-    const hostIndex = await pick('Ingest host:', [
-      'this machine only (127.0.0.1)',
-      'network too (0.0.0.0, anyone who can reach the port can file errors)',
-    ], 0);
-    ingestHost = hostIndex === 1 ? '0.0.0.0' : '127.0.0.1';
-    dsnKey = await ask('  Require this sentry_key on ingest requests (blank = no check)');
-    githubLabels = await ask('  Labels applied to new GitHub issues', 'bug,sentry');
-    const levelIndex = Math.max(0, LEVELS.indexOf('error'));
-    minLevel = LEVELS[await pick('Lowest level filed on GitHub (others are still stored):', LEVELS, levelIndex)];
-    commentThresholds = await askThresholds('  Event counts at which it comments on the GitHub issue', '100,1000,10000');
-    retentionDays = await askInt('  Days to keep raw events (0 keeps everything)', 30, 0);
-  }
+  const ingestPort = await askPort('  Ingest port (separate from the dashboard)', 3000, port);
+  const hostIndex = await pick('Ingest host:', [
+    'this machine only (127.0.0.1)',
+    'network too (0.0.0.0, anyone who can reach the port can file errors)',
+  ], 0);
+  const ingestHost = hostIndex === 1 ? '0.0.0.0' : '127.0.0.1';
+  const dsnKey = await ask('  Require this sentry_key on ingest requests (blank = no check)');
+  const githubLabels = await ask('  Labels applied to new GitHub issues', 'bug,sentry');
+  const levelIndex = Math.max(0, LEVELS.indexOf('error'));
+  const minLevel = LEVELS[await pick('Lowest level filed on GitHub (others are still stored):', LEVELS, levelIndex)];
+  const commentThresholds = await askThresholds('  Event counts at which it comments on the GitHub issue', '100,1000,10000');
+  const retentionDays = await askInt('  Days to keep raw events (0 keeps everything)', 30, 0);
 
   console.log('\nResolver — attempts a fix and opens a pull request for issues FixFlow filed.');
-  const resolverEnabled = await askYesNo('Enable the resolver?', true);
-  let pollInterval = 300000;
-  let maxConcurrent = 3;
-  let maxAttempts = 3;
-  let retrySkipped = false;
-  if (resolverEnabled) {
-    const pollDefault = Math.max(0, POLL_INTERVALS.findIndex((p) => p.ms === 300000));
-    pollInterval = POLL_INTERVALS[await pick('Poll interval:', POLL_INTERVALS.map((p) => p.label), pollDefault)].ms;
-    maxConcurrent = await askInt('  Max fixes running at once', 3, 1);
-    maxAttempts = await askInt('  Max attempts per issue before it stops on its own', 3, 1);
-    retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', false);
-  }
+  const pollDefault = Math.max(0, POLL_INTERVALS.findIndex((p) => p.ms === 300000));
+  const pollInterval = POLL_INTERVALS[await pick('Poll interval:', POLL_INTERVALS.map((p) => p.label), pollDefault)].ms;
+  const maxConcurrent = await askInt('  Max fixes running at once', 3, 1);
+  const maxAttempts = await askInt('  Max attempts per issue before it stops on its own', 3, 1);
+  const retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', false);
 
   const values = {
     port,
@@ -246,7 +253,7 @@ async function main() {
     deepseekModel,
     anthropicKey,
     anthropicModel,
-    errorsEnabled,
+    errorsEnabled: true,
     ingestPort,
     ingestHost,
     dsnKey,
@@ -254,7 +261,7 @@ async function main() {
     minLevel,
     commentThresholds,
     retentionDays,
-    resolverEnabled,
+    resolverEnabled: true,
     pollInterval,
     maxConcurrent,
     maxAttempts,
@@ -278,8 +285,6 @@ async function main() {
   writeFileSync(envPath, envText);
 
   console.log(`\nWrote ${envPath}`);
-  if (useDeepseek && !deepseekKey) console.log('Note: no DeepSeek key was entered, so it was left out.');
-  if (useAnthropic && !anthropicKey) console.log('Note: no Anthropic key was entered, so it was left out.');
   console.log('Run `npm start` to launch FixFlow with this configuration.');
 }
 

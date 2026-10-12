@@ -180,11 +180,12 @@
     <!-- Step 2 -->
     <section data-step="1" hidden>
       <h1>Choose a model</h1>
-      <p class="lede">A model triages new errors and writes fixes. Without one, triage uses built-in rules and the resolver cannot run.</p>
+      <p class="lede">A model triages new errors and writes the fixes. Set up at least one.</p>
+      <span class="msg" data-key="models"></span>
 
       <div class="card">
         <label class="toggle"><span class="text"><span class="title">Ollama</span><span class="desc">Runs a model on this machine. Nothing leaves it.</span></span>
-          <input type="checkbox" class="switch" id="useOllama" checked /></label>
+          <input type="checkbox" class="switch" id="useOllama" /></label>
         <div class="sub-fields" id="ollamaFields">
           <div class="field">
             <span class="name">Ollama address</span>
@@ -254,9 +255,7 @@
       <h1>Error tracking</h1>
       <p class="lede">Receives errors from your apps' Sentry SDK, groups them and files GitHub issues.</p>
       <div class="card">
-        <label class="toggle"><span class="text"><span class="title">Track errors</span><span class="desc">Turn off to leave the Errors tab out of the dashboard.</span></span>
-          <input type="checkbox" class="switch" id="errorsEnabled" checked /></label>
-        <div class="sub-fields" id="errorsFields">
+        <div id="errorsFields">
           <div class="grid2">
             <label class="field" for="ingestPort"><span class="name">Ingest port</span>
               <input type="number" id="ingestPort" value="3000" min="1" max="65535" step="1" />
@@ -307,10 +306,7 @@
       <h1>Resolver</h1>
       <p class="lede">Tries a fix for each open issue and opens a pull request for you to review.</p>
       <div class="card">
-        <label class="toggle"><span class="text"><span class="title">Resolve issues</span><span class="desc">Needs a model. Turn off to leave the Resolver tab out.</span></span>
-          <input type="checkbox" class="switch" id="resolverEnabled" checked /></label>
-        <span class="msg" data-key="resolverEnabled"></span>
-        <div class="sub-fields" id="resolverFields">
+        <div id="resolverFields">
           <div class="grid2">
             <div class="field">
               <span class="name">Look for new issues every</span>
@@ -484,10 +480,12 @@ function computeClient() {
 
   for (const id of ['deepseek', 'anthropic']) {
     const cfg = PROV[id];
-    if (!isEnabled(id)) continue;
+    if (!checked(cfg.box)) continue;
     const ks = keyState[id];
     const key = val(cfg.key);
-    if (!ks || ks.key !== key) {
+    if (!key) {
+      errors[cfg.key] = `Enter your ${cfg.label} API key, or turn ${cfg.label} off.`;
+    } else if (!ks || ks.key !== key) {
       errors[cfg.key] = 'Verify the key to continue. This also loads the models you can use.';
     } else if (ks.state === 'checking') {
       hints[cfg.key] = { level: 'hint', msg: 'Checking the key…' };
@@ -501,7 +499,7 @@ function computeClient() {
     }
   }
 
-  if (checked('errorsEnabled')) {
+  {
     const ip = intVal('ingestPort');
     if (!isPort(ip)) {
       errors.ingestPort = 'Enter a port from 1 to 65535.';
@@ -522,15 +520,18 @@ function computeClient() {
     const thresholds = val('commentThresholds');
     if (thresholds && !/^\d+(\s*,\s*\d+)*$/.test(thresholds)) {
       errors.commentThresholds = 'Enter numbers separated by commas, such as 100,1000,10000.';
+    } else if (thresholds && thresholds.split(',').some((n) => Number(n.trim()) < 2)) {
+      errors.commentThresholds = 'Each count must be 2 or more, such as 100,1000,10000.';
     }
   }
 
-  if (checked('resolverEnabled')) {
-    if (order.filter(isEnabled).length === 0) errors.resolverEnabled = 'The resolver needs a model. Go back and set one up, or turn the resolver off.';
+  {
     if (!(intVal('maxConcurrent') >= 1)) errors.maxConcurrent = 'Enter a whole number, 1 or more.';
     if (!(intVal('maxAttempts') >= 1)) errors.maxAttempts = 'Enter a whole number, 1 or more.';
     if (!(intVal('pollInterval') >= 30000)) errors.pollInterval = 'Choose a poll interval.';
   }
+
+  if (!checked('useOllama') && !checked('useDeepseek') && !checked('useAnthropic')) errors.models = 'Turn on at least one model below. The resolver needs one to write fixes.';
 
   return { errors, hints, pending };
 }
@@ -571,7 +572,7 @@ function collect() {
     deepseekModel: val('deepseekModel'),
     anthropicKey: useAnthropic ? val('anthropicKey') : '',
     anthropicModel: val('anthropicModel'),
-    errorsEnabled: checked('errorsEnabled'),
+    errorsEnabled: true,
     ingestPort: intOr('ingestPort', 3000),
     ingestHost: val('ingestHost') || '127.0.0.1',
     dsnKey: val('dsnKey'),
@@ -579,7 +580,7 @@ function collect() {
     minLevel: val('minLevel') || 'error',
     commentThresholds: val('commentThresholds') || '100,1000,10000',
     retentionDays: intOr('retentionDays', 30),
-    resolverEnabled: checked('resolverEnabled'),
+    resolverEnabled: true,
     pollInterval: intOr('pollInterval', 300000),
     maxConcurrent: intOr('maxConcurrent', 3),
     maxAttempts: intOr('maxAttempts', 3),
@@ -708,10 +709,6 @@ wireToggle('useDeepseek', 'deepseekFields', () => {
 wireToggle('useAnthropic', 'anthropicFields', () => {
   if (checked('useAnthropic') && val('anthropicKey') && !keyState.anthropic) verifyKey('anthropic');
 });
-wireToggle('errorsEnabled', 'errorsFields', () => {
-  if (checked('errorsEnabled')) { schedulePortCheck('ingestPort'); }
-});
-wireToggle('resolverEnabled', 'resolverFields');
 
 // Any edit clears the server-side messages from the last failed save.
 document.addEventListener('input', () => { serverErrors = {}; refresh(); });
@@ -776,6 +773,9 @@ function showSaveError(err) {
   serverErrors = Object.fromEntries(Object.entries(map).map(([k, m]) => [k, String(m)]));
   const shown = new Set([...document.querySelectorAll('.msg[data-key]')].map((el) => el.dataset.key));
   const elsewhere = Object.entries(serverErrors).filter(([k]) => !shown.has(k)).map(([, m]) => m);
+  refresh();
+  const bad = STEPS.findIndex((_, i) => stepHasError(i));
+  if (bad >= 0 && bad !== step) goTo(bad);
   setStatus(['Fix the highlighted fields and try again.', ...elsewhere].join('\n'), 'error');
 }
 
@@ -803,13 +803,15 @@ $('save').addEventListener('click', async () => {
 
 const STEPS = [
   { name: 'Basics', keys: ['port', 'dataDir'] },
-  { name: 'Model', keys: ['ollamaUrl', 'ollamaModel', 'deepseekKey', 'deepseekModel', 'anthropicKey', 'anthropicModel', 'providerOrder'] },
+  { name: 'Model', keys: ['ollamaUrl', 'ollamaModel', 'deepseekKey', 'deepseekModel', 'anthropicKey', 'anthropicModel', 'providerOrder', 'models'] },
   { name: 'Errors', keys: ['ingestPort', 'ingestHost', 'dsnKey', 'githubLabels', 'minLevel', 'commentThresholds', 'retentionDays'] },
-  { name: 'Resolver', keys: ['maxConcurrent', 'maxAttempts', 'pollInterval', 'resolverEnabled'] },
+  { name: 'Resolver', keys: ['maxConcurrent', 'maxAttempts', 'pollInterval'] },
 ];
 let step = 0;
+let reached = 0;
 
 const stepBlocked = (i) => stepHasError(i) || STEPS[i].keys.some((k) => current.pending.includes(k));
+const flagged = (i) => i <= reached && stepHasError(i);
 const stepHasError = (i) => STEPS[i].keys.some((k) => current.errors[k] || serverErrors[k]);
 
 function renderSteps() {
@@ -817,14 +819,14 @@ function renderSteps() {
   ol.replaceChildren();
   STEPS.forEach((s, i) => {
     const li = document.createElement('li');
-    li.className = [i === step ? 'active' : '', i < step ? 'done' : '', stepHasError(i) ? 'invalid' : ''].join(' ').trim();
+    li.className = [i === step ? 'active' : '', i < step ? 'done' : '', flagged(i) ? 'invalid' : ''].join(' ').trim();
     if (i === step) li.setAttribute('aria-current', 'step');
     const dot = document.createElement('span');
     dot.className = 'dot';
-    dot.textContent = i < step && !stepHasError(i) ? '✓' : String(i + 1);
+    dot.textContent = i < step && !flagged(i) ? '✓' : String(i + 1);
     const label = document.createElement('span');
     label.className = 'label';
-    label.textContent = stepHasError(i) ? `${s.name} (needs attention)` : s.name;
+    label.textContent = flagged(i) ? `${s.name} (needs attention)` : s.name;
     li.append(dot, label);
     ol.append(li);
     if (i < STEPS.length - 1) {
@@ -848,6 +850,7 @@ function renderSteps() {
 
 function goTo(i) {
   step = Math.max(0, Math.min(STEPS.length - 1, i));
+  reached = Math.max(reached, step);
   renderSteps();
   const title = document.querySelector(`section[data-step="${step}"] h1`);
   if (title) { title.tabIndex = -1; title.focus(); }

@@ -75,8 +75,8 @@ async function loadSetupChecks() {
 }
 
 ipcMain.handle('setup:checkOllama', async (_event, url) => (await loadSetupChecks()).checkOllama(String(url ?? '')));
-ipcMain.handle('setup:checkDeepseek', async (_event, apiKey) => (await loadSetupChecks()).checkDeepSeek(String(apiKey ?? '')));
-ipcMain.handle('setup:checkAnthropic', async (_event, apiKey) => (await loadSetupChecks()).checkAnthropic(String(apiKey ?? '')));
+ipcMain.handle('setup:checkDeepseek', async (_event, apiKey) => (await loadSetupChecks()).checkDeepSeek(String(apiKey ?? ''), process.env.ORCH_DEEPSEEK_API_URL || undefined));
+ipcMain.handle('setup:checkAnthropic', async (_event, apiKey) => (await loadSetupChecks()).checkAnthropic(String(apiKey ?? ''), process.env.ORCH_ANTHROPIC_API_URL || undefined));
 ipcMain.handle('setup:checkPort', async (_event, port) => (await loadSetupChecks()).checkPort(Number(port)));
 
 ipcMain.handle('setup:constants', async () => {
@@ -99,6 +99,15 @@ ipcMain.handle('setup:save', async (_event, values) => {
 
   const { errors = {} } = (await checks.validateValues(values)) ?? {};
   if (Object.keys(errors).length > 0) throw new Error(JSON.stringify(errors));
+
+  // The page checked the ports a while ago; something may have taken one since. Writing .env and
+  // then failing to listen would leave a broken setup behind, so check again right before writing.
+  const busy = {};
+  for (const key of ['port', 'ingestPort']) {
+    const result = await checks.checkPort(Number(values[key]));
+    if (!result.ok) busy[key] = `${result.error || 'This port is not available'}. Pick a different port.`;
+  }
+  if (Object.keys(busy).length > 0) throw new Error(JSON.stringify(busy));
 
   const envText = buildEnvFile(values);
   const server = await checks.validateWithServer(envText, ROOT);

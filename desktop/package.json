@@ -6,24 +6,51 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:mac": "electron-builder --mac --publish never"
+    "dist:mac": "electron-builder --mac --publish never",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "electron": "^44.0.0",
     "electron-builder": "^26.0.0"
   },
   "build": {
     "appId": "dev.fixflow.desktop",
     "productName": "FixFlow",
-    "directories": { "output": "release" },
-    "files": ["main.js", "preload.js", "onboarding.html", "fonts/*.woff2"],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "onboarding.html",
+      "fonts/*.woff2"
+    ],
     "extraResources": [
-      { "from": "../bin", "to": "app/bin" },
-      { "from": "../scripts", "to": "app/scripts" },
-      { "from": "../server", "to": "app/server" },
-      { "from": "../web/dist", "to": "app/web/dist" },
-      { "from": "../package.json", "to": "app/package.json" },
-      { "from": "../node_modules", "to": "app/node_modules" }
+      {
+        "from": "../bin",
+        "to": "app/bin"
+      },
+      {
+        "from": "../scripts",
+        "to": "app/scripts"
+      },
+      {
+        "from": "../server",
+        "to": "app/server"
+      },
+      {
+        "from": "../web/dist",
+        "to": "app/web/dist"
+      },
+      {
+        "from": "../package.json",
+        "to": "app/package.json"
+      },
+      {
+        "from": "../node_modules",
+        "to": "app/node_modules"
+      }
     ],
     "mac": {
       "category": "public.app-category.developer-tools",

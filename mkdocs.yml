@@ -37,6 +37,25 @@ theme:
 extra_css:
   - assets/stylesheets/fixflow.css
 
+# Google Analytics 4, loaded only after a visitor accepts cookies in the consent banner.
+extra:
+  # Hides the theme's "Made with Material for MkDocs" footer credit.
+  generator: false
+  analytics:
+    provider: google
+    property: G-DE18K33SMK
+  consent:
+    title: Cookie consent
+    description: >-
+      This site uses cookies to count visits and see which pages people read, through
+      Google Analytics. Nothing is tracked unless you accept. FixFlow itself sends no analytics.
+    actions:
+      - accept
+      - reject
+      - manage
+
+copyright: <a href="#__consent">Change cookie settings</a>
+
 # Raw data stays in the repo but is not published. docs/internal/ is gitignored and never built.
 exclude_docs: |
   internal/

@@ -7,7 +7,13 @@ const { pathToFileURL } = require('node:url');
 // Packaged: electron-builder copies the project (server/, bin/, scripts/, web/dist/, node_modules)
 // into Resources/app alongside this app's own asar.
 const ROOT = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.join(__dirname, '..');
-const ENV_PATH = path.join(ROOT, '.env');
+// Packaged, ROOT is inside the app: read-only in an AppImage or a translocated macOS app, and replaced
+// on every update. So the built app keeps .env in its user-data folder and runs the server from there,
+// since the server reads .env from its working directory.
+const ENV_DIR = app.isPackaged ? app.getPath('userData') : ROOT;
+const ENV_PATH = path.join(ENV_DIR, '.env');
+/** Where builds before 1.1.0 wrote .env. */
+const LEGACY_ENV_PATH = path.join(ROOT, '.env');
 
 let setupWindow = null;
 let mainWindow = null;
@@ -121,7 +127,7 @@ function openSetup(mode) {
 // Resolves with the dashboard URL (including the login token) once the server prints it.
 function startServer() {
   return new Promise((resolve, reject) => {
-    const child = utilityProcess.fork(path.join(ROOT, 'bin', 'fixflow.mjs'), [], { cwd: ROOT, stdio: 'pipe' });
+    const child = utilityProcess.fork(path.join(ROOT, 'bin', 'fixflow.mjs'), [], { cwd: ENV_DIR, stdio: 'pipe' });
     serverProcess = child;
     let buffer = '';
     let settled = false;
@@ -199,6 +205,7 @@ async function launchDashboard() {
 async function applySettings(envText) {
   const previous = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : null;
   await stopServer();
+  fs.mkdirSync(ENV_DIR, { recursive: true });
   fs.writeFileSync(ENV_PATH, envText);
   try {
     await showDashboard(await startServer());
@@ -299,7 +306,19 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+/** Brings settings saved inside the app by an older build over to ENV_PATH, once. */
+function migrateLegacyEnv() {
+  if (ENV_PATH === LEGACY_ENV_PATH || fs.existsSync(ENV_PATH) || !fs.existsSync(LEGACY_ENV_PATH)) return;
+  try {
+    fs.mkdirSync(ENV_DIR, { recursive: true });
+    fs.copyFileSync(LEGACY_ENV_PATH, ENV_PATH);
+  } catch {
+    // The setup runs again instead, which is what a first launch looks like anyway.
+  }
+}
+
 app.whenReady().then(() => {
+  migrateLegacyEnv();
   buildMenu();
   if (fs.existsSync(ENV_PATH)) {
     void launchDashboard();

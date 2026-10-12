@@ -58,7 +58,7 @@ async function deadPort(): Promise<number> {
 export interface Launched {
   app: ElectronApplication;
   page: Page;
-  /** The .env the app writes, inside this test's own copy of the app. */
+  /** The .env the app writes, in this test's own user-data folder. */
   envPath: string;
 }
 
@@ -85,8 +85,10 @@ export const test = base.extend<{ fake: Fake; launch: (options?: LaunchOptions) 
     execFileSync('mkdir', ['-p', copyRoot]);
     const appCopy = join(copyRoot, 'FixFlow.app');
     execFileSync('cp', ['-cR', BUILT_APP, appCopy]);
-    const envPath = join(appCopy, 'Contents', 'Resources', 'app', '.env');
-    rmSync(envPath, { force: true });
+    const userData = join(copyRoot, 'user-data');
+    const envPath = join(userData, '.env');
+    // A .env left in the build by an older version would be migrated into userData on launch.
+    rmSync(join(appCopy, 'Contents', 'Resources', 'app', '.env'), { force: true });
 
     const apps: ElectronApplication[] = [];
     await use(async (options = {}) => {
@@ -94,7 +96,7 @@ export const test = base.extend<{ fake: Fake; launch: (options?: LaunchOptions) 
       delete env.ELECTRON_RUN_AS_NODE;
       const app = await electron.launch({
         executablePath: join(appCopy, 'Contents', 'MacOS', 'FixFlow'),
-        args: [`--user-data-dir=${join(copyRoot, 'user-data')}`],
+        args: [`--user-data-dir=${userData}`],
         env,
       });
       apps.push(app);

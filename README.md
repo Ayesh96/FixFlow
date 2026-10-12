@@ -9,7 +9,7 @@ FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors y
 
 ![FixFlow: an error arrives, the model triages it, a GitHub issue is filed and the resolver opens a pull request](docs/assets/demo/fixflow-demo.gif)
 
-[Watch the one-minute demo](docs/assets/demo/fixflow-demo.mp4) (setup wizard, then an error going all the way to a pull request).
+[Watch the one-minute demo](https://github.com/user-attachments/assets/5e524299-858a-46d1-950a-6e437657eb0e) (setup wizard, then an error going all the way to a pull request).
 
 ## The problem
 

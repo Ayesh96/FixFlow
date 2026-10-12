@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, utilityProcess, dialog, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, utilityProcess, dialog, Menu, screen, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
@@ -56,6 +56,40 @@ const centered = (area, width, height) => ({
   y: Math.round(area.y + (area.height - height) / 2),
 });
 
+// ---- External links ----------------------------------------------------------------------------
+
+/**
+ * Sends http(s) links that leave the app (target=_blank, window.open, or a plain navigation to
+ * another origin) to the default browser instead of opening them inside the FixFlow window.
+ */
+function openLinksExternally(win) {
+  const isExternal = (url) => {
+    let target;
+    try {
+      target = new URL(url);
+    } catch {
+      return false;
+    }
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return false;
+    let current;
+    try {
+      current = new URL(win.webContents.getURL());
+    } catch {
+      return true;
+    }
+    return target.origin !== current.origin;
+  };
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isExternal(url)) return;
+    event.preventDefault();
+    shell.openExternal(url);
+  });
+}
+
 // ---- Setup / settings window ------------------------------------------------------------------
 
 /** `first` is the onboarding before .env exists; `settings` edits the current .env later. */
@@ -73,6 +107,7 @@ function openSetup(mode) {
     title: mode === 'settings' ? 'FixFlow settings' : 'Set up FixFlow',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
+  openLinksExternally(setupWindow);
   remember(setupWindow, 'setup');
   setupWindow.on('closed', () => {
     setupWindow = null;
@@ -137,6 +172,7 @@ async function showDashboard(url) {
     webPreferences: { preload: path.join(__dirname, 'dashboard-preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   if (bounds.maximized) mainWindow.maximize();
+  openLinksExternally(mainWindow);
   remember(mainWindow, 'dashboard');
   mainWindow.on('closed', () => {
     mainWindow = null;

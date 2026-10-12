@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api, type TrackerIssue } from '@/lib/api';
 import { copy } from '@/lib/copy';
-import { formatCount } from '@/lib/format';
+import { formatCount, formatErrorTitle } from '@/lib/format';
 import { safeUrl } from '@/lib/lifecycle';
 import { cn } from '@/lib/utils';
 
@@ -35,10 +35,10 @@ function Fact({ label, children, className }: { label: string; children: ReactNo
 /**
  * One stage of an error's journey. Closed, every stage looks the same: its name and its own state on one line.
  * A stage with something more to say (the triage read, a skip reason, a link, an action) opens on click; one with
- * nothing more is just the line, with no chevron.
+ * nothing more is just the line, with no chevron. `defaultOpen` starts it open: the drawer opens where the error has got to.
  */
-function Stage({ id, title, state, children }: { id: string; title: string; state: ReactNode; children?: ReactNode }) {
-  const [open, setOpen] = useState(false);
+function Stage({ id, title, state, defaultOpen = false, children }: { id: string; title: string; state: ReactNode; defaultOpen?: boolean; children?: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
   const expandable = children !== undefined && children !== null && children !== false;
   const head = (
     <>
@@ -113,7 +113,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
     setForcing(true);
     try {
       await api.errorResolver.runIssue(issue.fingerprintHash);
-      toast.success(copy.resolver.forceRunStarted);
+      toast.success(resolver === null ? copy.resolver.runStarted : copy.resolver.forceRunStarted);
       onChanged?.();
     } catch (err) {
       toast.error(copy.resolver.forceRunFailed, { description: errorText(err) });
@@ -127,6 +127,8 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
   const analyzing = issue?.triageStatus === 'PENDING';
   // Needs a GitHub issue to work from; a pull request already open would only be duplicated.
   const canRun = filed && resolver !== 'PR_OPEN' && resolver !== 'IN_PROGRESS';
+  // Open on the furthest stage reached, so what matters now (the triage read, a skip reason, the PR) needs no click.
+  const opens = resolver === 'PR_OPEN' ? ['resolver', 'pr'] : resolver ? ['resolver'] : ['triage'];
 
   return (
     <Sheet open={item !== null} onOpenChange={(open) => !open && onClose()}>
@@ -134,7 +136,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
         {item && issue && (
           <>
             <SheetHeader className="gap-2 border-b pr-12">
-              <SheetTitle className="break-words font-mono text-sm leading-relaxed">{issue.title}</SheetTitle>
+              <SheetTitle className="break-words font-mono text-sm leading-relaxed">{formatErrorTitle(issue.title)}</SheetTitle>
               <SheetDescription>
                 {item.repo ?? copy.errors.other.title}
                 {item.branch && <span className="font-mono"> · {item.branch}</span>}
@@ -153,7 +155,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
             </dl>
 
             <div key={issue.fingerprintHash}>
-            <Stage id="stage-triage" title={stage.triage.title} state={issue.triageStatus ? <TriageLabel status={issue.triageStatus} /> : null}>
+            <Stage id="stage-triage" title={stage.triage.title} defaultOpen={opens.includes('triage')} state={issue.triageStatus ? <TriageLabel status={issue.triageStatus} /> : null}>
               {issue.triageStatus === 'COMPLETED' && (
                 <>
                   <Detail label={copy.triage.message}>{issue.triageMessage}</Detail>
@@ -204,6 +206,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
             <Stage
               id="stage-resolver"
               title={stage.resolver.title}
+              defaultOpen={opens.includes('resolver')}
               state={
                 resolver ? (
                   <ResolverLabel status={resolver} />
@@ -231,6 +234,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
             <Stage
               id="stage-pr"
               title={stage.pr.title}
+              defaultOpen={opens.includes('pr')}
               state={
                 resolver === 'PR_OPEN' ? (
                   <StateLabel icon={GitPullRequest} tone="text-status-running">

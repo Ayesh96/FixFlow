@@ -3,6 +3,7 @@ import { When } from '@/components/Bits';
 import { LifecycleTrack } from '@/components/errors/LifecycleTrack';
 import type { TrackerIssue } from '@/lib/api';
 import { copy } from '@/lib/copy';
+import { formatErrorTitle } from '@/lib/format';
 import { lifecycleOf, STAGE_KEYS } from '@/lib/lifecycle';
 
 const c = copy.errors.recent;
@@ -35,12 +36,12 @@ export function ErrorRow({ issue, onOpen }: { issue: TrackerIssue; onOpen: () =>
     <button
       type="button"
       onClick={onOpen}
-      aria-label={c.open(issue.title)}
+      aria-label={c.open(formatErrorTitle(issue.title))}
       className="group grid w-full grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 rounded-md px-2 py-3 text-left outline-none transition-colors duration-150 hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset md:grid-cols-[1fr_6.5rem_4rem_5rem_1rem]"
     >
       <span className="min-w-0 space-y-0.5">
-        <span className="block truncate font-mono text-sm font-medium" title={issue.title}>
-          {issue.title}
+        <span className="block truncate font-mono text-sm font-medium" title={formatErrorTitle(issue.title)}>
+          {formatErrorTitle(issue.title)}
         </span>
         <span className="block truncate text-xs text-muted-foreground" title={(issue.resolverStatus === 'PR_OPEN' ? note(issue) : issue.triageMessage) ?? undefined}>
           {[issue.service, issue.githubIssueNumber !== null ? `#${issue.githubIssueNumber}` : null, note(issue)].filter(Boolean).join(' · ') || ' '}

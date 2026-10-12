@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCount, formatRelative } from './format';
+import { formatCount, formatErrorTitle, formatRelative } from './format';
 
 const NOW = Date.parse('2026-06-15T12:00:00Z');
 const ago = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
@@ -26,5 +26,15 @@ describe('formatCount', () => {
   it('adds thousands separators', () => {
     expect(formatCount(12480)).toBe('12,480');
     expect(formatCount(7)).toBe('7');
+  });
+});
+
+describe('formatErrorTitle', () => {
+  it('drops the [Error] tag that GitHub issue titles carry', () => {
+    expect(formatErrorTitle('[Error] TypeError: x is undefined')).toBe('TypeError: x is undefined');
+  });
+
+  it('leaves a title without the tag alone', () => {
+    expect(formatErrorTitle('TypeError: [Error] in message')).toBe('TypeError: [Error] in message');
   });
 });

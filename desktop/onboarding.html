@@ -39,7 +39,7 @@
   header.brand span { font-weight: 600; letter-spacing: -0.01em; }
 
   /* Stepper: same shape as web/src/components/wizard/Stepper.tsx */
-  ol.steps { list-style: none; display: flex; align-items: center; gap: 8px; margin: 14px 0 16px; padding: 0; }
+  ol.steps { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 16px; padding: 0; }
   ol.steps li { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 13px; }
   ol.steps .dot {
     width: 24px; height: 24px; border-radius: 999px; border: 1px solid var(--border);
@@ -49,8 +49,6 @@
   ol.steps li.active { color: var(--foreground); font-weight: 500; }
   ol.steps li.active .dot { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
   ol.steps li.invalid .dot { border-color: var(--destructive); color: var(--destructive); }
-  ol.steps .label { display: none; }
-  ol.steps li.active .label { display: inline; }
   ol.steps button.jump { all: unset; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 6px; }
   ol.steps button.jump:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   ol.steps .bar { width: 24px; height: 1px; background: var(--border); }
@@ -111,8 +109,8 @@
   /* Switch rows */
   .toggle { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; cursor: pointer; }
   .toggle .text { min-width: 0; }
-  .toggle .title { font-size: 13px; font-weight: 500; }
-  .toggle .desc { color: var(--muted-foreground); font-size: 12.5px; margin-top: 2px; }
+  .toggle .title { display: block; font-size: 13px; font-weight: 500; }
+  .toggle .desc { display: block; color: var(--muted-foreground); font-size: 12.5px; margin-top: 2px; }
   input.switch {
     appearance: none; flex: none; width: 32px; height: 18px; margin: 2px 0 0; border-radius: 999px;
     background: var(--secondary); border: 1px solid var(--input); position: relative; cursor: pointer;
@@ -280,17 +278,15 @@
             </div>
             <span class="msg" data-key="dsnKey"></span>
           </div>
-          <div class="grid2">
-            <div class="field">
-              <span class="name">Open GitHub issues for</span>
-              <select id="minLevel" disabled><option value="">Loading…</option></select>
-              <span class="msg" data-key="minLevel"></span>
-            </div>
-            <label class="field" for="retentionDays"><span class="name">Keep raw events for (days)</span>
-              <input type="number" id="retentionDays" value="30" min="0" step="1" />
-              <span class="msg" data-key="retentionDays"></span>
-            </label>
+          <div class="field">
+            <span class="name">Open GitHub issues for</span>
+            <select id="minLevel" disabled><option value="">Loading…</option></select>
+            <span class="msg" data-key="minLevel"></span>
           </div>
+          <label class="field" for="retentionDays"><span class="name">Keep raw events for (days)</span>
+            <input type="number" id="retentionDays" value="30" min="0" step="1" />
+            <span class="msg" data-key="retentionDays"></span>
+          </label>
           <label class="field" for="githubLabels"><span class="name">Labels on new issues <small>comma separated</small></span>
             <input type="text" id="githubLabels" value="bug,sentry" />
             <span class="msg" data-key="githubLabels"></span>

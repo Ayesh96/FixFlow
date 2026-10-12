@@ -15,3 +15,6 @@ export function formatRelative(iso: string, now: number = Date.now()): string {
 
 /** Thousands separators for counts, so 12480 reads as 12,480. */
 export const formatCount = (n: number): string => n.toLocaleString('en-US');
+
+/** An error's title as the dashboard shows it: without the `[Error] ` tag its GitHub issue title starts with. */
+export const formatErrorTitle = (title: string): string => title.replace(/^\[Error\]\s+/, '');

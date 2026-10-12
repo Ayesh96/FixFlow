@@ -26,13 +26,13 @@ for (const path of ['server', 'bin', 'LICENSE', 'README.md', 'CHANGELOG.md', '.e
   cpSync(join(root, path), join(stage, path), { recursive: true });
 }
 cpSync(join(root, 'web', 'dist'), join(stage, 'web', 'dist'), { recursive: true });
-for (const script of ['check-node.mjs', 'ensure-build.mjs']) {
+for (const script of ['check-node.mjs', 'ensure-build.mjs', 'setup.mjs', 'setup-checks.mjs', 'env-template.mjs']) {
   cpSync(join(root, 'scripts', script), join(stage, 'scripts', script));
 }
 
 // Only what running needs: no dev tooling, and no postinstall that would reach for web/package.json.
 const { devDependencies, scripts, ...rest } = pkg;
-const shipped = { ...rest, scripts: { start: scripts.start, prestart: scripts.prestart } };
+const shipped = { ...rest, scripts: { start: scripts.start, prestart: scripts.prestart, setup: scripts.setup } };
 writeFileSync(join(stage, 'package.json'), `${JSON.stringify(shipped, null, 2)}\n`);
 
 run('npm', ['ci', '--omit=dev', '--ignore-scripts'], stage);

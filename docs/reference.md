@@ -45,7 +45,13 @@ This server holds your GitHub tokens and can push code, so:
 
 ## Configuration
 
-Everything is optional. Copy `.env.example` to `.env`.
+Everything is optional. The first `npm start` (or `node bin/fixflow.mjs`) in a terminal runs a setup that writes `.env`, and `npm run setup` runs it again, starting from the current values. You can also copy `.env.example` to `.env` and edit it.
+
+The setup, in the terminal and in the desktop app, differs from a hand-written `.env` in three ways:
+
+- It always turns on error tracking and the resolver. `ORCH_ERRORS_ENABLED=0` and `ORCH_RESOLVER_ENABLED=0` still work when set by hand.
+- It requires at least one model, because the resolver needs one.
+- It writes only values it has checked: the ports are free, the Ollama address answers, API keys are accepted, and the models are ones the provider lists. Then the server's own config checks run on the result before anything is written.
 
 | Variable | Default | |
 |---|---|---|
@@ -76,7 +82,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_ERRORS_INGEST_HOST` | `127.0.0.1` | |
 | `ORCH_ERRORS_DSN_PUBLIC_KEY` | unset | When set, ingest requests must carry this `sentry_key`. |
 | `ORCH_ERRORS_GITHUB_LABELS` | none | Labels applied to new issues. |
-| `ORCH_ERRORS_MIN_LEVEL` | `error` | Lowest level that is filed on GitHub. Lower levels are still stored and triaged. |
+| `ORCH_ERRORS_MIN_LEVEL` | `error` | A threshold: that level and every level above it are filed on GitHub (`error` files `error` and `fatal`; `fatal` files crashes only). The order is `debug`, `info`, `warning`, `error`, `fatal`. Lower levels are still stored and triaged. |
 | `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the GitHub issue. |
 | `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
 | `ORCH_ERRORS_DB` | `<data>/errors.db` | |
@@ -116,7 +122,25 @@ The only runtime dependency of the server is `express`; SQLite is Node's built-i
 npm run dev               # API with auto-restart + Vite hot reload on http://localhost:5173
 npm test                  # server tests + UI unit tests
 npm run typecheck
+npm run setup             # the terminal setup; writes .env
+python3 test/setup-wizard.pty.py   # drives the terminal setup in a pseudo-terminal; works in scratch copies, never your .env
 ```
+
+### Desktop app
+
+`desktop/` is an Electron shell for macOS. It forks `bin/fixflow.mjs` in Electron's own Node (so the machine needs no Node install), shows the setup as a window on first launch (`desktop/onboarding.html`, the same checks as the terminal setup through `scripts/setup-checks.mjs`), and opens the dashboard in a window. **Settings** in the dashboard header, or FixFlow › Settings… (⌘,), reopens the setup filled in from `.env`. Saving restarts the server; if it will not start, the previous `.env` is restored and the previous server started again.
+
+```bash
+cd desktop
+npm install
+npm start                 # run from the repo (uses the repo's .env)
+npm run dist:mac          # build release/FixFlow-<version>-mac-arm64.dmg
+npm run test:e2e          # Playwright against the built app; build first
+```
+
+In the built app, `.env` lives inside the app bundle (`FixFlow.app/Contents/Resources/app/.env`), separate from the repo's. The build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Distributing it to others needs a Developer ID certificate and notarization.
+
+The end-to-end tests give each test its own APFS clone of the built app, fake Ollama, DeepSeek and Anthropic servers, and a stubbed folder picker, so they never touch `~/.fixflow` or a real API. The cases are listed in `desktop/tests/CASES.md`.
 
 To add another workflow, implement `Workflow` from `server/workflows/types.ts` (`id`, `title`, `routes(router)`, optional `start`/`stop`, and `ingestRoutes(router)` only if it needs unauthenticated outside traffic), switch it on in `server/workflows/index.ts`, and register a panel for its `id` in `web/src/components/extensions.ts`.
 

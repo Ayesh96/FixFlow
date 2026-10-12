@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Setup.** The first `npm start` (or `node bin/fixflow.mjs`) in a terminal asks for the settings and writes `.env`; `npm run setup` changes them later, starting from the current values. It tests the Ollama address, verifies API keys, offers only the models a provider actually has, checks the ports are free, and runs the result through the server's own config checks before writing. Error tracking and the resolver are always on, and at least one model is required.
+- **Desktop app for macOS (Apple Silicon).** `desktop/` builds a `.dmg` that runs FixFlow without a Node install, shows the setup as a window on first launch, and opens the dashboard in a window. A **Settings** button in the dashboard header reopens the setup; saving restarts FixFlow and puts the old settings back if it will not start. In a browser, the button explains `npm run setup`.
+- The GitHub level setting is offered as choices that name what each one files, such as "Errors and crashes (error, fatal)", because it is a threshold.
+- The connect guide shows one step per line and wraps the error address instead of scrolling it sideways.
+- The release tarball now includes the setup scripts and `npm run setup`.
 - Triage no longer says the resolver will skip permission, configuration or network errors. The resolver attempts every filed issue, so the suggestion now says to close the GitHub issue to keep it off one.
 - What the resolver leaves in your repository says FixFlow instead of ErrorResolver: branches are `fixflow/issue-<n>` (was `errorresolver/issue-<n>`), commits are by `FixFlow <fixflow@localhost>`, and the pull request footer names FixFlow. Pull requests already opened keep their old branch.
 

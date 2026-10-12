@@ -11,6 +11,13 @@ Thanks for helping. A few things first:
   npm test
   ```
 
+  If you changed the setup (`scripts/setup*.mjs`, `scripts/env-template.mjs`) or the desktop app (`desktop/`), also run:
+
+  ```bash
+  python3 test/setup-wizard.pty.py
+  cd desktop && npm run dist:mac && npm run test:e2e
+  ```
+
 - Keep a pull request to one change. Read `DESIGN.md` before touching the UI.
 
 Found a security problem? Do not open a public issue; email the maintainer instead.

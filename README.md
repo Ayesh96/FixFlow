@@ -26,13 +26,17 @@ npm install     # also installs the UI's dependencies
 npm start       # builds the UI if it is stale, then serves it
 ```
 
-`npm start` prints `http://localhost:7420/?token=…`. Open it once; the token is then kept in an HttpOnly cookie. From another terminal, `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
+The first `npm start` in a terminal runs a short setup and writes `.env`. It asks for the dashboard port, a data folder, at least one model and the error-tracking and resolver settings. It tests the Ollama address and verifies API keys, offers only the models they actually have, checks the ports are free, and runs the result through the server's own config checks before writing anything. Change the settings later with `npm run setup`, which starts from the current `.env`.
+
+`npm start` then prints `http://localhost:7420/?token=…`. Open it once; the token is then kept in an HttpOnly cookie. From another terminal, `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
 
 1. **Projects → Add project**: `owner/name`, a GitHub token, the branch to work on, and optionally a check command such as `npm ci && npm test`.
 2. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`.
 3. Errors appear on the **Errors** tab. Those with a stack trace are filed as GitHub issues.
 
-From a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) there is no build step: check it with `sha256sums.txt`, unpack, and run `node bin/fixflow.mjs`.
+From a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) there is no build step: check it with `sha256sums.txt`, unpack, and run `node bin/fixflow.mjs`. The first run asks the same setup questions.
+
+**Desktop app (macOS, Apple Silicon).** `cd desktop && npm install && npm run dist:mac` builds `desktop/release/FixFlow-1.0.0-mac-arm64.dmg`. The app runs FixFlow in its own bundled Node, so the machine needs no Node install. The first launch shows the same setup as a window, then opens the dashboard in a window. **Settings** in the dashboard header (or FixFlow › Settings…, ⌘,) reopens it with the current values; saving restarts FixFlow, and if it will not start with the new settings the old ones are put back. The build is ad-hoc signed, not notarized, so macOS blocks the first open of a downloaded copy until you allow it in System Settings › Privacy & Security.
 
 **Models.** Triage works without a provider, using built-in rules. The resolver needs one. By default it tries Ollama at `http://localhost:11434` first (`ollama pull qwen2.5-coder:7b`), and also DeepSeek or Anthropic if you set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. See [configuration](docs/reference.md#configuration).
 

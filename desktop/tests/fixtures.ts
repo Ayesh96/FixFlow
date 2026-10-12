@@ -79,7 +79,7 @@ export const test = base.extend<{ fake: Fake; launch: (options?: LaunchOptions) 
   // Each test gets its own APFS clone of the built app, so a test that saves (writes .env and
   // starts a server) never leaks into another test.
   launch: async ({ fake }, use, testInfo) => {
-    if (!existsSync(BUILT_APP)) throw new Error('Build the app first: npm run dist:mac && codesign --force --deep --sign - release/mac-arm64/FixFlow.app');
+    if (!existsSync(BUILT_APP)) throw new Error('Build the app first: npm run dist:mac');
     const copyRoot = join(CLONES, `${testInfo.workerIndex}-${testInfo.testId}`);
     rmSync(copyRoot, { recursive: true, force: true });
     execFileSync('mkdir', ['-p', copyRoot]);

@@ -29,6 +29,8 @@ npm install
 npm start
 ```
 
+The first `npm start` in a terminal runs a short setup: dashboard port, data folder, at least one model (it tests Ollama and verifies API keys, and lists only the models they have), and the error-tracking and resolver settings. It checks the ports are free and runs everything through the server's own config checks before it writes `.env`. Run `npm run setup` to change the settings later; it starts from the current `.env`.
+
 Open the printed `http://localhost:7420/?token=…` link once. Add a project on the **Projects** tab (repository, GitHub token, branch) and set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. From another terminal, `curl http://localhost:3000/healthz` should answer `200`.
 
 ## Guides

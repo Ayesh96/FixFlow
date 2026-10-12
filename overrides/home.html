@@ -13,7 +13,7 @@
         <a class="ff-button ff-button--primary" href="#quick-start" data-ff-download>Download</a>
         <a class="ff-button" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} View on GitHub</a>
       </div>
-      <p class="ff-download-note">macOS (Apple Silicon), Windows and Linux · <a href="#quick-start">All downloads</a></p>
+      <p class="ff-download-note">macOS (Apple Silicon and Intel), Windows and Linux · <a href="#quick-start">All downloads</a></p>
       <ol class="ff-stages" aria-label="What happens to an error">
         <li><span>Tracked</span></li>
         <li><span>Triaged</span></li>
@@ -46,19 +46,52 @@
       var platform = navigator.platform || "";
       var touchMac = /Mac/.test(platform) && navigator.maxTouchPoints > 1;
       if (/Android|iPhone|iPad|iPod/i.test(ua) || touchMac) return;
-      var os = /Win/i.test(platform) ? { label: "Windows", file: /\.exe$/i }
-        : /Mac/i.test(platform) ? { label: "Mac", file: /\.dmg$/i }
-        : /Linux/i.test(platform) ? { label: "Linux", file: /\.AppImage$/i }
-        : null;
-      if (!os) return;
-      fetch("https://api.github.com/repos/{{ config.repo_name }}/releases/latest")
-        .then(function (r) { return r.ok ? r.json() : null; })
+      var isMac = /Mac/i.test(platform);
+      var target = null;
+      var detect = /Win/i.test(platform) ? Promise.resolve({ label: "Windows", file: /\.exe$/i })
+        : isMac ? macChip().then(function (chip) {
+            // An unknown chip keeps the button on the install section, which lists both Mac files.
+            if (chip === "arm64") return { label: "Mac (Apple Silicon)", file: /mac-arm64\.dmg$/i };
+            if (chip === "x64") return { label: "Mac (Intel)", file: /mac-x64\.dmg$/i };
+            return null;
+          })
+        : /Linux/i.test(platform) ? Promise.resolve({ label: "Linux", file: /\.AppImage$/i })
+        : Promise.resolve(null);
+
+      // Chromium browsers report the chip directly. Elsewhere the graphics renderer gives it away
+      // ("Apple M1" vs "Intel Iris"), unless the browser masks it as a generic "Apple GPU".
+      function macChip() {
+        var data = navigator.userAgentData;
+        var hint = data && data.getHighEntropyValues
+          ? data.getHighEntropyValues(["architecture"]).then(function (v) {
+              return v.architecture === "arm" ? "arm64" : v.architecture === "x86" ? "x64" : null;
+            }, function () { return null; })
+          : Promise.resolve(null);
+        return hint.then(function (chip) {
+          if (chip) return chip;
+          try {
+            var gl = document.createElement("canvas").getContext("webgl");
+            var info = gl && gl.getExtension("WEBGL_debug_renderer_info");
+            var renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+            if (/Apple M\d/i.test(renderer)) return "arm64";
+            if (/Intel|AMD|Radeon|NVIDIA/i.test(renderer)) return "x64";
+          } catch (e) {}
+          return null;
+        });
+      }
+
+      detect.then(function (match) {
+        if (!match) return;
+        target = match;
+        return fetch("https://api.github.com/repos/{{ config.repo_name }}/releases/latest");
+      })
+        .then(function (r) { return r && r.ok ? r.json() : null; })
         .then(function (release) {
-          var asset = release && (release.assets || []).filter(function (a) { return os.file.test(a.name); })[0];
+          var asset = release && (release.assets || []).filter(function (a) { return target.file.test(a.name); })[0];
           if (!asset) return;
           document.querySelectorAll("[data-ff-download]").forEach(function (button) {
             button.href = asset.browser_download_url;
-            button.textContent = "Download for " + os.label;
+            button.textContent = "Download for " + target.label;
           });
         })
         .catch(function () {});

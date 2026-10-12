@@ -104,7 +104,7 @@ The resolver attempts every open GitHub issue FixFlow filed for an existing proj
 
 ## Running from source
 
-For an Intel Mac, a headless server, or working on FixFlow itself. Needs Node 24+ and git, on Linux or macOS.
+For a headless server, or working on FixFlow itself. Needs Node 24+ and git, on Linux or macOS.
 
 ```bash
 git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
@@ -148,13 +148,13 @@ python3 test/setup-wizard.pty.py   # drives the terminal setup in a pseudo-termi
 cd desktop
 npm install
 npm start                 # run from the repo (uses the repo's .env)
-npm run dist:mac          # build release/FixFlow-<version>-mac-arm64.dmg
+npm run dist:mac          # build release/FixFlow-<version>-mac-arm64.dmg and -mac-x64.dmg (Intel)
 npm run dist:win          # an NSIS .exe installer
 npm run dist:linux        # an AppImage
 npm run test:e2e          # Playwright against the built macOS app; build first
 ```
 
-Pushing a `v*` tag builds all three on GitHub Actions and attaches them to the release, unsigned. Only the macOS build is tested.
+Pushing a `v*` tag builds all three on GitHub Actions and attaches them to the release, unsigned. Only the Apple Silicon build is tested.
 
 In the built app, `.env` lives in the app's user-data folder, separate from the repo's and kept across updates: `~/Library/Application Support/FixFlow/.env` on macOS, `%APPDATA%\FixFlow\.env` on Windows, `~/.config/FixFlow/.env` on Linux. The server runs with that folder as its working directory. Builds before 1.1.0 kept it inside the app; the first launch of a newer build copies it over. The macOS build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Removing that step for users needs a Developer ID certificate and notarization; on Windows, a code-signing certificate.
 

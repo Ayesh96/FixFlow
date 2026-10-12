@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- **Intel Macs.** Each release now has a `mac-x64.dmg` beside the Apple Silicon `mac-arm64.dmg`. The 1.1.0 `.dmg` was Apple Silicon only, so an Intel Mac refused to open it ("not supported on this Mac").
+- The docs site's Download button picks the Mac file by chip. When the browser does not reveal the chip, it shows both Mac downloads instead of guessing.
+
 ## 1.1.0
 
 - **Setup.** The first `npm start` (or `node bin/fixflow.mjs`) in a terminal asks for the settings and writes `.env`; `npm run setup` changes them later, starting from the current values. It tests the Ollama address, verifies API keys, offers only the models a provider actually has, checks the ports are free, and runs the result through the server's own config checks before writing. Error tracking and the resolver are always on, and at least one model is required.

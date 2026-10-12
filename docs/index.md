@@ -71,7 +71,8 @@ Setup is four steps in a window, and each one is checked before you continue. Mo
 
 | | File | First open |
 |---|---|---|
-| macOS (Apple Silicon) | `.dmg` | Drag FixFlow to Applications. It is not notarized, so allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| macOS, Apple Silicon (M1 and later) | `mac-arm64.dmg` | Drag FixFlow to Applications. It is not notarized, so allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| macOS, Intel | `mac-x64.dmg` | The same. Apple menu › About This Mac: **Chip** means Apple Silicon, **Processor** means Intel. |
 | Windows | `.exe` installer | Unsigned, so SmartScreen warns: **More info › Run anyway**. |
 | Linux | `.AppImage` | `chmod +x` it, then run it. |
 
@@ -79,7 +80,7 @@ The app brings its own runtime; the only other thing it needs is [git](https://g
 
 Add a project on the **Projects** tab (repository, GitHub token, branch) and set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The project's connect guide shows the code.
 
-The Windows and Linux builds are not tested yet. On an Intel Mac or a headless server, [run from source](reference.md#running-from-source).
+The Windows, Linux and Intel Mac builds are not tested yet. On a headless server, [run from source](reference.md#running-from-source).
 
 ## Guides
 
@@ -113,4 +114,4 @@ The Windows and Linux builds are not tested yet. On an Intel Mac or a headless s
 
 ## Limits
 
-Errors only: no tracing, session replay or alert rules. One user, loopback by default. Windows and Linux desktop builds untested. Fix success rate not measured. Source-available under FSL-1.1-ALv2, not an OSI open-source license.
+Errors only: no tracing, session replay or alert rules. One user, loopback by default. Windows, Linux and Intel Mac desktop builds untested. Fix success rate not measured. Source-available under FSL-1.1-ALv2, not an OSI open-source license.

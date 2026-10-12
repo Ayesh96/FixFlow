@@ -1,6 +1,6 @@
 {
   "name": "fixflow",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "FixFlow, the coding factory. Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
   "license": "FSL-1.1-ALv2",
   "author": "Ayesh",

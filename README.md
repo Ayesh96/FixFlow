@@ -21,7 +21,8 @@ Between an exception in production and a fix, someone has to group duplicates, w
 
 | | File | First open |
 |---|---|---|
-| macOS (Apple Silicon) | `.dmg` | Drag FixFlow to Applications. The app is not notarized, so macOS blocks the first open: allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| macOS, Apple Silicon (M1 and later) | `mac-arm64.dmg` | Drag FixFlow to Applications. The app is not notarized, so macOS blocks the first open: allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| macOS, Intel | `mac-x64.dmg` | The same. Not sure which you have? Apple menu › About This Mac: **Chip** means Apple Silicon, **Processor** means Intel. |
 | Windows | `.exe` installer | The installer is unsigned, so SmartScreen warns: **More info › Run anyway**. |
 | Linux | `.AppImage` | `chmod +x FixFlow-*.AppImage`, then run it. |
 
@@ -37,7 +38,7 @@ On first launch a four-step setup asks for the dashboard port and data folder, a
 2. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The project's connect guide shows the code for Python, Node.js and the browser.
 3. Errors appear on the project's page (**View errors** on its card). Those with a stack trace are filed as GitHub issues.
 
-The desktop builds for Windows and Linux are not tested yet; the macOS build is. On an Intel Mac or a headless server, see [running from source](docs/reference.md#running-from-source).
+The desktop builds for Windows, Linux and Intel Macs are not tested yet; the Apple Silicon build is. On a headless server, see [running from source](docs/reference.md#running-from-source).
 
 ## Features
 
@@ -94,7 +95,7 @@ No committed roadmap. Known gaps:
 
 - The resolver ignores triage tags (see above).
 - No measured fix success rate.
-- The Windows and Linux desktop builds are untested, the macOS build is for Apple Silicon only, and none of them are signed by a recognised developer.
+- The Windows, Linux and Intel Mac desktop builds are untested, and none of the builds are signed by a recognised developer.
 - No container image.
 
 Bugs and ideas: [issues](https://github.com/Ayesh96/FixFlow/issues).

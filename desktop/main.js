@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, utilityProcess, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, utilityProcess, dialog, Menu, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
@@ -9,23 +9,78 @@ const { pathToFileURL } = require('node:url');
 const ROOT = app.isPackaged ? path.join(process.resourcesPath, 'app') : path.join(__dirname, '..');
 const ENV_PATH = path.join(ROOT, '.env');
 
-let onboardingWindow = null;
+let setupWindow = null;
 let mainWindow = null;
 let serverProcess = null;
 
-function showOnboarding() {
-  onboardingWindow = new BrowserWindow({
-    width: 560,
-    height: 680,
-    minWidth: 480,
-    minHeight: 520,
+const importScript = (name) => import(pathToFileURL(path.join(ROOT, 'scripts', name)).href);
+
+// ---- Window size and position, remembered between launches ----------------------------------
+
+const stateFile = () => path.join(app.getPath('userData'), 'window-state.json');
+
+function readWindowState() {
+  try {
+    return JSON.parse(fs.readFileSync(stateFile(), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+/** The last bounds of window `name` if they still fit on a screen, else `fallback()`. */
+function boundsFor(name, fallback) {
+  const saved = readWindowState()[name];
+  if (saved && screen.getAllDisplays().some(({ workArea: a }) => saved.x >= a.x && saved.y >= a.y && saved.x < a.x + a.width && saved.y < a.y + a.height)) {
+    return saved;
+  }
+  return fallback(screen.getPrimaryDisplay().workArea);
+}
+
+function remember(win, name) {
+  win.on('close', () => {
+    const state = readWindowState();
+    state[name] = { ...win.getNormalBounds(), maximized: win.isMaximized() };
+    try {
+      fs.mkdirSync(path.dirname(stateFile()), { recursive: true });
+      fs.writeFileSync(stateFile(), JSON.stringify(state));
+    } catch {
+      // Not worth interrupting the user over: the window just opens at its default size next time.
+    }
+  });
+}
+
+const centered = (area, width, height) => ({
+  width,
+  height,
+  x: Math.round(area.x + (area.width - width) / 2),
+  y: Math.round(area.y + (area.height - height) / 2),
+});
+
+// ---- Setup / settings window ------------------------------------------------------------------
+
+/** `first` is the onboarding before .env exists; `settings` edits the current .env later. */
+function openSetup(mode) {
+  if (setupWindow) {
+    setupWindow.focus();
+    return;
+  }
+  const bounds = boundsFor('setup', (area) => centered(area, Math.min(760, area.width), Math.min(860, area.height)));
+  setupWindow = new BrowserWindow({
+    ...bounds,
+    minWidth: 520,
+    minHeight: 560,
     backgroundColor: '#0a0a0a',
-    autoHideMenuBar: true,
-    title: 'Set up FixFlow',
+    title: mode === 'settings' ? 'FixFlow settings' : 'Set up FixFlow',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
-  onboardingWindow.loadFile(path.join(__dirname, 'onboarding.html'));
+  remember(setupWindow, 'setup');
+  setupWindow.on('closed', () => {
+    setupWindow = null;
+  });
+  setupWindow.loadFile(path.join(__dirname, 'onboarding.html'), { query: { mode } });
 }
+
+// ---- Server -----------------------------------------------------------------------------------
 
 // Forks bin/fixflow.mjs in Electron's own bundled Node — no system Node install required.
 // Resolves with the dashboard URL (including the login token) once the server prints it.
@@ -44,15 +99,42 @@ function startServer() {
         resolve(match[1]);
       }
     });
-    child.stderr.on('data', (chunk) => console.error('[fixflow]', chunk.toString()));
+    child.stderr.on('data', (chunk) => {
+      buffer += chunk.toString();
+      console.error('[fixflow]', chunk.toString());
+    });
     child.on('exit', (code) => {
-      serverProcess = null;
+      if (serverProcess === child) serverProcess = null;
       if (!settled) {
         settled = true;
-        reject(new Error(`FixFlow exited before starting (code ${code}).\n${buffer}`));
+        reject(new Error(`FixFlow exited before starting (code ${code}).\n${buffer.trim()}`));
       }
     });
   });
+}
+
+function stopServer() {
+  const child = serverProcess;
+  if (!child) return Promise.resolve();
+  return new Promise((resolve) => {
+    child.once('exit', () => resolve());
+    child.kill();
+  });
+}
+
+async function showDashboard(url) {
+  if (mainWindow) {
+    await mainWindow.loadURL(url);
+    return;
+  }
+  const bounds = boundsFor('dashboard', (area) => centered(area, Math.round(area.width * 0.9), Math.round(area.height * 0.9)));
+  mainWindow = new BrowserWindow({ ...bounds, minWidth: 800, minHeight: 560, backgroundColor: '#0a0a0a', title: 'FixFlow' });
+  if (bounds.maximized) mainWindow.maximize();
+  remember(mainWindow, 'dashboard');
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+  await mainWindow.loadURL(url);
 }
 
 async function launchDashboard() {
@@ -64,29 +146,66 @@ async function launchDashboard() {
     app.quit();
     return;
   }
-  mainWindow = new BrowserWindow({ width: 1280, height: 860, title: 'FixFlow' });
-  await mainWindow.loadURL(url);
+  await showDashboard(url);
 }
 
-// Shared setup helpers (live checks, validation). Network checks run here, in the main process,
-// so API keys never reach the page's own JavaScript beyond the password inputs.
-async function loadSetupChecks() {
-  return import(pathToFileURL(path.join(ROOT, 'scripts', 'setup-checks.mjs')).href);
+/**
+ * Writes the new .env and (re)starts the server with it. If the server will not start, the old
+ * .env (or none) is put back, the old server is started again, and the error goes to the page.
+ */
+async function applySettings(envText) {
+  const previous = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : null;
+  await stopServer();
+  fs.writeFileSync(ENV_PATH, envText);
+  try {
+    await showDashboard(await startServer());
+  } catch (err) {
+    if (previous === null) fs.rmSync(ENV_PATH, { force: true });
+    else fs.writeFileSync(ENV_PATH, previous);
+    if (previous !== null) await startServer().catch(() => {});
+    throw new Error(`FixFlow did not start with these settings, so nothing was changed.\n${err instanceof Error ? err.message : String(err)}`);
+  }
 }
+
+/** Ports the running server holds; they are "busy" only because FixFlow itself is using them. */
+async function ownPorts() {
+  if (!serverProcess || !fs.existsSync(ENV_PATH)) return new Set();
+  const { parseEnvFile } = await importScript('env-template.mjs');
+  const current = parseEnvFile(fs.readFileSync(ENV_PATH, 'utf8'));
+  return new Set([current.port, current.ingestPort]);
+}
+
+async function checkPortForSetup(checks, port) {
+  if ((await ownPorts()).has(port)) return { ok: true };
+  return checks.checkPort(port);
+}
+
+// ---- IPC for the setup page -------------------------------------------------------------------
+
+// Network checks run here, in the main process, so API keys never reach the page's own
+// JavaScript beyond the password inputs.
+const loadSetupChecks = () => importScript('setup-checks.mjs');
 
 ipcMain.handle('setup:checkOllama', async (_event, url) => (await loadSetupChecks()).checkOllama(String(url ?? '')));
 ipcMain.handle('setup:checkDeepseek', async (_event, apiKey) => (await loadSetupChecks()).checkDeepSeek(String(apiKey ?? ''), process.env.ORCH_DEEPSEEK_API_URL || undefined));
 ipcMain.handle('setup:checkAnthropic', async (_event, apiKey) => (await loadSetupChecks()).checkAnthropic(String(apiKey ?? ''), process.env.ORCH_ANTHROPIC_API_URL || undefined));
-ipcMain.handle('setup:checkPort', async (_event, port) => (await loadSetupChecks()).checkPort(Number(port)));
+ipcMain.handle('setup:checkPort', async (_event, port) => checkPortForSetup(await loadSetupChecks(), Number(port)));
 
 ipcMain.handle('setup:constants', async () => {
-  const { LEVELS, POLL_INTERVALS } = await loadSetupChecks();
-  return { LEVELS, POLL_INTERVALS };
+  const { LEVEL_CHOICES, POLL_INTERVALS } = await loadSetupChecks();
+  return { LEVEL_CHOICES, POLL_INTERVALS };
+});
+
+/** The current settings, for the settings screen to start from; null before onboarding. */
+ipcMain.handle('setup:current', async () => {
+  if (!fs.existsSync(ENV_PATH)) return null;
+  const { parseEnvFile } = await importScript('env-template.mjs');
+  return parseEnvFile(fs.readFileSync(ENV_PATH, 'utf8'));
 });
 
 ipcMain.handle('setup:pickFolder', async () => {
   const options = { title: 'Choose the FixFlow data folder', properties: ['openDirectory', 'createDirectory'] };
-  const parent = BrowserWindow.getFocusedWindow() ?? onboardingWindow;
+  const parent = BrowserWindow.getFocusedWindow() ?? setupWindow;
   const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options);
   return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
 });
@@ -94,7 +213,7 @@ ipcMain.handle('setup:pickFolder', async () => {
 // Errors are thrown as JSON of the {field: message} map so the page can show each one under its field.
 // Electron prefixes thrown errors in the renderer; the page strips that prefix.
 ipcMain.handle('setup:save', async (_event, values) => {
-  const { buildEnvFile } = await import(pathToFileURL(path.join(ROOT, 'scripts', 'env-template.mjs')).href);
+  const { buildEnvFile } = await importScript('env-template.mjs');
   const checks = await loadSetupChecks();
 
   const { errors = {} } = (await checks.validateValues(values)) ?? {};
@@ -104,7 +223,7 @@ ipcMain.handle('setup:save', async (_event, values) => {
   // then failing to listen would leave a broken setup behind, so check again right before writing.
   const busy = {};
   for (const key of ['port', 'ingestPort']) {
-    const result = await checks.checkPort(Number(values[key]));
+    const result = await checkPortForSetup(checks, Number(values[key]));
     if (!result.ok) busy[key] = `${result.error || 'This port is not available'}. Pick a different port.`;
   }
   if (Object.keys(busy).length > 0) throw new Error(JSON.stringify(busy));
@@ -116,17 +235,31 @@ ipcMain.handle('setup:save', async (_event, values) => {
     throw new Error(problems.join('\n'));
   }
 
-  fs.writeFileSync(ENV_PATH, envText);
-  await launchDashboard();
-  onboardingWindow?.close();
-  onboardingWindow = null;
+  await applySettings(envText);
+  setupWindow?.close();
 });
 
+// ---- Menu -------------------------------------------------------------------------------------
+
+function buildMenu() {
+  const settings = { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => openSetup(fs.existsSync(ENV_PATH) ? 'settings' : 'first') };
+  const template = [
+    ...(process.platform === 'darwin'
+      ? [{ label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, settings, { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }]
+      : [{ label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] }]),
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 app.whenReady().then(() => {
+  buildMenu();
   if (fs.existsSync(ENV_PATH)) {
     void launchDashboard();
   } else {
-    showOnboarding();
+    openSetup('first');
   }
 });
 

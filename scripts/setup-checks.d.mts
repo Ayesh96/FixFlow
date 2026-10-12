@@ -1,5 +1,6 @@
 export const LEVELS: readonly string[];
 export const POLL_INTERVALS: readonly { label: string; ms: number }[];
+export const LEVEL_CHOICES: readonly { value: string; label: string }[];
 
 export interface ProviderCheck {
   ok: boolean;

@@ -14,6 +14,15 @@ export const POLL_INTERVALS = [
   { label: '1 hour', ms: 3600000 },
 ];
 
+// ORCH_ERRORS_MIN_LEVEL is a threshold: each choice files that level and everything above it.
+export const LEVEL_CHOICES = [
+  { value: 'fatal', label: 'Crashes only (fatal)' },
+  { value: 'error', label: 'Errors and crashes (error, fatal)' },
+  { value: 'warning', label: 'Warnings too (warning, error, fatal)' },
+  { value: 'info', label: 'Info too (info, warning, error, fatal)' },
+  { value: 'debug', label: 'Everything (debug and up)' },
+];
+
 // Same floor as RESOLVER_MIN_POLL_INTERVAL_MS in server/constants.ts.
 const MIN_POLL_INTERVAL_MS = 30000;
 

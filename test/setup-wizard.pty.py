@@ -5,8 +5,8 @@ Covers section T of desktop/tests/CASES.md. Prints `PASS <id>` or `FAIL <id>: <w
 
 Each case runs in a fresh scratch copy of scripts/, server/ and package.json, with node_modules
 symlinked, so the wizard writes only to the scratch copy. HOME is also pointed at the scratch
-copy, so the default ~/.fixflow is never created. A fake Ollama and a fake DeepSeek run in this
-process, and the busy-port case holds a real listening socket. The real repo .env is only
+copy, so the default ~/.fixflow is never created. A fake Ollama, DeepSeek and Anthropic run in
+this process, and the busy-port cases hold real listening sockets. The real repo .env is only
 checksummed before and after the run (case GUARD).
 
 Usage: python3 test/setup-wizard.pty.py      (macOS or Linux, with node on PATH)
@@ -34,6 +34,7 @@ CTRL_D = '\x04'
 GOOD_KEY = 'sk-good'
 OLLAMA_MODELS = ['qwen2.5-coder:7b', 'llama3.2:3b']
 DEEPSEEK_MODELS = ['deepseek-chat', 'deepseek-reasoner']
+ANTHROPIC_MODELS = ['claude-haiku-4-5', 'claude-sonnet-4-5']
 ANSI = re.compile(r'\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[()][0-9A-Za-z]|\x1b[=>]|\x1b\][^\x07]*\x07')
 
 STATE = {'ollama': 'ok'}  # ok | empty | error, read by the fake Ollama
@@ -59,9 +60,17 @@ def ollama_routes(path, headers):
 def deepseek_routes(path, headers):
     if path != '/models':
         return 404, {}
-    if headers.get('Authorization') != f'Bearer {GOOD_KEY}':
+    if not (headers.get('Authorization') or '').startswith(f'Bearer {GOOD_KEY}'):
         return 401, {'error': {'message': 'Authentication Fails'}}
     return 200, {'object': 'list', 'data': [{'id': m, 'object': 'model'} for m in DEEPSEEK_MODELS]}
+
+
+def anthropic_routes(path, headers):
+    if path != '/v1/models':
+        return 404, {}
+    if not (headers.get('x-api-key') or '').startswith('sk-ant-good'):
+        return 401, {'error': {'message': 'invalid x-api-key'}}
+    return 200, {'data': [{'id': m, 'type': 'model'} for m in ANTHROPIC_MODELS]}
 
 
 def start_server(routes):
@@ -260,21 +269,22 @@ def ollama_ok_steps(url):
 HOSTED_NO = [('Set up DeepSeek', 'n'), ('Set up Anthropic', 'n')]
 
 
-def errors_resolver_steps(ing, thresholds=('',)):
-    steps = [('Ingest port', str(ing)), ('Choice', ''), ('sentry_key', ''), ('Labels applied', ''), ('Choice', ''), ]
+def errors_resolver_steps(ing, thresholds=('',), level=''):
+    steps = [('Ingest port', str(ing)), ('Choice', ''), ('sentry_key', ''), ('Labels applied', ''), ('Choice', level), ]
     steps += [('Event counts', t) for t in thresholds]
     steps += [('Days to keep', ''), ('Choice', ''), ('Max fixes running', ''), ('Max attempts', ''), ('Retry SKIPPED', '')]
     return steps
 
 
 class Ctx:
-    def __init__(self, scratch, dash, ing, ollama_url, deepseek_url):
+    def __init__(self, scratch, dash, ing, ollama_url, deepseek_url, anthropic_url):
         self.scratch, self.dash, self.ing = scratch, dash, ing
-        self.ollama_url, self.deepseek_url = ollama_url, deepseek_url
+        self.ollama_url, self.deepseek_url, self.anthropic_url = ollama_url, deepseek_url, anthropic_url
         self.data = scratch / 'data'
 
     def run(self, steps, timeout=60.0):
-        return run_wizard(self.scratch, steps, {'ORCH_DEEPSEEK_API_URL': self.deepseek_url}, timeout)
+        env = {'ORCH_DEEPSEEK_API_URL': self.deepseek_url, 'ORCH_ANTHROPIC_API_URL': self.anthropic_url}
+        return run_wizard(self.scratch, steps, env, timeout)
 
     def happy_steps(self):
         return start_steps(self.data, self.dash) + ollama_ok_steps(self.ollama_url) + HOSTED_NO + errors_resolver_steps(self.ing)
@@ -285,11 +295,12 @@ def case_ctx(env_bytes=None, ollama_state='ok'):
     scratch = make_scratch(env_bytes)
     ollama_srv, ollama_url = start_server(ollama_routes)
     deepseek_srv, deepseek_url = start_server(deepseek_routes)
+    anthropic_srv, anthropic_url = start_server(anthropic_routes)
     STATE['ollama'] = ollama_state
     dash, ing = free_port(), free_port()
     while ing == dash:
         ing = free_port()
-    ctx = Ctx(scratch, dash, ing, ollama_url, deepseek_url)
+    ctx = Ctx(scratch, dash, ing, ollama_url, deepseek_url, anthropic_url)
     keep = False
     try:
         yield ctx
@@ -298,10 +309,9 @@ def case_ctx(env_bytes=None, ollama_state='ok'):
         raise
     finally:
         STATE['ollama'] = 'ok'
-        ollama_srv.shutdown()
-        deepseek_srv.shutdown()
-        ollama_srv.server_close()
-        deepseek_srv.server_close()
+        for srv in (ollama_srv, deepseek_srv, anthropic_srv):
+            srv.shutdown()
+            srv.server_close()
         if not keep:
             shutil.rmtree(scratch, ignore_errors=True)
 
@@ -479,10 +489,138 @@ def case_T11():
              f'server loadConfig rejected the .env: {(proc.stderr or proc.stdout).strip()[-300:]}')
 
 
+# A complete .env with every setting set to a non-default value, so the edit cases can
+# tell whether each prompt really defaults to what the file says.
+EDIT_FIXTURE = '''PORT={dash}
+ORCH_DATA_DIR={data}
+ORCH_LLM_PROVIDERS=anthropic,deepseek,ollama
+ORCH_OLLAMA_URL={ollama}
+ORCH_OLLAMA_MODEL=llama3.2:3b
+ORCH_DEEPSEEK_API_KEY=sk-good-KEEP1234
+ORCH_DEEPSEEK_MODEL=deepseek-reasoner
+ORCH_ANTHROPIC_API_KEY=sk-ant-good-ABCD
+ORCH_ANTHROPIC_MODEL=claude-sonnet-4-5
+ORCH_ERRORS_ENABLED=1
+ORCH_ERRORS_INGEST_PORT={ing}
+ORCH_ERRORS_INGEST_HOST=0.0.0.0
+ORCH_ERRORS_DSN_PUBLIC_KEY=access-KEY-5678
+ORCH_ERRORS_GITHUB_LABELS=bug,sentry,prod
+ORCH_ERRORS_MIN_LEVEL=warning
+ORCH_ERRORS_COMMENT_THRESHOLDS=50,500
+ORCH_ERRORS_RETENTION_DAYS=14
+ORCH_RESOLVER_ENABLED=1
+ORCH_RESOLVER_POLL_INTERVAL_MS=900000
+ORCH_RESOLVER_MAX_CONCURRENT_FIXES=2
+ORCH_RESOLVER_MAX_ATTEMPTS=5
+ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS=1
+'''
+
+
+def write_edit_fixture(c):
+    (c.scratch / '.env').write_text(EDIT_FIXTURE.format(dash=c.dash, ing=c.ing, data=c.data, ollama=c.ollama_url))
+    return read_env(c.scratch)
+
+
+def hold_port(port):
+    """A listening socket, so the port is busy the way a running FixFlow server would leave it."""
+    s = socket.socket()
+    s.bind(('127.0.0.1', port))
+    s.listen(1)
+    return s
+
+
+def edit_steps(c, max_fixes=''):
+    """Answers Enter to every question (Overwrite: y). max_fixes overrides the one answer."""
+    return [
+        ('Overwrite it', 'y'),
+        ('Dashboard port', ''), ('Data folder', ''),
+        ('Set up Ollama', ''), ('Ollama URL', ''), ('Choice', ''),
+        ('Set up DeepSeek', ''), ('DeepSeek API key', ''), ('Choice', ''),
+        ('Set up Anthropic', ''), ('Anthropic API key', ''), ('Choice', ''),
+        ('Order to try them in', ''),
+        ('Ingest port', ''), ('Choice', ''), ('sentry_key', ''), ('Labels applied', ''), ('Choice', ''),
+        ('Event counts', ''), ('Days to keep', ''), ('Choice', ''),
+        ('Max fixes running', max_fixes), ('Max attempts', ''), ('Retry SKIPPED', ''),
+    ]
+
+
+def diff_env(before, after):
+    return {k: (before.get(k), after.get(k)) for k in set(before) | set(after) if before.get(k) != after.get(k)}
+
+
+def case_E1():
+    with case_ctx() as c:
+        before = write_edit_fixture(c)
+        held = [hold_port(c.dash), hold_port(c.ing)]  # the running server holds both ports
+        try:
+            run = c.run(edit_steps(c))
+        finally:
+            for s in held:
+                s.close()
+        need_finished(run)
+        need(run.rc == 0, f'exit code {run.rc}, expected 0')
+        need('editing the existing settings' in run.text, 'heading does not say the settings are being edited')
+        need('is already in use' not in run.text, 'a port the existing .env already uses was reported busy')
+        need_in_order(run.text, ['Lowest level filed on GitHub', 'Choice [3]'])
+        after = read_env(c.scratch)
+        need(after == before, f'values changed after pressing Enter on every question: {diff_env(before, after)}')
+
+
+def case_E2():
+    with case_ctx() as c:
+        before = write_edit_fixture(c)
+        held = [hold_port(c.dash), hold_port(c.ing)]
+        try:
+            run = c.run(edit_steps(c, max_fixes='4'))
+        finally:
+            for s in held:
+                s.close()
+        need_finished(run)
+        need(run.rc == 0, f'exit code {run.rc}, expected 0')
+        changed = diff_env(before, read_env(c.scratch))
+        need(changed == {'ORCH_RESOLVER_MAX_CONCURRENT_FIXES': ('2', '4')},
+             f'changed values were {changed}, expected only ORCH_RESOLVER_MAX_CONCURRENT_FIXES 2 -> 4')
+
+
+def case_E3():
+    with case_ctx() as c:
+        before = write_edit_fixture(c)
+        held = [hold_port(c.dash), hold_port(c.ing)]
+        try:
+            run = c.run(edit_steps(c))
+        finally:
+            for s in held:
+                s.close()
+        need_finished(run)
+        for mask in ('[••••1234]', '[••••ABCD]', '[••••5678]'):
+            need(mask in run.text, f'masked key {mask} was not shown')
+        for secret in ('sk-good-KEEP1234', 'sk-ant-good-ABCD', 'access-KEY-5678'):
+            need(secret not in run.text, 'a stored key was printed in full')
+        need(read_env(c.scratch) == before, 'a stored key was lost on a blank answer')
+
+
+def case_L1():
+    with case_ctx() as c:
+        run = c.run(start_steps(c.data, c.dash) + ollama_ok_steps(c.ollama_url) + HOSTED_NO
+                    + errors_resolver_steps(c.ing, level='3'))
+        need_finished(run)
+        need_in_order(run.text, [
+            'Lowest level filed on GitHub',
+            '1) Crashes only (fatal)',
+            '2) Errors and crashes (error, fatal)',
+            '3) Warnings too (warning, error, fatal)',
+            '4) Info too (info, warning, error, fatal)',
+            '5) Everything (debug and up)',
+            'Choice [2]',
+        ])
+        need_env(c.scratch, 'ORCH_ERRORS_MIN_LEVEL', 'warning')
+
+
 CASES = [
     ('T1', case_T1), ('T2', case_T2), ('T3', case_T3), ('T4', case_T4), ('T5', case_T5),
     ('T6', case_T6), ('T7', case_T7), ('T7b', case_T7b), ('T7c', case_T7c), ('T8', case_T8),
     ('T9', case_T9), ('T10', case_T10), ('T11', case_T11),
+    ('E1', case_E1), ('E2', case_E2), ('E3', case_E3), ('L1', case_L1),
 ]
 
 

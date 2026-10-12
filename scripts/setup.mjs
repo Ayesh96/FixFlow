@@ -1,15 +1,16 @@
 // Interactive first-run setup: asks for every .env.example setting and writes .env.
 // Run directly with `npm run setup`, or it runs itself once, automatically, from
-// ensure-build.mjs and bin/fixflow.mjs when no .env exists yet.
+// ensure-build.mjs and bin/fixflow.mjs when no .env exists yet. When a .env already exists
+// and the user chooses to overwrite it, the same questions run with its values as defaults.
 import './check-node.mjs';
-import { existsSync, writeFileSync, mkdirSync, accessSync, constants } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, constants } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildEnvFile } from './env-template.mjs';
+import { buildEnvFile, parseEnvFile } from './env-template.mjs';
 import {
-  LEVELS,
+  LEVEL_CHOICES,
   POLL_INTERVALS,
   checkPort,
   checkOllama,
@@ -51,7 +52,8 @@ const askInt = async (question, fallback, min = 0) => {
     console.log(min > 0 ? `  Please enter a whole number, ${min} or more.` : '  Please enter a whole number.');
   }
 };
-const askPort = async (question, fallback, otherPort) => {
+// keepPort is set only while editing: the running server may already hold the port the .env uses.
+const askPort = async (question, fallback, otherPort, keepPort) => {
   while (true) {
     const answer = await ask(question, String(fallback));
     const n = isWhole(answer) ? Number(answer) : 0;
@@ -63,6 +65,7 @@ const askPort = async (question, fallback, otherPort) => {
       console.log(`  That is the dashboard port (${otherPort}). Pick a different one.`);
       continue;
     }
+    if (n === keepPort) return n;
     const check = await checkPort(n);
     if (!check.ok) {
       console.log(`  ${check.error || `Port ${n} is not available.`}`);
@@ -105,16 +108,26 @@ const pick = async (title, labels, defaultIndex) => {
   }
 };
 // Picks from a live model list when there is one, otherwise asks for the name as text.
-const pickModel = async (models, fallback, question) => {
+// keepCurrent (editing) keeps the current model on the list even if the provider no longer lists it.
+const pickModel = async (models, fallback, question, keepCurrent = false) => {
   if (!models.length) return ask(question, fallback);
-  const idx = models.indexOf(fallback);
-  return models[await pick('Models available:', models, idx >= 0 ? idx : 0)];
+  const list = keepCurrent && !models.includes(fallback) ? [fallback, ...models] : models;
+  const idx = list.indexOf(fallback);
+  return list[await pick('Models available:', list, idx >= 0 ? idx : 0)];
 };
-// Asks for an API key and checks it. Blank skips the provider. An unreachable host
-// is only a warning, so the user can carry on without a model list.
-const askProviderKey = async (name, check) => {
+// A stored key is shown as [••••1234]: enough to recognise it, never the whole key.
+const maskKey = (key) => `[••••${key.length > 4 ? key.slice(-4) : ''}]`;
+// Asks for an API key and checks it. Blank skips the provider, or keeps the stored key when there is one.
+// An unreachable host is only a warning, so the user can carry on without a model list.
+const askProviderKey = async (name, check, stored = '') => {
   while (true) {
-    const key = await ask(`  ${name} API key (blank to skip)`);
+    const prompt = stored ? `  ${name} API key ${maskKey(stored)} (Enter keeps it)` : `  ${name} API key (blank to skip)`;
+    const key = (await rl.question(`${prompt} `)).trim();
+    if (!key && stored) {
+      // The check only fetches the model list here, so a failure is not an error.
+      const r = await check(stored);
+      return { key: stored, models: r.ok ? (r.models ?? []) : [] };
+    }
     if (!key) return { key: '', models: [] };
     const r = await check(key);
     if (r.ok) return { key, models: r.models ?? [] };
@@ -122,18 +135,25 @@ const askProviderKey = async (name, check) => {
       console.log(`  Could not reach ${name} to check the key${r.error ? `: ${r.error}` : ''}. Continuing without a check.`);
       return { key, models: [] };
     }
-    console.log(`  ${name} rejected that key${r.error ? `: ${r.error}` : ''}. Try again, or leave blank to skip ${name}.`);
+    console.log(`  ${name} rejected that key${r.error ? `: ${r.error}` : ''}. Try again, or leave blank to ${stored ? 'keep the stored key' : `skip ${name}`}.`);
   }
+};
+// The ingest sentry_key. Blank means no check on a first run. A stored key is masked: Enter keeps it, "-" removes it.
+const askAccessKey = async (question, stored) => {
+  if (!stored) return ask(`${question} (blank = no check)`);
+  const answer = (await rl.question(`${question} ${maskKey(stored)} (Enter keeps it, - removes it) `)).trim();
+  if (answer === '') return stored;
+  return answer === '-' ? '' : answer;
 };
 // Asks for the Ollama address until it answers with at least one model. The user can also
 // turn Ollama off instead. Returns { url, model }, or null when Ollama is turned off.
-const askOllama = async () => {
-  let url = 'http://localhost:11434';
+const askOllama = async (d, keepCurrent) => {
+  let url = d.ollamaUrl;
   while (true) {
     url = await ask('  Ollama URL', url);
     const check = await checkOllama(url);
     if (check.ok && check.models?.length) {
-      const model = await pickModel(check.models, 'qwen2.5-coder:7b', '  Ollama model (`ollama pull <model>` first)');
+      const model = await pickModel(check.models, d.ollamaModel || 'qwen2.5-coder:7b', '  Ollama model (`ollama pull <model>` first)', keepCurrent);
       return { url, model };
     }
     if (check.ok) console.log('  Ollama is running but has no models yet. Get the default with: ollama pull qwen2.5-coder:7b');
@@ -144,18 +164,24 @@ const askOllama = async () => {
 };
 
 async function main() {
-  if (existsSync(envPath)) {
+  const editing = existsSync(envPath);
+  if (editing) {
     const overwrite = await askYesNo('.env already exists. Overwrite it?', false);
     if (!overwrite) {
       console.log('Keeping the existing .env. Nothing changed.');
       return;
     }
   }
+  // Every question below defaults to the matching value in the current .env. A first run uses the
+  // defaults of an empty .env, which are the ones the wizard has always offered.
+  const d = parseEnvFile(editing ? readFileSync(envPath, 'utf8') : '');
 
-  console.log('FixFlow setup — press Enter to accept the default shown in [brackets]. Everything here is optional.\n');
+  console.log(editing
+    ? 'FixFlow setup — editing the existing settings. Press Enter to keep each value shown in [brackets]. Everything here is optional.\n'
+    : 'FixFlow setup — press Enter to accept the default shown in [brackets]. Everything here is optional.\n');
 
-  const port = await askPort('Dashboard port', 7420);
-  const dataDir = await askDataDir('Data folder (token, databases, key and clones)', '~/.fixflow');
+  const port = await askPort('Dashboard port', d.port, undefined, editing ? d.port : undefined);
+  const dataDir = await askDataDir('Data folder (token, databases, key and clones)', d.dataDir);
 
   console.log('\nModels — at least one is required; the resolver writes fixes with it.');
   let providers = [];
@@ -171,8 +197,8 @@ async function main() {
     useOllama = false;
     ollamaUrl = '';
     ollamaModel = '';
-    if (await askYesNo('Set up Ollama (runs a model locally)?', true)) {
-      const ollama = await askOllama();
+    if (await askYesNo('Set up Ollama (runs a model locally)?', editing ? d.useOllama : true)) {
+      const ollama = await askOllama(d, editing);
       if (ollama) {
         useOllama = true;
         ollamaUrl = ollama.url;
@@ -182,24 +208,24 @@ async function main() {
     }
     deepseekKey = '';
     deepseekModel = '';
-    if (await askYesNo('Set up DeepSeek (hosted; sends error text and source code to it)?', false)) {
-      const found = await askProviderKey('DeepSeek', (key) => checkDeepSeek(key, process.env.ORCH_DEEPSEEK_API_URL || undefined));
+    if (await askYesNo('Set up DeepSeek (hosted; sends error text and source code to it)?', Boolean(d.deepseekKey))) {
+      const found = await askProviderKey('DeepSeek', (key) => checkDeepSeek(key, process.env.ORCH_DEEPSEEK_API_URL || undefined), d.deepseekKey);
       deepseekKey = found.key;
       if (deepseekKey) {
         providers.push('deepseek');
-        deepseekModel = await pickModel(found.models, 'deepseek-flash', '  DeepSeek model');
+        deepseekModel = await pickModel(found.models, d.deepseekModel || 'deepseek-flash', '  DeepSeek model', editing);
       } else {
         console.log('  No key entered — skipping DeepSeek.');
       }
     }
     anthropicKey = '';
     anthropicModel = '';
-    if (await askYesNo('Set up Anthropic (hosted; sends error text and source code to it)?', false)) {
-      const found = await askProviderKey('Anthropic', (key) => checkAnthropic(key, process.env.ORCH_ANTHROPIC_API_URL || undefined));
+    if (await askYesNo('Set up Anthropic (hosted; sends error text and source code to it)?', Boolean(d.anthropicKey))) {
+      const found = await askProviderKey('Anthropic', (key) => checkAnthropic(key, process.env.ORCH_ANTHROPIC_API_URL || undefined), d.anthropicKey);
       anthropicKey = found.key;
       if (anthropicKey) {
         providers.push('anthropic');
-        anthropicModel = await pickModel(found.models, 'claude-haiku-4-5', '  Anthropic model');
+        anthropicModel = await pickModel(found.models, d.anthropicModel || 'claude-haiku-4-5', '  Anthropic model', editing);
       } else {
         console.log('  No key entered — skipping Anthropic.');
       }
@@ -207,7 +233,9 @@ async function main() {
     if (providers.length) break;
     console.log('Set up at least one model; the resolver needs one to write fixes.');
   }
-  let providerOrder = providers.join(',');
+  // The current order is kept where it still applies; providers that are new go at the end.
+  const currentOrder = d.providerOrder.split(',').map((s) => s.trim()).filter((p) => providers.includes(p));
+  let providerOrder = [...new Set([...currentOrder, ...providers])].join(',');
   if (providers.length > 1) {
     while (true) {
       const names = (await ask('  Order to try them in, first to last', providerOrder)).split(',').map((s) => s.trim());
@@ -222,25 +250,31 @@ async function main() {
   }
 
   console.log('\nErrors — the Sentry-compatible ingest endpoint and GitHub issue filing.');
-  const ingestPort = await askPort('  Ingest port (separate from the dashboard)', 3000, port);
+  const ingestPort = await askPort('  Ingest port (separate from the dashboard)', d.ingestPort, port, editing ? d.ingestPort : undefined);
   const hostIndex = await pick('Ingest host:', [
     'this machine only (127.0.0.1)',
     'network too (0.0.0.0, anyone who can reach the port can file errors)',
-  ], 0);
+  ], d.ingestHost === '0.0.0.0' ? 1 : 0);
   const ingestHost = hostIndex === 1 ? '0.0.0.0' : '127.0.0.1';
-  const dsnKey = await ask('  Require this sentry_key on ingest requests (blank = no check)');
-  const githubLabels = await ask('  Labels applied to new GitHub issues', 'bug,sentry');
-  const levelIndex = Math.max(0, LEVELS.indexOf('error'));
-  const minLevel = LEVELS[await pick('Lowest level filed on GitHub (others are still stored):', LEVELS, levelIndex)];
-  const commentThresholds = await askThresholds('  Event counts at which it comments on the GitHub issue', '100,1000,10000');
-  const retentionDays = await askInt('  Days to keep raw events (0 keeps everything)', 30, 0);
+  const dsnKey = await askAccessKey('  Require this sentry_key on ingest requests', d.dsnKey);
+  const githubLabels = await ask('  Labels applied to new GitHub issues', d.githubLabels);
+  // ORCH_ERRORS_MIN_LEVEL is a threshold, so each choice files that level and everything above it.
+  const levelValue = LEVEL_CHOICES.some((c) => c.value === d.minLevel) ? d.minLevel : 'error';
+  const levelIndex = LEVEL_CHOICES.findIndex((c) => c.value === levelValue);
+  const minLevel = LEVEL_CHOICES[await pick('Lowest level filed on GitHub (others are still stored):', LEVEL_CHOICES.map((c) => c.label), levelIndex)].value;
+  const commentThresholds = await askThresholds('  Event counts at which it comments on the GitHub issue', d.commentThresholds);
+  const retentionDays = await askInt('  Days to keep raw events (0 keeps everything)', d.retentionDays, 0);
 
   console.log('\nResolver — attempts a fix and opens a pull request for issues FixFlow filed.');
-  const pollDefault = Math.max(0, POLL_INTERVALS.findIndex((p) => p.ms === 300000));
-  const pollInterval = POLL_INTERVALS[await pick('Poll interval:', POLL_INTERVALS.map((p) => p.label), pollDefault)].ms;
-  const maxConcurrent = await askInt('  Max fixes running at once', 3, 1);
-  const maxAttempts = await askInt('  Max attempts per issue before it stops on its own', 3, 1);
-  const retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', false);
+  // A poll interval set by hand that is not one of the choices is offered as its own choice, so Enter keeps it.
+  const pollChoices = POLL_INTERVALS.some((p) => p.ms === d.pollInterval)
+    ? POLL_INTERVALS
+    : [...POLL_INTERVALS, { label: `${d.pollInterval} ms (current)`, ms: d.pollInterval }];
+  const pollIndex = pollChoices.findIndex((p) => p.ms === d.pollInterval);
+  const pollInterval = pollChoices[await pick('Poll interval:', pollChoices.map((p) => p.label), pollIndex)].ms;
+  const maxConcurrent = await askInt('  Max fixes running at once', d.maxConcurrent, 1);
+  const maxAttempts = await askInt('  Max attempts per issue before it stops on its own', d.maxAttempts, 1);
+  const retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', d.retrySkipped);
 
   const values = {
     port,

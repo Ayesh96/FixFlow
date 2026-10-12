@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('fixflow', {
   checkPort: (port) => ipcRenderer.invoke('setup:checkPort', port),
   pickFolder: () => ipcRenderer.invoke('setup:pickFolder'),
   constants: () => ipcRenderer.invoke('setup:constants'),
+  current: () => ipcRenderer.invoke('setup:current'),
 });

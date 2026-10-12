@@ -51,6 +51,8 @@
   ol.steps li.invalid .dot { border-color: var(--destructive); color: var(--destructive); }
   ol.steps .label { display: none; }
   ol.steps li.active .label { display: inline; }
+  ol.steps button.jump { all: unset; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 6px; }
+  ol.steps button.jump:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   ol.steps .bar { width: 24px; height: 1px; background: var(--border); }
 
   h1 { font-size: 17px; line-height: 24px; letter-spacing: -0.01em; font-weight: 600; margin: 0 0 4px; }
@@ -160,7 +162,7 @@
     <!-- Step 1 -->
     <section data-step="0">
       <h1>Where FixFlow runs</h1>
-      <p class="lede">The defaults work for most setups. You can change any of this later in <code>.env</code>.</p>
+      <p class="lede" id="basicsLede">The defaults work for most setups. You can change any of this later from FixFlow &rsaquo; Settings.</p>
       <div class="card">
         <label class="field" for="port"><span class="name">Dashboard port</span>
           <input type="number" id="port" value="7420" min="1" max="65535" step="1" />
@@ -280,7 +282,7 @@
           </div>
           <div class="grid2">
             <div class="field">
-              <span class="name">File on GitHub from level</span>
+              <span class="name">Open GitHub issues for</span>
               <select id="minLevel" disabled><option value="">Loading…</option></select>
               <span class="msg" data-key="minLevel"></span>
             </div>
@@ -355,6 +357,10 @@ const PROV = {
   anthropic: { label: 'Anthropic', box: 'useAnthropic', key: 'anthropicKey', model: 'anthropicModel', verify: 'verifyAnthropic', def: 'claude-haiku-4-5', check: (k) => window.fixflow.checkAnthropic(k) },
 };
 const OLLAMA_DEFAULT_MODEL = 'qwen2.5-coder:7b';
+const MODE = new URLSearchParams(location.search).get('mode') === 'settings' ? 'settings' : 'first';
+// The model to select once a list loads: the one already in .env when editing settings.
+const preferred = { ollama: '', deepseek: '', anthropic: '' };
+let currentValues = null;
 
 let order = ['ollama', 'deepseek', 'anthropic'];
 let saving = false;
@@ -640,7 +646,7 @@ async function testOllama() {
     info.ollamaUrl = { level: 'hint', msg: 'Ollama is running but has no models installed. Run: ollama pull qwen2.5-coder:7b, then test again.' };
   } else {
     ollamaState = 'ok';
-    enableModel('ollamaModel', models, [OLLAMA_DEFAULT_MODEL]);
+    enableModel('ollamaModel', models, [preferred.ollama, OLLAMA_DEFAULT_MODEL]);
     info.ollamaUrl = { level: 'hint', msg: `Connected. ${models.length} model${models.length === 1 ? '' : 's'} installed.` };
     delete info.ollamaModel;
   }
@@ -667,7 +673,7 @@ async function verifyKey(id) {
   if (r?.ok) {
     const models = (Array.isArray(r.models) ? r.models : []).map(modelName).filter(Boolean);
     keyState[id] = { key, state: 'ok', count: models.length };
-    if (models.length > 0) enableModel(cfg.model, models, [cfg.def]);
+    if (models.length > 0) enableModel(cfg.model, models, [preferred[id], cfg.def]);
     else resetModel(cfg.model, 'No models available');
   } else if (r?.unreachable) {
     resetModel(cfg.model, 'Verify the key to load models');
@@ -787,10 +793,10 @@ $('save').addEventListener('click', async () => {
   }
   saving = true;
   refresh();
-  setStatus('Checking your settings and writing .env…', '');
+  setStatus(MODE === 'settings' ? 'Checking your settings…' : 'Checking your settings and writing .env…', '');
   try {
     await window.fixflow.saveConfig(collect());
-    setStatus('Starting FixFlow…', '');
+    setStatus(MODE === 'settings' ? 'Restarting FixFlow…' : 'Starting FixFlow…', '');
   } catch (err) {
     saving = false;
     showSaveError(err);
@@ -827,7 +833,18 @@ function renderSteps() {
     const label = document.createElement('span');
     label.className = 'label';
     label.textContent = flagged(i) ? `${s.name} (needs attention)` : s.name;
-    li.append(dot, label);
+    const canJump = i !== step && i <= reached && STEPS.slice(0, i).every((_, j) => !stepBlocked(j));
+    if (canJump) {
+      const jump = document.createElement('button');
+      jump.type = 'button';
+      jump.className = 'jump';
+      jump.setAttribute('aria-label', `Go to step ${i + 1}: ${s.name}`);
+      jump.append(dot, label);
+      jump.addEventListener('click', () => goTo(i));
+      li.append(jump);
+    } else {
+      li.append(dot, label);
+    }
     ol.append(li);
     if (i < STEPS.length - 1) {
       const bar = document.createElement('span');
@@ -841,11 +858,11 @@ function renderSteps() {
   document.querySelectorAll('section[data-step]').forEach((el) => { el.hidden = Number(el.dataset.step) !== step; });
   $('back').hidden = step === 0;
   $('next').hidden = last;
-  $('save').hidden = !last;
+  $('save').hidden = !last && MODE !== 'settings';
   $('next').disabled = stepBlocked(step);
 
   const bad = STEPS.findIndex((_, i) => i !== step && stepHasError(i));
-  $('stepNote').textContent = last && bad >= 0 ? `The ${STEPS[bad].name} step needs attention before you can save. Go back and fix it.` : '';
+  $('stepNote').textContent = !$('save').hidden && bad >= 0 ? `The ${STEPS[bad].name} step needs attention before you can save. Go back and fix it.` : '';
 }
 
 function goTo(i) {
@@ -863,19 +880,69 @@ $('back').addEventListener('click', () => goTo(step - 1));
 
 async function loadConstants() {
   try {
-    const { LEVELS, POLL_INTERVALS } = await window.fixflow.constants();
+    const { LEVEL_CHOICES, POLL_INTERVALS } = await window.fixflow.constants();
     $('minLevel').disabled = false;
     $('pollInterval').disabled = false;
-    setOptions($('minLevel'), LEVELS.map((l) => ({ value: l, label: l })), ['error']);
-    setOptions($('pollInterval'), POLL_INTERVALS.map((p) => ({ value: String(p.ms), label: p.label })), ['300000']);
+    setOptions($('minLevel'), LEVEL_CHOICES.map((c) => ({ value: c.value, label: c.label })), [currentValues?.minLevel, 'error']);
+    const intervals = POLL_INTERVALS.map((p) => ({ value: String(p.ms), label: p.label }));
+    const kept = String(currentValues?.pollInterval ?? '');
+    // A hand-edited interval that is not a preset stays selectable instead of being replaced.
+    if (kept && !intervals.some((o) => o.value === kept)) intervals.push({ value: kept, label: `${Math.round(Number(kept) / 1000)} seconds (current)` });
+    setOptions($('pollInterval'), intervals, [kept, '300000']);
     constantsOk = true;
   } catch (err) {
     setStatus(`Could not load the setup options: ${errText(err)}`, 'error');
   }
 }
 
+// Settings: start from what is in .env now. Switching a provider on (via its change event) also
+// tests or verifies it, so the model lists load from real data here too.
+function prefill(v) {
+  $('port').value = v.port;
+  $('dataDir').value = v.dataDir;
+  $('ollamaUrl').value = v.ollamaUrl;
+  preferred.ollama = v.ollamaModel;
+  for (const id of ['deepseek', 'anthropic']) {
+    const key = v[`${id}Key`];
+    preferred[id] = v[`${id}Model`];
+    if (key) $(PROV[id].key).value = key;
+  }
+  const named = v.providerOrder.split(',').map((p) => p.trim()).filter((p) => p in LABEL);
+  order = [...new Set([...named, 'ollama', 'deepseek', 'anthropic'])];
+  $('ingestPort').value = v.ingestPort;
+  if (![...$('ingestHost').options].some((o) => o.value === v.ingestHost)) $('ingestHost').add(new Option(`${v.ingestHost} (current)`, v.ingestHost));
+  $('ingestHost').value = v.ingestHost;
+  $('dsnKey').value = v.dsnKey;
+  $('githubLabels').value = v.githubLabels;
+  $('commentThresholds').value = v.commentThresholds;
+  $('retentionDays').value = v.retentionDays;
+  $('maxConcurrent').value = v.maxConcurrent;
+  $('maxAttempts').value = v.maxAttempts;
+  $('retrySkipped').checked = v.retrySkipped;
+  const turnOn = (box, on) => {
+    if (!on) return;
+    $(box).checked = true;
+    $(box).dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  turnOn('useOllama', v.useOllama);
+  turnOn('useDeepseek', Boolean(v.deepseekKey));
+  turnOn('useAnthropic', Boolean(v.anthropicKey));
+}
+
 (async function init() {
+  if (MODE === 'settings') {
+    document.title = 'FixFlow settings';
+    $('basicsLede').textContent = 'Change what you need. Saving checks everything again and restarts FixFlow with the new settings.';
+    $('save').textContent = 'Save and restart FixFlow';
+    reached = STEPS.length - 1;
+    try {
+      currentValues = await window.fixflow.current();
+    } catch (err) {
+      setStatus(`Could not read the current settings: ${errText(err)}`, 'error');
+    }
+  }
   await loadConstants();
+  if (currentValues) prefill(currentValues);
   refresh();
   schedulePortCheck('port');
   schedulePortCheck('ingestPort');

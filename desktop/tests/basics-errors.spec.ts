@@ -239,12 +239,18 @@ test('D7 Generate key fills the access key with 24 hex characters that are reada
   await expect(key).toHaveAttribute('type', 'text');
 });
 
-test('D8 the lowest level list is debug, info, warning, error, fatal with error selected', async ({ launch, fake }) => {
+test('D8 the GitHub issue choices say which levels each one files, with errors and crashes selected', async ({ launch, fake }) => {
   const { page } = await launch();
   await reachErrorsStep(page, fake);
 
   const select = page.locator('#minLevel');
   await expect(select).toBeEnabled();
-  await expect(page.locator('#minLevel option')).toHaveText(['debug', 'info', 'warning', 'error', 'fatal']);
+  await expect(page.locator('#minLevel option')).toHaveText([
+    'Crashes only (fatal)',
+    'Errors and crashes (error, fatal)',
+    'Warnings too (warning, error, fatal)',
+    'Info too (info, warning, error, fatal)',
+    'Everything (debug and up)',
+  ]);
   await expect(select).toHaveValue('error');
 });

@@ -57,7 +57,7 @@ Run each case for both providers.
 | D5 | Retention `-1`, empty, `1.5` | Error; Continue disabled |
 | D6 | Comment counts `abc`, `100,,200`, `1`, `100,1` | Error before Continue (the server needs whole numbers of 2 or more) |
 | D7 | Generate key | 24 hex characters, readable on screen |
-| D8 | Lowest level list | Exactly debug, info, warning, error, fatal; `error` selected |
+| D8 | GitHub issue choices | Each option names the levels it files (it is a threshold: a level and everything above); "Errors and crashes (error, fatal)" selected |
 
 ## E. Step 4: Resolver and saving (`resolver-save.spec.ts`)
 
@@ -93,3 +93,20 @@ with `freePort()`. Never save with the default `~/.fixflow`.
 | T9 | Comment counts `1` | Asked again |
 | T10 | Error tracking / resolver | Not asked: both are always on |
 | T11 | Happy path | `.env` written and accepted by the server's `loadConfig` |
+
+## S. Settings after onboarding (`settings.spec.ts`)
+
+Opened from the app menu (FixFlow › Settings…, ⌘,) once .env exists. Same wizard, filled from .env.
+
+| ID | Case | Expected |
+|---|---|---|
+| S1 | Open settings after a first save | Window titled "FixFlow settings"; every field shows the saved value (ports, folder, labels, counts, level, interval, retry) |
+| S2 | Saved provider | Switch is on, model list loads from real data with the saved model selected; hosted key re-verified automatically |
+| S3 | FixFlow's own running ports | Not reported as busy |
+| S4 | Save is on every step | Change one field on step 1 and save without walking through the other steps |
+| S5 | Save new settings | .env updated, server restarted, the same dashboard window reloads; settings window closes |
+| S6 | New settings the server will not start with | Message on the page; old .env restored byte for byte; dashboard still works |
+| S7 | Break a field while editing | Same blocking rules as onboarding (Save disabled, message under the field) |
+| S8 | Stepper | Every step is clickable in settings; in onboarding only steps already reached |
+| S9 | Window size and position | Remembered across launches (setup and dashboard separately) |
+

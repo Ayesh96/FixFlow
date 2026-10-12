@@ -60,19 +60,19 @@ export function ConnectDialog({ project, onClose }: { project: ProjectView | nul
                 const g = set[id];
                 return (
                   <TabsContent key={id} value={id} className="space-y-5">
-                    <ol className="grid gap-5 sm:grid-cols-2">
+                    <ol className="grid gap-5">
                       <Step n={1} title={c.steps.address}>
-                        <CodeBlock code={dsn} label={c.steps.address} />
+                        <CodeBlock code={dsn} label={c.steps.address} wrap />
                         <p className="text-xs text-muted-foreground">{c.localhostNote}</p>
                       </Step>
                       <Step n={2} title={c.steps.install}>
                         <CodeBlock code={g.install} label={`${g.label}: ${c.steps.install}`} />
                       </Step>
-                      <Step n={3} title={c.steps.init} className="sm:col-span-2">
+                      <Step n={3} title={c.steps.init}>
                         <CodeBlock code={g.init} label={`${g.label}: ${c.steps.init}`} />
                         <p className="text-xs text-muted-foreground">{c.initNote[id]}</p>
                       </Step>
-                      <Step n={4} title={c.steps.test} className="sm:col-span-2">
+                      <Step n={4} title={c.steps.test}>
                         <CodeBlock code={g.test} label={`${g.label}: ${c.steps.test}`} />
                         <p className="text-xs text-muted-foreground">{c.testNote}</p>
                       </Step>

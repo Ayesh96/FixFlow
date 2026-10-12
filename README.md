@@ -15,29 +15,29 @@ FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors y
 
 Between an exception in production and a fix, someone has to group duplicates, write the issue, find the cause and open a pull request. Sentry automates the last steps with Seer on its paid plans, and self-hosted Sentry is a Docker Compose stack of 53 services that needs 16 GB of RAM. FixFlow covers the whole path in one Node process with SQLite, on your machine, with a model you choose.
 
-## Quick start
+## Install
 
-Needs Node 24+ and git, on Linux or macOS. Windows is not tested.
+**[Download FixFlow](https://github.com/Ayesh96/FixFlow/releases/latest)** for your computer from the latest release:
 
-```bash
-git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
-npm install     # also installs the UI's dependencies
-npm start       # builds the UI if it is stale, then serves it
-```
+| | File | First open |
+|---|---|---|
+| macOS (Apple Silicon) | `.dmg` | Drag FixFlow to Applications. The app is not notarized, so macOS blocks the first open: allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| Windows | `.exe` installer | The installer is unsigned, so SmartScreen warns: **More info › Run anyway**. |
+| Linux | `.AppImage` | `chmod +x FixFlow-*.AppImage`, then run it. |
 
-The first `npm start` in a terminal runs a short setup and writes `.env`. It asks for the dashboard port, a data folder, at least one model and the error-tracking and resolver settings. It tests the Ollama address and verifies API keys, offers only the models they actually have, checks the ports are free, and runs the result through the server's own config checks before writing anything. Change the settings later with `npm run setup`, which starts from the current `.env`.
+The app brings its own runtime, so there is nothing else to install except [git](https://git-scm.com/downloads), which FixFlow uses to clone your repository and prepare fixes.
 
-`npm start` then prints `http://localhost:7420/?token=…`. Open it once; the token is then kept in an HttpOnly cookie. From another terminal, `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
+On first launch a four-step setup asks for the dashboard port and data folder, a model, and the error-tracking and resolver settings. It checks each step before you continue: the ports are free, Ollama answers, API keys are accepted, and only models the provider actually has are offered. Then the dashboard opens in its own window. To change anything later, click **Settings** in the dashboard header (or **Settings…** in the menu, ⌘, / Ctrl+,). If FixFlow will not start with the new settings, the old ones are put back.
+
+**Models.** The setup needs at least one: [Ollama](https://ollama.com) on this machine (run `ollama pull qwen2.5-coder:7b` first, and nothing leaves your computer), or a DeepSeek or Anthropic API key (error text and source code are then sent to that provider). Pick more than one and FixFlow falls back down the list when one fails.
+
+## First project
 
 1. **Projects → Add project**: `owner/name`, a GitHub token, the branch to work on, and optionally a check command such as `npm ci && npm test`.
-2. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`.
+2. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The project's connect guide shows the code for Python, Node.js and the browser.
 3. Errors appear on the project's page (**View errors** on its card). Those with a stack trace are filed as GitHub issues.
 
-From a [release tarball](https://github.com/Ayesh96/FixFlow/releases/latest) there is no build step: check it with `sha256sums.txt`, unpack, and run `node bin/fixflow.mjs`. The first run asks the same setup questions.
-
-**Desktop app (macOS, Apple Silicon).** `cd desktop && npm install && npm run dist:mac` builds `desktop/release/FixFlow-1.0.0-mac-arm64.dmg`. The app runs FixFlow in its own bundled Node, so the machine needs no Node install. The first launch shows the same setup as a window, then opens the dashboard in a window. **Settings** in the dashboard header (or FixFlow › Settings…, ⌘,) reopens it with the current values; saving restarts FixFlow, and if it will not start with the new settings the old ones are put back. The build is ad-hoc signed, not notarized, so macOS blocks the first open of a downloaded copy until you allow it in System Settings › Privacy & Security.
-
-**Models.** Triage works without a provider, using built-in rules. The resolver needs one. By default it tries Ollama at `http://localhost:11434` first (`ollama pull qwen2.5-coder:7b`), and also DeepSeek or Anthropic if you set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. See [configuration](docs/reference.md#configuration).
+The desktop builds for Windows and Linux are not tested yet; the macOS build is. On an Intel Mac or a headless server, see [running from source](docs/reference.md#running-from-source).
 
 ## Features
 
@@ -94,7 +94,8 @@ No committed roadmap. Known gaps:
 
 - The resolver ignores triage tags (see above).
 - No measured fix success rate.
-- Windows untested; no container image.
+- The Windows and Linux desktop builds are untested, the macOS build is for Apple Silicon only, and none of them are signed by a recognised developer.
+- No container image.
 
 Bugs and ideas: [issues](https://github.com/Ayesh96/FixFlow/issues).
 

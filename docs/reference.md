@@ -5,7 +5,7 @@ description: "FixFlow reference: projects and tokens, the dashboard and ingest l
 
 # Reference
 
-Projects, ports, security and every setting. For install steps see the [quick start](index.md#quick-start).
+Projects, ports, security and every setting. To install, [download the app](index.md#quick-start).
 
 ## What a project is
 
@@ -45,9 +45,9 @@ This server holds your GitHub tokens and can push code, so:
 
 ## Configuration
 
-Everything is optional. The first `npm start` (or `node bin/fixflow.mjs`) in a terminal runs a setup that writes `.env`, and `npm run setup` runs it again, starting from the current values. You can also copy `.env.example` to `.env` and edit it.
+Settings live in a `.env` file. The desktop app's setup writes it on first launch, and **Settings** in the dashboard header edits it later. [From source](#running-from-source), the terminal setup does the same; you can also copy `.env.example` to `.env` and edit it, where every variable has a default.
 
-The setup, in the terminal and in the desktop app, differs from a hand-written `.env` in three ways:
+The setup, in the desktop app and in the terminal, differs from a hand-written `.env` in three ways:
 
 - It always turns on error tracking and the resolver. `ORCH_ERRORS_ENABLED=0` and `ORCH_RESOLVER_ENABLED=0` still work when set by hand.
 - It requires at least one model, because the resolver needs one.
@@ -102,6 +102,20 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 
 The resolver attempts every open GitHub issue FixFlow filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at 20 model turns (`AGENT_MAX_TURNS` in `server/constants.ts`). It runs your check command as you, on your machine.
 
+## Running from source
+
+For an Intel Mac, a headless server, or working on FixFlow itself. Needs Node 24+ and git, on Linux or macOS.
+
+```bash
+git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
+npm install     # also installs the UI's dependencies
+npm start       # builds the UI if it is stale, then serves it
+```
+
+The first `npm start` in a terminal runs the same setup as the desktop app and writes `.env`; `npm run setup` changes it later, starting from the current values. `npm start` then prints `http://localhost:7420/?token=…`: open it once, and the token is kept in an HttpOnly cookie. `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
+
+Each release also has a tarball with the UI prebuilt, so there is no build step: check it against `sha256sums.txt`, unpack it, and run `node bin/fixflow.mjs`.
+
 ## Development
 
 ```
@@ -128,17 +142,21 @@ python3 test/setup-wizard.pty.py   # drives the terminal setup in a pseudo-termi
 
 ### Desktop app
 
-`desktop/` is an Electron shell for macOS. It forks `bin/fixflow.mjs` in Electron's own Node (so the machine needs no Node install), shows the setup as a window on first launch (`desktop/onboarding.html`, the same checks as the terminal setup through `scripts/setup-checks.mjs`), and opens the dashboard in a window. **Settings** in the dashboard header, or FixFlow › Settings… (⌘,), reopens the setup filled in from `.env`. Saving restarts the server; if it will not start, the previous `.env` is restored and the previous server started again.
+`desktop/` is an Electron shell for macOS, Windows and Linux. It forks `bin/fixflow.mjs` in Electron's own Node (so the machine needs no Node install), shows the setup as a window on first launch (`desktop/onboarding.html`, the same checks as the terminal setup through `scripts/setup-checks.mjs`), and opens the dashboard in a window. **Settings** in the dashboard header, or FixFlow › Settings… (⌘,), reopens the setup filled in from `.env` (**File › Settings…**, Ctrl+, on Windows and Linux). Saving restarts the server; if it will not start, the previous `.env` is restored and the previous server started again.
 
 ```bash
 cd desktop
 npm install
 npm start                 # run from the repo (uses the repo's .env)
 npm run dist:mac          # build release/FixFlow-<version>-mac-arm64.dmg
-npm run test:e2e          # Playwright against the built app; build first
+npm run dist:win          # an NSIS .exe installer
+npm run dist:linux        # an AppImage
+npm run test:e2e          # Playwright against the built macOS app; build first
 ```
 
-In the built app, `.env` lives inside the app bundle (`FixFlow.app/Contents/Resources/app/.env`), separate from the repo's. The build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Distributing it to others needs a Developer ID certificate and notarization.
+Pushing a `v*` tag builds all three on GitHub Actions and attaches them to the release, unsigned. Only the macOS build is tested.
+
+In the built app, `.env` lives in the app's user-data folder, separate from the repo's and kept across updates: `~/Library/Application Support/FixFlow/.env` on macOS, `%APPDATA%\FixFlow\.env` on Windows, `~/.config/FixFlow/.env` on Linux. The server runs with that folder as its working directory. Builds before 1.1.0 kept it inside the app; the first launch of a newer build copies it over. The macOS build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Removing that step for users needs a Developer ID certificate and notarization; on Windows, a code-signing certificate.
 
 The end-to-end tests give each test its own APFS clone of the built app, fake Ollama, DeepSeek and Anthropic servers, and a stubbed folder picker, so they never touch `~/.fixflow` or a real API. The cases are listed in `desktop/tests/CASES.md`.
 

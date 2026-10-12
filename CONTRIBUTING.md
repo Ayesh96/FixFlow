@@ -18,6 +18,8 @@ Thanks for helping. A few things first:
   cd desktop && npm run dist:mac && npm run test:e2e
   ```
 
+  The end-to-end tests run on macOS only. If your change touches Windows or Linux behaviour, build with `npm run dist:win` or `npm run dist:linux` and say in the pull request what you tried by hand.
+
 - Keep a pull request to one change. Read `DESIGN.md` before touching the UI.
 
 Found a security problem? Do not open a public issue; email the maintainer instead.

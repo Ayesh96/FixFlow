@@ -63,21 +63,23 @@ The resolver does not read triage tags yet; it attempts every open issue FixFlow
 
 </div>
 
-The desktop app for macOS sets everything up in four steps and checks each one before you continue. More screenshots are in [the repository](https://github.com/Ayesh96/FixFlow/tree/main/docs/assets/screenshots).
+Setup is four steps in a window, and each one is checked before you continue. More screenshots are in [the repository](https://github.com/Ayesh96/FixFlow/tree/main/docs/assets/screenshots).
 
 ## Quick start
 
-Needs Node 24+ and git, on Linux or macOS.
+[Download FixFlow](https://github.com/Ayesh96/FixFlow/releases/latest){ .md-button .md-button--primary }
 
-```bash
-git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
-npm install
-npm start
-```
+| | File | First open |
+|---|---|---|
+| macOS (Apple Silicon) | `.dmg` | Drag FixFlow to Applications. It is not notarized, so allow it in System Settings › Privacy & Security › **Open Anyway**. |
+| Windows | `.exe` installer | Unsigned, so SmartScreen warns: **More info › Run anyway**. |
+| Linux | `.AppImage` | `chmod +x` it, then run it. |
 
-The first `npm start` in a terminal runs a short setup: dashboard port, data folder, at least one model (it tests Ollama and verifies API keys, and lists only the models they have), and the error-tracking and resolver settings. It checks the ports are free and runs everything through the server's own config checks before it writes `.env`. Run `npm run setup` to change the settings later; it starts from the current `.env`.
+The app brings its own runtime; the only other thing it needs is [git](https://git-scm.com/downloads). On first launch it asks for the dashboard port and data folder, at least one model (it tests Ollama and verifies API keys, and lists only the models they have), and the error-tracking and resolver settings, then opens the dashboard. **Settings** in the dashboard header changes them later.
 
-Open the printed `http://localhost:7420/?token=…` link once. Add a project on the **Projects** tab (repository, GitHub token, branch) and set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. From another terminal, `curl http://localhost:3000/healthz` should answer `200`.
+Add a project on the **Projects** tab (repository, GitHub token, branch) and set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The project's connect guide shows the code.
+
+The Windows and Linux builds are not tested yet. On an Intel Mac or a headless server, [run from source](reference.md#running-from-source).
 
 ## Guides
 
@@ -111,4 +113,4 @@ Open the printed `http://localhost:7420/?token=…` link once. Add a project on 
 
 ## Limits
 
-Errors only: no tracing, session replay or alert rules. One user, loopback by default. Windows untested. Fix success rate not measured. Source-available under FSL-1.1-ALv2, not an OSI open-source license.
+Errors only: no tracing, session replay or alert rules. One user, loopback by default. Windows and Linux desktop builds untested. Fix success rate not measured. Source-available under FSL-1.1-ALv2, not an OSI open-source license.

@@ -7,11 +7,13 @@ Facts that are easy to get wrong:
 - Grouping key: exception type + crashing file + that frame's source line text (not line number); the SDK `fingerprint` overrides it.
 - Triage tags (bot-safe, needs-human, infrastructure, third-party, no-stack-trace, test-event) do not gate the resolver; it attempts every open issue FixFlow filed.
 - The resolver's agent has read_file, list_directory, grep and edit_file, no shell; up to 20 turns per attempt; at most 3 failed attempts per issue.
-- No tracing, session replay, alert rules or multi-user accounts. Windows untested. Fix success rate not measured.
+- Install: the desktop app from the latest release (macOS Apple Silicon .dmg, Windows .exe, Linux AppImage); it bundles its own Node and needs only git. Running from source (Node 24+) is for Intel Macs, servers and development.
+- No tracing, session replay, alert rules or multi-user accounts. Windows and Linux desktop builds untested. Fix success rate not measured.
 
 ## Docs
 
-- [Quick start](https://ayesh96.github.io/FixFlow/#quick-start)
+- [Quick start](https://ayesh96.github.io/FixFlow/#quick-start): download and first launch.
+- [Download](https://github.com/Ayesh96/FixFlow/releases/latest)
 - [Self-hosted error tracking](https://ayesh96.github.io/FixFlow/self-hosted-error-tracking/): listeners, data folder, what leaves the machine.
 - [Sentry alternative](https://ayesh96.github.io/FixFlow/sentry-alternative/): scope and comparison with Sentry, GlitchTip, Bugsink.
 - [Sentry errors to GitHub issues](https://ayesh96.github.io/FixFlow/sentry-errors-to-github-issues/): grouping, filing rules, issue contents, token permissions.

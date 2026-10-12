@@ -6,3 +6,5 @@ release
 site/
 # Launch drafts and other notes that stay on this machine
 docs/internal/
+
+.DS_Store

@@ -15,10 +15,10 @@ let serverProcess = null;
 
 function showOnboarding() {
   onboardingWindow = new BrowserWindow({
-    width: 680,
-    height: 780,
-    minWidth: 520,
-    minHeight: 560,
+    width: 560,
+    height: 680,
+    minWidth: 480,
+    minHeight: 520,
     backgroundColor: '#0a0a0a',
     autoHideMenuBar: true,
     title: 'Set up FixFlow',

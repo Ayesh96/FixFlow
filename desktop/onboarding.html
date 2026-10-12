@@ -30,16 +30,16 @@
     margin: 0;
     background: var(--background);
     color: var(--foreground);
-    font: 14px/1.5 "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 13px/1.45 "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .shell { max-width: 600px; margin: 0 auto; padding: 24px 24px 40px; min-height: 100%; display: flex; flex-direction: column; }
-  header.brand { display: flex; align-items: center; gap: 10px; height: 40px; }
+  .shell { max-width: 520px; margin: 0 auto; padding: 16px 20px 24px; min-height: 100%; display: flex; flex-direction: column; }
+  header.brand { display: flex; align-items: center; gap: 8px; height: 28px; }
   header.brand svg { width: 20px; height: 20px; }
   header.brand span { font-weight: 600; letter-spacing: -0.01em; }
 
   /* Stepper: same shape as web/src/components/wizard/Stepper.tsx */
-  ol.steps { list-style: none; display: flex; align-items: center; gap: 8px; margin: 24px 0 28px; padding: 0; }
+  ol.steps { list-style: none; display: flex; align-items: center; gap: 8px; margin: 14px 0 16px; padding: 0; }
   ol.steps li { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 13px; }
   ol.steps .dot {
     width: 24px; height: 24px; border-radius: 999px; border: 1px solid var(--border);
@@ -53,20 +53,20 @@
   ol.steps li.active .label { display: inline; }
   ol.steps .bar { width: 24px; height: 1px; background: var(--border); }
 
-  h1 { font-size: 20px; line-height: 28px; letter-spacing: -0.01em; font-weight: 600; margin: 0 0 4px; }
-  p.lede { margin: 0 0 20px; color: var(--muted-foreground); }
+  h1 { font-size: 17px; line-height: 24px; letter-spacing: -0.01em; font-weight: 600; margin: 0 0 4px; }
+  p.lede { margin: 0 0 12px; font-size: 12.5px; color: var(--muted-foreground); }
 
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
   .card h2 { font-size: 14px; font-weight: 500; margin: 0; }
   .card p.desc { margin: 2px 0 0; color: var(--muted-foreground); font-size: 13px; }
 
-  .field { display: block; margin-top: 16px; }
+  .field { display: block; margin-top: 12px; }
   .field:first-child { margin-top: 0; }
   .field > .name { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
   .field > .name small { font-weight: 400; color: var(--muted-foreground); }
 
   input[type="text"], input[type="number"], input[type="password"], select {
-    width: 100%; height: 36px; padding: 0 10px; font: inherit; font-size: 13px; color: var(--foreground);
+    width: 100%; height: 32px; padding: 0 10px; font: inherit; font-size: 13px; color: var(--foreground);
     background: transparent; border: 1px solid var(--input); border-radius: 6px; outline: none;
     transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
   }
@@ -83,12 +83,12 @@
 
   .row { display: flex; gap: 8px; align-items: center; }
   .row > :first-child { flex: 1; min-width: 0; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid2 > .field { margin-top: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid2 > .field { margin-top: 12px; }
 
   button { font: inherit; }
   button.small {
-    height: 36px; padding: 0 12px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;
+    height: 32px; padding: 0 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; cursor: pointer;
     color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: 6px;
     transition: background-color 150ms ease-out;
   }
@@ -109,8 +109,8 @@
   /* Switch rows */
   .toggle { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; cursor: pointer; }
   .toggle .text { min-width: 0; }
-  .toggle .title { font-size: 14px; font-weight: 500; }
-  .toggle .desc { color: var(--muted-foreground); font-size: 13px; margin-top: 2px; }
+  .toggle .title { font-size: 13px; font-weight: 500; }
+  .toggle .desc { color: var(--muted-foreground); font-size: 12.5px; margin-top: 2px; }
   input.switch {
     appearance: none; flex: none; width: 32px; height: 18px; margin: 2px 0 0; border-radius: 999px;
     background: var(--secondary); border: 1px solid var(--input); position: relative; cursor: pointer;
@@ -123,7 +123,7 @@
   input.switch:checked { background: var(--primary); border-color: var(--primary); }
   input.switch:checked::after { transform: translateX(14px); background: var(--primary-foreground); }
   input.switch:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-  .sub-fields { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .sub-fields { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .sub-fields.off { display: none; }
   .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; cursor: pointer; }
   .check input { width: 16px; height: 16px; accent-color: var(--primary); margin: 0; }
@@ -140,7 +140,7 @@
     background: linear-gradient(to top, var(--background) 70%, transparent);
   }
   footer.nav .spacer { flex: 1; }
-  footer.nav button.small { height: 36px; padding: 0 16px; }
+  footer.nav button.small { height: 32px; padding: 0 16px; }
   #status { color: var(--muted-foreground); font-size: 12.5px; white-space: pre-line; margin-top: 12px; min-height: 18px; }
   #status.error { color: var(--destructive); }
 
@@ -196,7 +196,7 @@
           </div>
           <div class="field">
             <span class="name">Model</span>
-            <select id="ollamaModel"><option value="qwen2.5-coder:7b">qwen2.5-coder:7b</option></select>
+            <select id="ollamaModel" disabled><option value="">Connecting to Ollama…</option></select>
             <span class="msg" data-key="ollamaModel"></span>
           </div>
         </div>
@@ -216,7 +216,7 @@
           </div>
           <div class="field">
             <span class="name">Model</span>
-            <select id="deepseekModel"><option value="deepseek-flash">deepseek-flash</option></select>
+            <select id="deepseekModel" disabled><option value="">Verify the key to load models</option></select>
             <span class="msg" data-key="deepseekModel"></span>
           </div>
         </div>
@@ -236,7 +236,7 @@
           </div>
           <div class="field">
             <span class="name">Model</span>
-            <select id="anthropicModel"><option value="claude-haiku-4-5">claude-haiku-4-5</option></select>
+            <select id="anthropicModel" disabled><option value="">Verify the key to load models</option></select>
             <span class="msg" data-key="anthropicModel"></span>
           </div>
         </div>
@@ -282,7 +282,7 @@
           <div class="grid2">
             <div class="field">
               <span class="name">File on GitHub from level</span>
-              <select id="minLevel"><option value="error">error</option></select>
+              <select id="minLevel" disabled><option value="">Loading…</option></select>
               <span class="msg" data-key="minLevel"></span>
             </div>
             <label class="field" for="retentionDays"><span class="name">Keep raw events for (days)</span>
@@ -309,11 +309,12 @@
       <div class="card">
         <label class="toggle"><span class="text"><span class="title">Resolve issues</span><span class="desc">Needs a model. Turn off to leave the Resolver tab out.</span></span>
           <input type="checkbox" class="switch" id="resolverEnabled" checked /></label>
+        <span class="msg" data-key="resolverEnabled"></span>
         <div class="sub-fields" id="resolverFields">
           <div class="grid2">
             <div class="field">
               <span class="name">Look for new issues every</span>
-              <select id="pollInterval"><option value="300000">5 minutes</option></select>
+              <select id="pollInterval" disabled><option value="">Loading…</option></select>
               <span class="msg" data-key="pollInterval"></span>
             </div>
             <label class="field" for="maxConcurrent"><span class="name">Fixes at the same time</span>
@@ -363,7 +364,7 @@ let order = ['ollama', 'deepseek', 'anthropic'];
 let saving = false;
 let constantsOk = false;
 let serverErrors = {};      // field -> message, from the last failed save
-let current = { errors: {}, hints: {} };
+let current = { errors: {}, hints: {}, pending: [] };
 const info = {};            // field -> {level, msg}, set by actions (Test connection, etc.)
 const keyState = {};        // provider -> {key, state, msg, count}
 const keySeq = {};
@@ -372,6 +373,7 @@ const portState = {};       // field -> {value, state}
 const portSeq = {};
 const portTimers = {};
 let ollamaSeq = 0;
+let ollamaState = 'testing'; // testing | ok | down | empty
 
 function setStatus(msg, level) {
   const s = $('status');
@@ -392,6 +394,18 @@ function setOptions(select, items, preferred = []) {
   select.replaceChildren(...nodes);
   const pick = [previous, ...preferred].find((v) => items.some((i) => i.value === v));
   select.value = pick ?? items[0]?.value ?? '';
+}
+
+function resetModel(id, text) {
+  const sel = $(id);
+  sel.replaceChildren(new Option(text, ''));
+  sel.value = '';
+  sel.disabled = true;
+}
+function enableModel(id, models, preferred) {
+  const sel = $(id);
+  sel.disabled = false;
+  setOptions(sel, models.map((m) => ({ value: m, label: m })), preferred);
 }
 
 const isEnabled = (id) => (id === 'ollama'
@@ -445,6 +459,7 @@ function portStatus(key) {
 function computeClient() {
   const errors = {};
   const hints = {};
+  const pending = [];
 
   const port = intVal('port');
   if (!isPort(port)) {
@@ -453,7 +468,7 @@ function computeClient() {
     const s = portStatus('port');
     if (s === 'busy') errors.port = 'Another program is using this port. Pick a different one.';
     else if (s === 'free') hints.port = { level: 'hint', msg: 'Free.' };
-    else if (s === 'checking') hints.port = { level: 'hint', msg: 'Checking the port…' };
+    else if (s === 'checking') { hints.port = { level: 'hint', msg: 'Checking the port…' }; pending.push('port'); }
   }
 
   if (val('dataDir') === '') errors.dataDir = 'Choose a data folder.';
@@ -462,6 +477,9 @@ function computeClient() {
     let ok = false;
     try { ok = /^https?:$/.test(new URL(val('ollamaUrl')).protocol); } catch { ok = false; }
     if (!ok) errors.ollamaUrl = 'Enter a full URL, such as http://localhost:11434.';
+    else if (ollamaState === 'testing') { hints.ollamaUrl = { level: 'hint', msg: 'Testing the connection…' }; pending.push('ollamaUrl'); }
+    else if (ollamaState === 'down') errors.ollamaUrl = info.ollamaUrl?.msg || 'Could not reach Ollama. Start it and test again, or turn Ollama off.';
+    else if (ollamaState === 'empty') errors.ollamaUrl = 'Ollama is running but has no models installed. Run `ollama pull qwen2.5-coder:7b`, then test again, or turn Ollama off.';
   }
 
   for (const id of ['deepseek', 'anthropic']) {
@@ -470,13 +488,14 @@ function computeClient() {
     const ks = keyState[id];
     const key = val(cfg.key);
     if (!ks || ks.key !== key) {
-      hints[cfg.key] = { level: 'hint', msg: 'Not checked yet. Click Verify to check the key and load its models.' };
+      errors[cfg.key] = 'Verify the key to continue. This also loads the models you can use.';
     } else if (ks.state === 'checking') {
       hints[cfg.key] = { level: 'hint', msg: 'Checking the key…' };
+      pending.push(cfg.key);
     } else if (ks.state === 'invalid') {
       errors[cfg.key] = `${cfg.label} rejected this key${ks.msg ? `: ${ks.msg}` : '.'}`;
     } else if (ks.state === 'unreachable') {
-      hints[cfg.key] = { level: 'warn', msg: `Could not reach ${cfg.label} to check the key${ks.msg ? ` (${ks.msg})` : ''}. You can still save.` };
+      errors[cfg.key] = `Could not reach ${cfg.label} to check the key${ks.msg ? ` (${ks.msg})` : ''}. Check your connection, then verify again.`;
     } else if (ks.state === 'ok') {
       hints[cfg.key] = { level: 'hint', msg: `Key accepted. ${ks.count} model${ks.count === 1 ? '' : 's'} available.` };
     }
@@ -492,7 +511,7 @@ function computeClient() {
       const s = portStatus('ingestPort');
       if (s === 'busy') errors.ingestPort = 'Another program is using this port. Pick a different one.';
       else if (s === 'free') hints.ingestPort = { level: 'hint', msg: 'Free.' };
-      else if (s === 'checking') hints.ingestPort = { level: 'hint', msg: 'Checking the port…' };
+      else if (s === 'checking') { hints.ingestPort = { level: 'hint', msg: 'Checking the port…' }; pending.push('ingestPort'); }
     }
 
     if (val('ingestHost') === '0.0.0.0') {
@@ -507,12 +526,13 @@ function computeClient() {
   }
 
   if (checked('resolverEnabled')) {
+    if (order.filter(isEnabled).length === 0) errors.resolverEnabled = 'The resolver needs a model. Go back and set one up, or turn the resolver off.';
     if (!(intVal('maxConcurrent') >= 1)) errors.maxConcurrent = 'Enter a whole number, 1 or more.';
     if (!(intVal('maxAttempts') >= 1)) errors.maxAttempts = 'Enter a whole number, 1 or more.';
     if (!(intVal('pollInterval') >= 30000)) errors.pollInterval = 'Choose a poll interval.';
   }
 
-  return { errors, hints };
+  return { errors, hints, pending };
 }
 
 function renderMsg(el) {
@@ -532,7 +552,7 @@ function refresh() {
   current = computeClient();
   renderProviderOrder(order.filter(isEnabled));
   for (const el of document.querySelectorAll('.msg[data-key]')) renderMsg(el);
-  $('save').disabled = saving || !constantsOk || Object.keys(current.errors).length > 0;
+  $('save').disabled = saving || !constantsOk || Object.keys(current.errors).length > 0 || current.pending.length > 0;
   renderSteps();
 }
 
@@ -596,6 +616,7 @@ async function runPortCheck(key) {
 async function testOllama() {
   const seq = ++ollamaSeq;
   $('testOllama').disabled = true;
+  ollamaState = 'testing';
   info.ollamaUrl = { level: 'hint', msg: 'Testing the connection…' };
   refresh();
 
@@ -606,14 +627,19 @@ async function testOllama() {
 
   const models = Array.isArray(r?.models) ? r.models.map(modelName).filter(Boolean) : [];
   if (!r?.ok) {
+    ollamaState = 'down';
+    resetModel('ollamaModel', 'Not connected');
     info.ollamaUrl = {
       level: 'warn',
-      msg: `Could not reach Ollama${r?.error ? ` (${r.error})` : ''}. You can still save, but Ollama will not be used until it is running.`,
+      msg: `Could not reach Ollama${r?.error ? ` (${r.error})` : ''}. Start Ollama and test again, or turn Ollama off.`,
     };
   } else if (models.length === 0) {
+    ollamaState = 'empty';
+    resetModel('ollamaModel', 'No models installed');
     info.ollamaUrl = { level: 'hint', msg: 'Ollama is running but has no models installed. Run: ollama pull qwen2.5-coder:7b, then test again.' };
   } else {
-    setOptions($('ollamaModel'), models.map((m) => ({ value: m, label: m })), [OLLAMA_DEFAULT_MODEL]);
+    ollamaState = 'ok';
+    enableModel('ollamaModel', models, [OLLAMA_DEFAULT_MODEL]);
     info.ollamaUrl = { level: 'hint', msg: `Connected. ${models.length} model${models.length === 1 ? '' : 's'} installed.` };
     delete info.ollamaModel;
   }
@@ -640,12 +666,13 @@ async function verifyKey(id) {
   if (r?.ok) {
     const models = (Array.isArray(r.models) ? r.models : []).map(modelName).filter(Boolean);
     keyState[id] = { key, state: 'ok', count: models.length };
-    if (models.length > 0) {
-      setOptions($(cfg.model), models.map((m) => ({ value: m, label: m })), [cfg.def]);
-    }
+    if (models.length > 0) enableModel(cfg.model, models, [cfg.def]);
+    else resetModel(cfg.model, 'No models available');
   } else if (r?.unreachable) {
+    resetModel(cfg.model, 'Verify the key to load models');
     keyState[id] = { key, state: 'unreachable', msg: r.error ? String(r.error) : '' };
   } else {
+    resetModel(cfg.model, 'Verify the key to load models');
     keyState[id] = { key, state: 'invalid', msg: r?.error ? String(r.error) : '' };
   }
   refresh();
@@ -656,8 +683,7 @@ function onKeyInput(id) {
   clearTimeout(keyTimers[id]);
   keySeq[id] = (keySeq[id] || 0) + 1;
   keyState[id] = null;
-  const sel = $(cfg.model);
-  if (sel.value) setOptions(sel, [{ value: sel.value, label: sel.value }]);
+  resetModel(cfg.model, 'Verify the key to load models');
   if (checked(cfg.box) && val(cfg.key)) keyTimers[id] = setTimeout(() => verifyKey(id), 700);
 }
 
@@ -694,11 +720,18 @@ document.addEventListener('change', () => { serverErrors = {}; refresh(); });
 $('port').addEventListener('input', () => schedulePortCheck('port'));
 $('ingestPort').addEventListener('input', () => schedulePortCheck('ingestPort'));
 
-$('ollamaUrl').addEventListener('input', () => {
+let ollamaTimer;
+function scheduleOllamaTest(delay = 600) {
+  clearTimeout(ollamaTimer);
   ollamaSeq++;
-  $('testOllama').disabled = false;
-  info.ollamaUrl = { level: 'hint', msg: 'URL changed. Test the connection again.' };
-});
+  ollamaState = 'testing';
+  resetModel('ollamaModel', 'Connecting to Ollama…');
+  info.ollamaUrl = { level: 'hint', msg: 'Testing the connection…' };
+  if (checked('useOllama')) ollamaTimer = setTimeout(testOllama, delay);
+  refresh();
+}
+$('ollamaUrl').addEventListener('input', () => scheduleOllamaTest());
+$('useOllama').addEventListener('change', () => { if (checked('useOllama')) scheduleOllamaTest(0); });
 $('testOllama').addEventListener('click', testOllama);
 
 for (const id of ['deepseek', 'anthropic']) {
@@ -772,10 +805,11 @@ const STEPS = [
   { name: 'Basics', keys: ['port', 'dataDir'] },
   { name: 'Model', keys: ['ollamaUrl', 'ollamaModel', 'deepseekKey', 'deepseekModel', 'anthropicKey', 'anthropicModel', 'providerOrder'] },
   { name: 'Errors', keys: ['ingestPort', 'ingestHost', 'dsnKey', 'githubLabels', 'minLevel', 'commentThresholds', 'retentionDays'] },
-  { name: 'Resolver', keys: ['maxConcurrent', 'maxAttempts', 'pollInterval'] },
+  { name: 'Resolver', keys: ['maxConcurrent', 'maxAttempts', 'pollInterval', 'resolverEnabled'] },
 ];
 let step = 0;
 
+const stepBlocked = (i) => stepHasError(i) || STEPS[i].keys.some((k) => current.pending.includes(k));
 const stepHasError = (i) => STEPS[i].keys.some((k) => current.errors[k] || serverErrors[k]);
 
 function renderSteps() {
@@ -806,7 +840,7 @@ function renderSteps() {
   $('back').hidden = step === 0;
   $('next').hidden = last;
   $('save').hidden = !last;
-  $('next').disabled = stepHasError(step);
+  $('next').disabled = stepBlocked(step);
 
   const bad = STEPS.findIndex((_, i) => i !== step && stepHasError(i));
   $('stepNote').textContent = last && bad >= 0 ? `The ${STEPS[bad].name} step needs attention before you can save. Go back and fix it.` : '';
@@ -819,7 +853,7 @@ function goTo(i) {
   if (title) { title.tabIndex = -1; title.focus(); }
   window.scrollTo(0, 0);
 }
-$('next').addEventListener('click', () => { if (!stepHasError(step)) goTo(step + 1); });
+$('next').addEventListener('click', () => { if (!stepBlocked(step)) goTo(step + 1); });
 $('back').addEventListener('click', () => goTo(step - 1));
 
 // ---- Startup ----------------------------------------------------------------------------------
@@ -827,6 +861,8 @@ $('back').addEventListener('click', () => goTo(step - 1));
 async function loadConstants() {
   try {
     const { LEVELS, POLL_INTERVALS } = await window.fixflow.constants();
+    $('minLevel').disabled = false;
+    $('pollInterval').disabled = false;
     setOptions($('minLevel'), LEVELS.map((l) => ({ value: l, label: l })), ['error']);
     setOptions($('pollInterval'), POLL_INTERVALS.map((p) => ({ value: String(p.ms), label: p.label })), ['300000']);
     constantsOk = true;
@@ -836,11 +872,11 @@ async function loadConstants() {
 }
 
 (async function init() {
-  info.ollamaModel = { level: 'hint', msg: 'Click Test connection to choose from the models you have installed.' };
   await loadConstants();
   refresh();
   schedulePortCheck('port');
   schedulePortCheck('ingestPort');
+  if (checked('useOllama')) scheduleOllamaTest(0);
 })();
 </script>
 </body>

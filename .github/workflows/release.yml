@@ -24,3 +24,39 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" release/*.tar.gz release/sha256sums.txt --title "$GITHUB_REF_NAME" --generate-notes
+
+  desktop:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: dist:mac
+          - os: windows-latest
+            script: dist:win
+          - os: ubuntu-latest
+            script: dist:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: desktop
+      # No signing certificates are configured, so these builds are unsigned.
+      - run: npm run ${{ matrix.script }}
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Attach the desktop app to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          gh release upload "$GITHUB_REF_NAME" desktop/release/*.dmg desktop/release/*.exe desktop/release/*.AppImage --clobber

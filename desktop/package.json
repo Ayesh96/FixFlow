@@ -7,6 +7,8 @@
   "scripts": {
     "start": "electron .",
     "dist:mac": "electron-builder --mac --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
@@ -56,6 +58,14 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": "dmg"
-    }
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "category": "Development",
+      "target": "AppImage"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
   }
 }

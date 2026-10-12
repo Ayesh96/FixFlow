@@ -1,6 +1,6 @@
 ---
-title: How FixFlow's resolver turns errors into pull requests
-description: The FixFlow resolver: which issues it attempts, the agent's tools and prompt, the check command, retries, cost, and what the pull request contains.
+title: "How FixFlow's resolver turns errors into pull requests"
+description: "The FixFlow resolver: which issues it attempts, the agent's tools and prompt, the check command, retries, cost, and what the pull request contains."
 ---
 
 # AI fixes as pull requests

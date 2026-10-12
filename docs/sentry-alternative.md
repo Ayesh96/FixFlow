@@ -1,6 +1,6 @@
 ---
-title: FixFlow vs Sentry, GlitchTip and Bugsink
-description: A lightweight self-hosted Sentry alternative that opens fix pull requests. What it replaces, what it lacks, and a comparison with Sentry, GlitchTip and Bugsink.
+title: "FixFlow vs Sentry, GlitchTip and Bugsink"
+description: "A lightweight self-hosted Sentry alternative that opens fix pull requests. What it replaces, what it lacks, and a comparison with Sentry, GlitchTip and Bugsink."
 ---
 
 # A lightweight Sentry alternative

@@ -1,6 +1,6 @@
 ---
-title: Sentry errors to GitHub issues, automatically
-description: FixFlow turns Sentry SDK events into GitHub issues: DSN setup, token permissions, grouping, filing rules, issue contents and count comments.
+title: "Sentry errors to GitHub issues, automatically"
+description: "FixFlow turns Sentry SDK events into GitHub issues: DSN setup, token permissions, grouping, filing rules, issue contents and count comments."
 ---
 
 # Sentry errors to GitHub issues

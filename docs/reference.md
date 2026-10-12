@@ -1,6 +1,6 @@
 ---
-title: FixFlow configuration and security reference
-description: FixFlow reference: projects and tokens, the dashboard and ingest listeners, the security model, every environment variable, and the code layout.
+title: "FixFlow configuration and security reference"
+description: "FixFlow reference: projects and tokens, the dashboard and ingest listeners, the security model, every environment variable, and the code layout."
 ---
 
 # Reference

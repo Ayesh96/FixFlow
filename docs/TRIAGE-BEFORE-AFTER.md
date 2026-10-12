@@ -1,5 +1,5 @@
 ---
-description: Before and after results of FixFlow error triage on 12 replayed situations, with rules only and with a local qwen2.5-coder model.
+description: "Before and after results of FixFlow error triage on 12 replayed situations, with rules only and with a local qwen2.5-coder model."
 ---
 
 # Triage: before and after the fixes

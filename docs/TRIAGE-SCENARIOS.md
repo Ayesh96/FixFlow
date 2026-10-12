@@ -1,5 +1,5 @@
 ---
-description: What happens to an error in FixFlow between arriving and becoming a GitHub issue, scenario by scenario.
+description: "What happens to an error in FixFlow between arriving and becoming a GitHub issue, scenario by scenario."
 ---
 
 # Triage scenarios

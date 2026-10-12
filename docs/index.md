@@ -1,6 +1,6 @@
 ---
-title: FixFlow: Sentry-compatible error tracking with AI fix PRs
-description: Self-hosted error tracker for Sentry SDKs. Groups errors, files GitHub issues, and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests.
+title: "FixFlow: Sentry-compatible error tracking with AI fix PRs"
+description: "Self-hosted error tracker for Sentry SDKs. Groups errors, files GitHub issues, and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests."
 ---
 
 # FixFlow
@@ -8,6 +8,13 @@ description: Self-hosted error tracker for Sentry SDKs. Groups errors, files Git
 FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors your app's Sentry SDK sends, opens a GitHub issue for each new one, and has an LLM attempt a fix that it opens as a pull request for you to review. The model runs locally through Ollama (default `qwen2.5-coder:7b`) or through the DeepSeek or Anthropic API.
 
 Source and releases: [github.com/Ayesh96/FixFlow](https://github.com/Ayesh96/FixFlow).
+
+<video controls muted playsinline preload="metadata" poster="assets/screenshots/05-dashboard-overview.png" style="width: 100%; border-radius: 8px;">
+  <source src="assets/demo/fixflow-demo.mp4" type="video/mp4">
+  <a href="assets/demo/fixflow-demo.mp4">Watch the demo video</a>
+</video>
+
+*One minute: the setup wizard, then an error that FixFlow triages, files on GitHub and fixes in a pull request.*
 
 ## Pipeline
 
@@ -18,6 +25,26 @@ Source and releases: [github.com/Ayesh96/FixFlow](https://github.com/Ayesh96/Fix
 5. **Resolve.** For each open issue it filed, the model edits a throwaway worktree, your check command runs before and after, and a pull request is opened against your branch.
 
 The resolver does not read triage tags yet; it attempts every open issue FixFlow filed.
+
+## Screenshots
+
+**Every project at a glance.** Each card shows how many errors were tracked, triaged, filed, tried by the resolver and turned into a pull request.
+
+![Projects overview with each project's pipeline](assets/screenshots/05-dashboard-overview.png)
+
+**What triage found, and the fix.** Opening an error shows what the model read, what the resolver changed, and the pull request waiting for review.
+
+![An error opened in full: triage, the resolver's change and its pull request](assets/screenshots/07-error-triage.png)
+
+**A skipped fix, explained.** When the resolver declines, it says why.
+
+![The resolver explains why it skipped an error](assets/screenshots/09-error-skipped.png)
+
+**Desktop setup.** The macOS app sets everything up in four steps and checks each one before you continue.
+
+<img src="assets/screenshots/02-wizard-model.png" alt="The desktop setup wizard's model step, with Ollama connected" style="width: 100%; max-width: 420px; border-radius: 8px;">
+
+More screenshots are in [the repository](https://github.com/Ayesh96/FixFlow/tree/main/docs/assets/screenshots).
 
 ## Quick start
 

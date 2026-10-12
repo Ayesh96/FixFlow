@@ -1,6 +1,6 @@
 ---
-title: Error triage with Ollama and a local LLM
-description: How FixFlow triages production errors with a model served by Ollama, DeepSeek or Anthropic: setup, tags, what the model sees, guardrails, and measured results.
+title: "Error triage with Ollama and a local LLM"
+description: "How FixFlow triages production errors with a model served by Ollama, DeepSeek or Anthropic: setup, tags, what the model sees, guardrails, and measured results."
 ---
 
 # Error triage with Ollama

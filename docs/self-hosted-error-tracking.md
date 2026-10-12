@@ -1,6 +1,6 @@
 ---
-title: Self-hosted error tracking with FixFlow
-description: FixFlow runs as one Node process with SQLite: two loopback ports, one data folder, encrypted GitHub tokens. What it stores and what leaves your machine.
+title: "Self-hosted error tracking with FixFlow"
+description: "FixFlow runs as one Node process with SQLite: two loopback ports, one data folder, encrypted GitHub tokens. What it stores and what leaves your machine."
 ---
 
 # Self-hosted error tracking

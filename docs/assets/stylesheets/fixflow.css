@@ -162,6 +162,8 @@
   text-wrap: pretty;
 }
 .ff-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.3rem; }
+.ff-download-note { margin: 0; font-size: 0.7rem; color: var(--ff-muted); }
+.ff-download-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .ff-button {
   display: inline-flex;
   align-items: center;

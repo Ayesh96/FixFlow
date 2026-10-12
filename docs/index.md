@@ -67,7 +67,7 @@ Setup is four steps in a window, and each one is checked before you continue. Mo
 
 ## Quick start
 
-[Download FixFlow](https://github.com/Ayesh96/FixFlow/releases/latest){ .md-button .md-button--primary }
+[Download FixFlow](https://github.com/Ayesh96/FixFlow/releases/latest){ .md-button .md-button--primary data-ff-download="1" } [All releases](https://github.com/Ayesh96/FixFlow/releases){ .md-button }
 
 | | File | First open |
 |---|---|---|

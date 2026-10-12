@@ -10,9 +10,10 @@
       <h1 id="ff-hero-title">Errors in. <span>Pull requests out.</span></h1>
       <p class="ff-lede">FixFlow groups the errors your app's Sentry SDK sends, files a GitHub issue for each new one, and has a model write the fix as a pull request for you to review. One Node process and SQLite, on your machine.</p>
       <div class="ff-actions">
-        <a class="ff-button ff-button--primary" href="#quick-start">Download</a>
+        <a class="ff-button ff-button--primary" href="#quick-start" data-ff-download>Download</a>
         <a class="ff-button" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} View on GitHub</a>
       </div>
+      <p class="ff-download-note">macOS (Apple Silicon), Windows and Linux · <a href="#quick-start">All downloads</a></p>
       <ol class="ff-stages" aria-label="What happens to an error">
         <li><span>Tracked</span></li>
         <li><span>Triaged</span></li>
@@ -32,4 +33,35 @@
 
 {% block content %}
   {{ page.content }}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    // Points every [data-ff-download] button straight at this computer's file in the latest release.
+    // Without a match (a phone, an unknown OS, or a release with no app files) the buttons keep
+    // linking to the install section.
+    (function () {
+      var ua = navigator.userAgent;
+      var platform = navigator.platform || "";
+      var touchMac = /Mac/.test(platform) && navigator.maxTouchPoints > 1;
+      if (/Android|iPhone|iPad|iPod/i.test(ua) || touchMac) return;
+      var os = /Win/i.test(platform) ? { label: "Windows", file: /\.exe$/i }
+        : /Mac/i.test(platform) ? { label: "Mac", file: /\.dmg$/i }
+        : /Linux/i.test(platform) ? { label: "Linux", file: /\.AppImage$/i }
+        : null;
+      if (!os) return;
+      fetch("https://api.github.com/repos/{{ config.repo_name }}/releases/latest")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (release) {
+          var asset = release && (release.assets || []).filter(function (a) { return os.file.test(a.name); })[0];
+          if (!asset) return;
+          document.querySelectorAll("[data-ff-download]").forEach(function (button) {
+            button.href = asset.browser_download_url;
+            button.textContent = "Download for " + os.label;
+          });
+        })
+        .catch(function () {});
+    })();
+  </script>
 {% endblock %}

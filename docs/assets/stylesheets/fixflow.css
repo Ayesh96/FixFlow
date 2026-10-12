@@ -1,0 +1,248 @@
+/* The docs site in the app's own look: the dashboard's neutral palette, Geist, and its one blue.
+   Values come from web/src/index.css; change them there first. */
+
+:root {
+  --ff-radius: 0.5rem;
+}
+
+/* Dark, the default: the dashboard's exact palette. */
+[data-md-color-scheme="slate"] {
+  --ff-bg: #0a0a0a;
+  --ff-card: #171717;
+  --ff-raised: #262626;
+  --ff-fg: #fafafa;
+  --ff-muted: #a3a3a3;
+  --ff-border: rgb(255 255 255 / 10%);
+  --ff-blue: #3987e5;
+  --ff-link: #6aa8f0;
+  --ff-ok: #0ca30c;
+  --ff-glow: rgb(57 135 229 / 16%);
+
+  --md-hue: 0;
+  --md-default-bg-color: var(--ff-bg);
+  --md-default-fg-color: rgb(250 250 250 / 92%);
+  --md-default-fg-color--light: var(--ff-muted);
+  --md-default-fg-color--lighter: rgb(250 250 250 / 32%);
+  --md-default-fg-color--lightest: rgb(250 250 250 / 12%);
+  --md-code-bg-color: var(--ff-card);
+  --md-code-fg-color: #e5e5e5;
+  --md-footer-bg-color: var(--ff-bg);
+  --md-footer-bg-color--dark: var(--ff-bg);
+}
+
+/* Light: the same system on white. */
+[data-md-color-scheme="default"] {
+  --ff-bg: #ffffff;
+  --ff-card: #f5f5f5;
+  --ff-raised: #e5e5e5;
+  --ff-fg: #0a0a0a;
+  --ff-muted: #525252;
+  --ff-border: rgb(0 0 0 / 10%);
+  --ff-blue: #1f6fd1;
+  --ff-link: #1f6fd1;
+  --ff-ok: #087a08;
+  --ff-glow: rgb(31 111 209 / 10%);
+
+  --md-default-bg-color: var(--ff-bg);
+  --md-default-fg-color: rgb(10 10 10 / 90%);
+  --md-default-fg-color--light: var(--ff-muted);
+  --md-code-bg-color: var(--ff-card);
+  --md-footer-bg-color: var(--ff-card);
+  --md-footer-bg-color--dark: var(--ff-card);
+  --md-footer-fg-color: var(--ff-fg);
+  --md-footer-fg-color--light: var(--ff-muted);
+  --md-footer-fg-color--lighter: var(--ff-muted);
+}
+
+/* Material's "custom" primary and accent: neutral header, blue links. */
+:root > * {
+  --md-primary-fg-color: var(--ff-bg);
+  --md-primary-fg-color--light: var(--ff-card);
+  --md-primary-fg-color--dark: var(--ff-bg);
+  --md-primary-bg-color: var(--ff-fg);
+  --md-primary-bg-color--light: var(--ff-muted);
+  --md-accent-fg-color: var(--ff-link);
+  --md-accent-fg-color--transparent: var(--ff-glow);
+  --md-typeset-a-color: var(--ff-link);
+}
+
+/* Header and tabs: the dashboard's bar, a hairline instead of a shadow. */
+.md-header,
+.md-header--shadow {
+  box-shadow: none;
+  border-bottom: 1px solid var(--ff-border);
+  background-color: color-mix(in srgb, var(--ff-bg) 85%, transparent);
+  backdrop-filter: blur(8px);
+}
+.md-header__title { font-weight: 600; letter-spacing: -0.01em; }
+.md-header__button.md-logo svg { height: 1.3rem; width: 1.3rem; }
+.md-search__form { background-color: var(--ff-card); border: 1px solid var(--ff-border); border-radius: var(--ff-radius); }
+.md-search__form:hover { background-color: var(--ff-raised); }
+[data-md-color-scheme="default"] .md-search__input::placeholder,
+[data-md-color-scheme="default"] .md-search__icon { color: var(--ff-muted); }
+.md-footer-meta { border-top: 1px solid var(--ff-border); }
+
+/* Type: Geist set like the app, with firmer headings than Material's light weights. */
+.md-typeset { font-size: 0.8rem; line-height: 1.65; }
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 { color: var(--ff-fg); font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; }
+.md-typeset h1 { font-size: 2rem; }
+.md-typeset h2 { font-size: 1.35rem; margin-top: 2.4em; }
+.md-typeset a { text-underline-offset: 0.2em; }
+.md-typeset code { border-radius: 0.3rem; font-size: 0.85em; }
+.md-typeset pre > code { border: 1px solid var(--ff-border); border-radius: var(--ff-radius); }
+.md-typeset table:not([class]) { border: 1px solid var(--ff-border); border-radius: var(--ff-radius); box-shadow: none; font-size: 0.75rem; }
+.md-typeset table:not([class]) th { background-color: var(--ff-card); color: var(--ff-fg); font-weight: 500; }
+.md-typeset table:not([class]) td { border-top: 1px solid var(--ff-border); }
+.md-typeset .admonition,
+.md-typeset details { border-radius: var(--ff-radius); box-shadow: none; border-width: 1px; background-color: var(--ff-card); }
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active { color: var(--ff-fg); font-weight: 500; }
+.md-nav__title { color: var(--ff-muted); }
+
+/* Images in prose sit in the app's card frame. */
+.md-typeset img.ff-shot,
+.md-typeset .ff-shot img { border: 1px solid var(--ff-border); border-radius: var(--ff-radius); display: block; }
+
+/* ---- Home: hero ------------------------------------------------------------------------- */
+.ff-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--ff-border);
+  /* A faint grid, like graph paper under the product shot. */
+  background:
+    radial-gradient(60rem 26rem at 50% 105%, var(--ff-glow), transparent 70%),
+    linear-gradient(var(--ff-border) 1px, transparent 1px) 0 0 / 2.4rem 2.4rem,
+    linear-gradient(90deg, var(--ff-border) 1px, transparent 1px) 0 0 / 2.4rem 2.4rem,
+    var(--ff-bg);
+}
+.ff-hero::after {
+  /* Fade the grid out towards the edges so it never competes with the text. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 30%, transparent 30%, var(--ff-bg) 78%);
+}
+.ff-hero__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 61rem;
+  margin: 0 auto;
+  padding: 4.5rem 1.2rem 0;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 1.1rem;
+}
+.ff-eyebrow {
+  font-family: var(--md-code-font-family);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ff-muted);
+}
+.ff-hero h1 {
+  margin: 0;
+  font-size: clamp(2.1rem, 5.5vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  color: var(--ff-fg);
+  text-wrap: balance;
+}
+.ff-hero h1 span { color: var(--ff-muted); }
+.ff-lede {
+  margin: 0;
+  max-width: 40rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ff-muted);
+  text-wrap: pretty;
+}
+.ff-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.3rem; }
+.ff-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.3rem;
+  padding: 0 1.05rem;
+  border-radius: var(--ff-radius);
+  border: 1px solid var(--ff-border);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ff-fg);
+  background: var(--ff-card);
+  transition: background-color 150ms, border-color 150ms;
+}
+.ff-button:hover { background: var(--ff-raised); color: var(--ff-fg); }
+.ff-button:focus-visible { outline: 2px solid var(--ff-link); outline-offset: 2px; }
+.ff-button--primary { background: var(--ff-fg); color: var(--ff-bg); border-color: var(--ff-fg); }
+.ff-button--primary:hover { background: var(--ff-muted); border-color: var(--ff-muted); color: var(--ff-bg); }
+.ff-button svg { width: 1rem; height: 1rem; fill: currentColor; }
+
+/* The pipeline, in the dashboard's own stage words. */
+.ff-stages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 0.4rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--md-code-font-family);
+  font-size: 0.62rem;
+  color: var(--ff-muted);
+}
+.ff-stages li { display: flex; align-items: center; gap: 0.4rem; }
+.ff-stages li + li::before { content: "→"; opacity: 0.6; }
+.ff-stages span { border: 1px solid var(--ff-border); border-radius: 999px; padding: 0.15rem 0.6rem; background: var(--ff-card); color: var(--ff-fg); }
+
+.ff-demo {
+  width: 100%;
+  margin-top: 1.6rem;
+  border: 1px solid var(--ff-border);
+  border-bottom: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 -1rem 4rem var(--ff-glow);
+}
+.ff-demo video { display: block; width: 100%; height: auto; }
+
+/* ---- Home: content ---------------------------------------------------------------------- */
+/* Material's grid cards, drawn as the dashboard's cards. */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border: 1px solid var(--ff-border);
+  border-radius: var(--ff-radius);
+  background: var(--ff-card);
+  box-shadow: none;
+  transition: border-color 150ms;
+}
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:hover { border-color: color-mix(in srgb, var(--ff-fg) 25%, transparent); box-shadow: none; }
+.md-typeset .grid.cards > ul > li > hr,
+.md-typeset .grid.cards > ul > li > p > hr { margin: 0.5em 0; border-bottom: 1px solid var(--ff-border); }
+.md-typeset .grid.cards .ff-step {
+  font-family: var(--md-code-font-family);
+  font-size: 0.6rem;
+  color: var(--ff-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Screenshots read better two to a row, and four then fill the grid. */
+.md-typeset .grid.cards.ff-shots { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
+.md-typeset .grid.cards img { border-radius: calc(var(--ff-radius) - 2px); border: 1px solid var(--ff-border); }
+
+/* On a phone the chips wrap, and an arrow would start the second line. */
+@media (max-width: 30em) {
+  .ff-stages li + li::before { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-button,
+  .md-typeset .grid.cards > ul > li { transition: none; }
+}

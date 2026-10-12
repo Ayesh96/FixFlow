@@ -1,0 +1,35 @@
+{% extends "main.html" %}
+
+{#- The home page: a hero with the product running, then the page's own Markdown. -#}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="ff-hero" aria-labelledby="ff-hero-title">
+    <div class="ff-hero__inner">
+      <div class="ff-eyebrow">Self-hosted · Works with Sentry SDKs · Ollama, DeepSeek or Anthropic</div>
+      <h1 id="ff-hero-title">Errors in. <span>Pull requests out.</span></h1>
+      <p class="ff-lede">FixFlow groups the errors your app's Sentry SDK sends, files a GitHub issue for each new one, and has a model write the fix as a pull request for you to review. One Node process and SQLite, on your machine.</p>
+      <div class="ff-actions">
+        <a class="ff-button ff-button--primary" href="#quick-start">Get started</a>
+        <a class="ff-button" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} View on GitHub</a>
+      </div>
+      <ol class="ff-stages" aria-label="What happens to an error">
+        <li><span>Tracked</span></li>
+        <li><span>Triaged</span></li>
+        <li><span>Filed</span></li>
+        <li><span>Fix tried</span></li>
+        <li><span>PR open</span></li>
+      </ol>
+      <div class="ff-demo">
+        <video controls muted playsinline preload="metadata" poster="{{ 'assets/screenshots/05-dashboard-overview.png' | url }}">
+          <source src="{{ 'assets/demo/fixflow-demo.mp4' | url }}" type="video/mp4">
+          <a href="{{ 'assets/demo/fixflow-demo.mp4' | url }}">Watch the demo video</a>
+        </video>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}

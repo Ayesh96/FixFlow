@@ -1,50 +1,69 @@
 ---
 title: "FixFlow: Sentry-compatible error tracking with AI fix PRs"
 description: "Self-hosted error tracker for Sentry SDKs. Groups errors, files GitHub issues, and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests."
+template: home.html
+hide:
+  - navigation
+  - toc
 ---
 
-# FixFlow
+## How an error becomes a pull request
 
-FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors your app's Sentry SDK sends, opens a GitHub issue for each new one, and has an LLM attempt a fix that it opens as a pull request for you to review. The model runs locally through Ollama (default `qwen2.5-coder:7b`) or through the DeepSeek or Anthropic API.
+The model runs locally through Ollama (default `qwen2.5-coder:7b`) or through the DeepSeek or Anthropic API. Nothing else needs to run: no Docker, no Postgres, no queue.
 
-Source and releases: [github.com/Ayesh96/FixFlow](https://github.com/Ayesh96/FixFlow).
+<div class="grid cards" markdown>
 
-<video controls muted playsinline preload="metadata" poster="assets/screenshots/05-dashboard-overview.png" style="width: 100%; border-radius: 8px;">
-  <source src="assets/demo/fixflow-demo.mp4" type="video/mp4">
-  <a href="assets/demo/fixflow-demo.mp4">Watch the demo video</a>
-</video>
+-   <span class="ff-step">1 · Ingest</span>
 
-*One minute: the setup wizard, then an error that FixFlow triages, files on GitHub and fixes in a pull request.*
+    Sentry's `store` and `envelope` endpoints on `127.0.0.1:3000`. Your app only changes its DSN.
 
-## Pipeline
+-   <span class="ff-step">2 · Group</span>
 
-1. **Ingest.** Sentry `store` and `envelope` endpoints on `127.0.0.1:3000`.
-2. **Group.** By exception type, crashing file and that frame's source line text.
-3. **Triage.** A model, or built-in rules when no provider is set up, tags the error (`bot-safe`, `needs-human`, …).
-4. **File.** One GitHub issue per new group that has a stack trace.
-5. **Resolve.** For each open issue it filed, the model edits a throwaway worktree, your check command runs before and after, and a pull request is opened against your branch.
+    By exception type, crashing file and that frame's source line, so ids in messages and shifted line numbers don't split a group.
+
+-   <span class="ff-step">3 · Triage</span>
+
+    A model, or built-in rules when none is set up, says what happened and tags it `bot-safe`, `needs-human`, `infrastructure` and so on.
+
+-   <span class="ff-step">4 · File</span>
+
+    One GitHub issue per new group with a stack trace, with a comment at 100, 1,000 and 10,000 events.
+
+-   <span class="ff-step">5 · Resolve</span>
+
+    The model edits a throwaway worktree, your check command runs before and after, and a pull request is opened against your branch.
+
+-   <span class="ff-step">Or skip</span>
+
+    When the cause isn't in the code (a database that is down, a bad secret), the resolver says so instead of guessing.
+
+</div>
 
 The resolver does not read triage tags yet; it attempts every open issue FixFlow filed.
 
-## Screenshots
+## In the dashboard
 
-**Every project at a glance.** Each card shows how many errors were tracked, triaged, filed, tried by the resolver and turned into a pull request.
+<div class="grid cards ff-shots" markdown>
 
-![Projects overview with each project's pipeline](assets/screenshots/05-dashboard-overview.png)
+-   ![Projects overview with each project's pipeline](assets/screenshots/05-dashboard-overview.png)
 
-**What triage found, and the fix.** Opening an error shows what the model read, what the resolver changed, and the pull request waiting for review.
+    **Every project at a glance.** Tracked, triaged, filed, fix tried and PR open, per project and in total.
 
-![An error opened in full: triage, the resolver's change and its pull request](assets/screenshots/07-error-triage.png)
+-   ![An error opened in full: triage, the resolver's change and its pull request](assets/screenshots/07-error-triage.png)
 
-**A skipped fix, explained.** When the resolver declines, it says why.
+    **What triage found, and the fix.** What the model read, what the resolver changed, and the pull request.
 
-![The resolver explains why it skipped an error](assets/screenshots/09-error-skipped.png)
+-   ![The resolver explains why it skipped an error](assets/screenshots/09-error-skipped.png)
 
-**Desktop setup.** The macOS app sets everything up in four steps and checks each one before you continue.
+    **A skipped fix, explained.** Here the bad date comes from the orders API, so guarding the formatter would only hide it.
 
-<img src="assets/screenshots/02-wizard-model.png" alt="The desktop setup wizard's model step, with Ollama connected" style="width: 100%; max-width: 420px; border-radius: 8px;">
+-   ![Connecting an app: the Sentry SDK setup, already filled in for the project](assets/screenshots/10-setup-guide.png)
 
-More screenshots are in [the repository](https://github.com/Ayesh96/FixFlow/tree/main/docs/assets/screenshots).
+    **Connecting an app.** The setup guide fills in the DSN for each project, in Python, Node.js or browser code.
+
+</div>
+
+The desktop app for macOS sets everything up in four steps and checks each one before you continue. More screenshots are in [the repository](https://github.com/Ayesh96/FixFlow/tree/main/docs/assets/screenshots).
 
 ## Quick start
 
@@ -62,12 +81,33 @@ Open the printed `http://localhost:7420/?token=…` link once. Add a project on 
 
 ## Guides
 
-- [Self-hosted error tracking](self-hosted-error-tracking.md): processes, ports, files, what leaves the machine.
-- [Sentry alternative](sentry-alternative.md): what it replaces, and a comparison with Sentry, GlitchTip and Bugsink.
-- [Sentry errors to GitHub issues](sentry-errors-to-github-issues.md): grouping, filing rules, issue contents, token permissions.
-- [AI fixes as pull requests](ai-bug-fix-pull-requests.md): which issues are attempted, the agent loop, retries, cost.
-- [Error triage with Ollama](local-llm-error-triage.md): tags, the prompt's definition of a small fix, guardrails.
-- [Reference](reference.md): every setting and the security model.
+<div class="grid cards" markdown>
+
+-   [**Self-hosted error tracking**](self-hosted-error-tracking.md)
+
+    Processes, ports, files, what leaves the machine.
+
+-   [**Sentry alternative**](sentry-alternative.md)
+
+    What it replaces, and a comparison with Sentry, GlitchTip and Bugsink.
+
+-   [**Sentry errors to GitHub issues**](sentry-errors-to-github-issues.md)
+
+    Grouping, filing rules, issue contents, token permissions.
+
+-   [**AI fixes as pull requests**](ai-bug-fix-pull-requests.md)
+
+    Which issues are attempted, the agent loop, retries, cost.
+
+-   [**Error triage with Ollama**](local-llm-error-triage.md)
+
+    Tags, the prompt's definition of a small fix, guardrails.
+
+-   [**Reference**](reference.md)
+
+    Every setting and the security model.
+
+</div>
 
 ## Limits
 

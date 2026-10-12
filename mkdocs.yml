@@ -8,9 +8,34 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: overrides
+  # The app's look: its neutral palette (dark first, as the app is), Geist, and its layers mark.
+  # Colours live in docs/assets/stylesheets/fixflow.css.
+  font:
+    text: Geist
+    code: Geist Mono
+  icon:
+    logo: fixflow/layers
+  favicon: assets/favicon.svg
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
   features:
     - navigation.sections
+    - navigation.top
     - content.code.copy
+
+extra_css:
+  - assets/stylesheets/fixflow.css
 
 # Raw data stays in the repo but is not published. docs/internal/ is gitignored and never built.
 exclude_docs: |
@@ -33,6 +58,8 @@ nav:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - tables
   - toc:
       permalink: true

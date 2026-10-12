@@ -262,7 +262,7 @@ export class Scheduler {
     this.onChange();
     // Shown on the issue right away, so the dashboard can say the resolver is working rather than going quiet.
     await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'IN_PROGRESS', {});
-    const workDir = join(tmpdir(), 'error-resolver', randomUUID());
+    const workDir = join(tmpdir(), 'fixflow-resolver', randomUUID());
 
     try {
       const token = project.resolverToken ?? project.token;

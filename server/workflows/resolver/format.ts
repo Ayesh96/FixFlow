@@ -40,7 +40,7 @@ export function formatPullRequestBody(
     filesChanged.map((f) => `- \`${f}\``).join('\n'),
     formatVerifyNote(verifyRan, verified),
     '---',
-    '_Opened automatically by ErrorResolver from an error-tracker issue. Review before merging._',
+    '_Opened automatically by FixFlow from an error it tracked. Review before merging._',
   ];
   return truncate(sections.join('\n\n'), MAX_BODY_LENGTH);
 }

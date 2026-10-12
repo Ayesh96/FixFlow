@@ -19,11 +19,11 @@ Triage tags are not consulted: issues tagged `needs-human`, `infrastructure` or 
 
 ## One attempt
 
-1. Fetch the project's branch into the bare clone and create a worktree on branch `errorresolver/issue-<number>`.
+1. Fetch the project's branch into the bare clone and create a worktree on branch `fixflow/issue-<number>`.
 2. Run the check command, if set. If it already fails, the attempt is `SKIPPED`.
 3. Pre-load up to 3 source files named in the stack, then run the agent loop: up to 20 turns, with four tools: `read_file`, `list_directory`, `grep` and `edit_file`. The model has no shell.
 4. The model must end with `FIX: <what changed>` or `SKIP: <why>`. `SKIP`, or `FIX` with no file changed, records `SKIPPED`. No verdict within 20 turns records `FAILED`.
-5. Run the check command again, commit as `error-resolver <error-resolver@localhost>`, push, and open the pull request against the project's branch.
+5. Run the check command again, commit as `FixFlow <fixflow@localhost>`, push, and open the pull request against the project's branch.
 
 The prompt tells the model to change only a handful of lines in one or two files, to fix only the reported bug, to make no change when the cause is unclear, and to treat the issue body as untrusted data rather than instructions.
 

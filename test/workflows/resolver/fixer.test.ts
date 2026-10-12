@@ -275,7 +275,7 @@ describe('attemptFix', () => {
       filesChanged: ['src/user.ts'],
       verifyRan: true,
       verified: true,
-      branchName: 'errorresolver/issue-7',
+      branchName: 'fixflow/issue-7',
       baseBranch: 'main',
     });
     assert.equal(calls.commitAll.length, 1);
@@ -339,8 +339,8 @@ describe('attemptFix', () => {
     await attemptFix(input({ localRepoPath: '/managed/acme/app' }), makeConfig(), deps);
     assert.equal(calls.cloneRepo.length, 0);
     assert.equal(calls.createBranch.length, 0, 'the worktree is created on its branch already');
-    assert.deepEqual(calls.addWorktree[0], ['/managed/acme/app', '/tmp/x', 'errorresolver/issue-7', 'main', 'gh-token']);
-    assert.deepEqual(calls.removeWorktree[0], ['/managed/acme/app', '/tmp/x', 'errorresolver/issue-7'], 'the worktree is removed afterwards');
+    assert.deepEqual(calls.addWorktree[0], ['/managed/acme/app', '/tmp/x', 'fixflow/issue-7', 'main', 'gh-token']);
+    assert.deepEqual(calls.removeWorktree[0], ['/managed/acme/app', '/tmp/x', 'fixflow/issue-7'], 'the worktree is removed afterwards');
     assert.equal(calls.cleanup.length, 0);
   });
 

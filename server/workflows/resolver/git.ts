@@ -200,7 +200,7 @@ export async function commitAll(
   }
 
   try {
-    await exec('git', ['-C', dir, '-c', 'user.name=error-resolver', '-c', 'user.email=error-resolver@localhost', 'commit', '-m', message], {
+    await exec('git', ['-C', dir, '-c', 'user.name=FixFlow', '-c', 'user.email=fixflow@localhost', 'commit', '-m', message], {
       cwd: dir,
       timeoutMs: 15_000,
     });

@@ -88,7 +88,7 @@ export interface IssueRecord {
   githubIssueUrl: string | null;
   /** `owner/repo` the GitHub issue lives in; null until one is opened. */
   githubRepo: string | null;
-  /** Set by an external fixer (e.g. ErrorResolver) via POST /admin/issues/:fingerprintHash/resolver-status; null until one reports in. */
+  /** Set by the resolver through `reportResolverStatus`; null until it has attempted the issue. */
   resolverStatus: ResolverStatus | null;
   resolverPrNumber: number | null;
   resolverPrUrl: string | null;

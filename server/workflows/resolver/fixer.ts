@@ -6,7 +6,7 @@ import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
 import { AGENT_MAX_TURNS, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
-export const BRANCH_PREFIX = 'errorresolver/issue-';
+export const BRANCH_PREFIX = 'fixflow/issue-';
 
 const SYSTEM_PROMPT =
   'You are a narrow bug-fixing agent. You only have four tools: read_file, list_directory, grep, and ' +
@@ -132,7 +132,7 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
       const reply = await options.client.chat(messages, TOOL_DEFINITIONS);
       messages.push(reply);
       // Log every turn so a SKIP or FAILED can be traced to what the model actually did.
-      console.log(`[error-resolver] agent turn ${turn} for issue #${issue.number}`, JSON.stringify({
+      console.log(`[resolver] agent turn ${turn} for issue #${issue.number}`, JSON.stringify({
         tool_calls: (reply.tool_calls ?? []).map((call) => `${call.function.name}(${String(call.function.arguments).slice(0, 200)})`),
         content: (reply.content ?? '').slice(0, 1000),
       }));
@@ -258,7 +258,7 @@ export async function attemptFix(
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
       force: input.force === true,
-      client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[error-resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
+      client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
     });
     if (verdict.kind === 'error') return { kind: 'failed', error: verdict.message };
     if (verdict.kind === 'skip') return { kind: 'skipped', reason: verdict.reason };

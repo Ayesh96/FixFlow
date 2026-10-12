@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Triage no longer says the resolver will skip permission, configuration or network errors. The resolver attempts every filed issue, so the suggestion now says to close the GitHub issue to keep it off one.
+- What the resolver leaves in your repository says FixFlow instead of ErrorResolver: branches are `fixflow/issue-<n>` (was `errorresolver/issue-<n>`), commits are by `FixFlow <fixflow@localhost>`, and the pull request footer names FixFlow. Pull requests already opened keep their old branch.
+
 ## 1.0.0
 
 First public release.

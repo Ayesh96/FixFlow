@@ -15,7 +15,7 @@ Every 5 minutes (`ORCH_RESOLVER_POLL_INTERVAL_MS`) it takes the issues FixFlow f
 - has no earlier attempt that opened a pull request (`PR_OPEN`) or was skipped (`SKIPPED`);
 - is not resting after a failure: 15 minutes after the first, doubling each time, and no more automatic tries after 3 failures (`ORCH_RESOLVER_MAX_ATTEMPTS`).
 
-Triage tags are not consulted: issues tagged `needs-human`, `infrastructure` or `third-party` are attempted too. Some triage suggestions in the dashboard say the resolver will not try such errors; with the current code it does. Up to 3 attempts run at once (`ORCH_RESOLVER_MAX_CONCURRENT_FIXES`). Any issue can also be run from the dashboard, which ignores the failure limit.
+Triage tags are not consulted: issues tagged `needs-human`, `infrastructure` or `third-party` are attempted too. To keep the resolver off an issue, close it on GitHub. Up to 3 attempts run at once (`ORCH_RESOLVER_MAX_CONCURRENT_FIXES`). Any issue can also be run from the dashboard, which ignores the failure limit.
 
 ## One attempt
 

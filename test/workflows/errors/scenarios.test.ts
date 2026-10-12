@@ -185,7 +185,7 @@ const groups: { title: string; scenarios: Scenario[] }[] = [
       {
         name: 'a connection failure is blamed on infrastructure, is filed, and gets no label',
         event: thrown('Error', 'connect ECONNREFUSED 127.0.0.1:5432', [app('connect', 'db/pool.js', 12)]),
-        expect: { tags: ['infrastructure', 'needs-human'], message: /network or service problem/, suggestion: /resolver won't be asked/, filed: { labels: [] } },
+        expect: { tags: ['infrastructure', 'needs-human'], message: /network or service problem/, suggestion: /close the issue so the resolver does not attempt one/, filed: { labels: [] } },
       },
       {
         name: 'a crash that never enters app code is blamed on the library, is filed, and gets no label',

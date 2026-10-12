@@ -22,6 +22,9 @@ const INFRA = /\b(ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|timed? ?
 /** The machine or account is not set up to allow this; no code change fixes it. */
 const PERMISSION = /\b(not allowed|permission denied|operation not permitted|access denied|assistive access|EACCES|EPERM|unauthori[sz]ed|forbidden)\b/i;
 
+/** The resolver attempts every filed issue whatever its tags, so the way to keep it off one is to close the issue. */
+const NO_CODE_FIX = 'A code change is unlikely to help; if it was filed on GitHub, close the issue so the resolver does not attempt one.';
+
 const clip = (text: string, max = TRIAGE_MAX_TEXT_CHARS) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
 /** The newest frame in the app's own code, else the newest frame at all: where the error was thrown or logged from. */
@@ -71,7 +74,7 @@ export function rulesTriage(event: NormalizedEvent): TriageResult {
     return result(
       ['bot-safe'],
       `${what}. ${culprit ? `Most likely culprit: ${culprit.text}, in your own code.` : 'This looks like a lint or formatting finding.'} It matches a common small mistake, such as a missing check or import.`,
-      'Report it. It looks like a small fix, so the resolver will try it and open a pull request.',
+      'Report it. It looks like a small fix, so the resolver will try it.',
     );
   }
 
@@ -94,10 +97,10 @@ export function rulesTriage(event: NormalizedEvent): TriageResult {
     // A message that came with the stack of the code that logged it (an SDK's `attach_stacktrace`).
     const logged = `A “${event.level}” message logged from ${culprit?.text ?? 'your code'}: ${what}. Nothing crashed; the code reported this on purpose, so the place that logged it is the starting point.`;
     if (PERMISSION.test(event.message)) {
-      return result(['infrastructure', 'needs-human'], `${logged} The wording points to a permissions or configuration problem in the environment.`, 'Fix the permission or setting it names. A code change is unlikely to help.');
+      return result(['infrastructure', 'needs-human'], `${logged} The wording points to a permissions or configuration problem in the environment.`, `Fix the permission or setting it names. ${NO_CODE_FIX}`);
     }
     if (INFRA.test(event.message)) {
-      return result(['infrastructure', 'needs-human'], `${logged} It reads like a network or service problem.`, "Check the service or connection it names. A code change is unlikely to help, so the resolver won't be asked to try.");
+      return result(['infrastructure', 'needs-human'], `${logged} It reads like a network or service problem.`, `Check the service or connection it names. ${NO_CODE_FIX}`);
     }
     return result(['needs-human'], logged, 'Report it, and have a person look first. It is not a clear small fix for the resolver.');
   }
@@ -110,7 +113,7 @@ export function rulesTriage(event: NormalizedEvent): TriageResult {
     return result(
       ['infrastructure', 'needs-human'],
       `${what}. This looks like a permissions or configuration problem in the environment rather than a bug in your code${culprit ? `; it surfaced in ${culprit.text}` : ''}.`,
-      'Fix the permission or setting it names (for example by granting the access it asks for). A code change is unlikely to help, so the resolver will not be asked to try.',
+      `Fix the permission or setting it names (for example by granting the access it asks for). ${NO_CODE_FIX}`,
     );
   }
 
@@ -118,7 +121,7 @@ export function rulesTriage(event: NormalizedEvent): TriageResult {
     return result(
       ['infrastructure', 'needs-human'],
       `${what}. This looks like a network or service problem rather than a bug in your code${culprit ? `; it surfaced in ${culprit.text}` : ''}.`,
-      "Check the service or connection this call depends on. A code change is unlikely to help, so the resolver won't be asked to try.",
+      `Check the service or connection this call depends on. ${NO_CODE_FIX}`,
     );
   }
 

@@ -12,10 +12,9 @@ theme:
     - navigation.sections
     - content.code.copy
 
-# Drafts and raw data stay in the repo but are not published.
+# Raw data stays in the repo but is not published. docs/internal/ is gitignored and never built.
 exclude_docs: |
-  launch/
-  good-first-issues.md
+  internal/
   triage-results/
   assets/social-preview.*
 

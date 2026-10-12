@@ -8,8 +8,7 @@ FixFlow is self-hosted, Sentry-compatible error tracking. It groups the errors y
 [![Stars](https://img.shields.io/github/stars/Ayesh96/FixFlow?style=flat)](https://github.com/Ayesh96/FixFlow/stargazers)
 
 <!--
-DEMO GIF (not recorded yet). To add it: follow docs/launch/demo-recording.md, save the file as
-docs/assets/demo.gif, then replace this comment with:
+DEMO GIF (not recorded yet). Save the recording as docs/assets/demo.gif, then replace this comment with:
   ![FixFlow: an error arrives, a GitHub issue is filed, a pull request is opened](docs/assets/demo.gif)
 -->
 

@@ -1,0 +1,33 @@
+{
+  "name": "fixflow-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FixFlow desktop: a GUI setup wizard, then the same dashboard in a window.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "dev.fixflow.desktop",
+    "productName": "FixFlow",
+    "directories": { "output": "release" },
+    "files": ["main.js", "preload.js", "onboarding.html"],
+    "extraResources": [
+      { "from": "../bin", "to": "app/bin" },
+      { "from": "../scripts", "to": "app/scripts" },
+      { "from": "../server", "to": "app/server" },
+      { "from": "../web/dist", "to": "app/web/dist" },
+      { "from": "../package.json", "to": "app/package.json" },
+      { "from": "../node_modules", "to": "app/node_modules" }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": "dmg"
+    }
+  }
+}

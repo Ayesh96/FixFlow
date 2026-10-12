@@ -6,6 +6,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildEnvFile } from './env-template.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const envPath = join(root, '.env');
@@ -37,9 +38,6 @@ const askInt = async (question, fallback) => {
     console.log('  Please enter a whole number.');
   }
 };
-// value === '' writes the line commented out, showing `shown` (the default) for reference.
-const line = (key, value, shown = '') => (value === '' ? `# ${key}=${shown}` : `${key}=${value}`);
-
 async function main() {
   if (existsSync(envPath)) {
     const overwrite = await askYesNo('.env already exists. Overwrite it?', false);
@@ -123,52 +121,34 @@ async function main() {
     retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', false);
   }
 
-  const lines = [
-    '# FixFlow configuration, written by `npm run setup`. Re-run it any time to change these, or edit by hand.',
-    '',
-    `PORT=${port}`,
-    '',
-    '# Where the token, databases, encryption key and clones live.',
-    line('ORCH_DATA_DIR', dataDir === '~/.fixflow' ? '' : dataDir, '~/.fixflow'),
-    '',
-    '# GitHub tokens are NOT configured here: each project has its own, stored encrypted in',
-    '# <data folder>/projects.db. Add projects on the Projects tab.',
-    '',
-    '# Models. Triage and the resolver each try these in order and fall back down the list when one fails.',
-    line('ORCH_LLM_PROVIDERS', providerOrder, 'ollama,deepseek,anthropic'),
-    '',
-    '# Local Ollama: triages new errors and writes fixes. Triage uses it only when the URL is set.',
-    line('ORCH_OLLAMA_URL', useOllama ? ollamaUrl : '', 'http://localhost:11434'),
-    line('ORCH_OLLAMA_MODEL', useOllama ? ollamaModel : '', 'qwen2.5-coder:7b'),
-    '',
-    '# DeepSeek (hosted; error text and source code are sent to it).',
-    line('ORCH_DEEPSEEK_API_KEY', deepseekKey),
-    line('ORCH_DEEPSEEK_MODEL', deepseekKey ? deepseekModel : '', 'deepseek-flash'),
-    '',
-    '# Anthropic (hosted; error text and source code are sent to it).',
-    line('ORCH_ANTHROPIC_API_KEY', anthropicKey),
-    line('ORCH_ANTHROPIC_MODEL', anthropicKey ? anthropicModel : '', 'claude-haiku-4-5'),
-    '',
-    '# ---- Errors -------------------------------------------------------------------------------',
-    `ORCH_ERRORS_ENABLED=${errorsEnabled ? 1 : 0}`,
-    line('ORCH_ERRORS_INGEST_PORT', errorsEnabled ? ingestPort : '', '3000'),
-    line('ORCH_ERRORS_INGEST_HOST', errorsEnabled ? ingestHost : '', '127.0.0.1'),
-    line('ORCH_ERRORS_DSN_PUBLIC_KEY', dsnKey),
-    line('ORCH_ERRORS_GITHUB_LABELS', errorsEnabled ? githubLabels : '', 'bug,sentry'),
-    line('ORCH_ERRORS_MIN_LEVEL', errorsEnabled ? minLevel : '', 'error'),
-    line('ORCH_ERRORS_COMMENT_THRESHOLDS', errorsEnabled ? commentThresholds : '', '100,1000,10000'),
-    line('ORCH_ERRORS_RETENTION_DAYS', errorsEnabled ? retentionDays : '', '30'),
-    '',
-    '# ---- Resolver -----------------------------------------------------------------------------',
-    `ORCH_RESOLVER_ENABLED=${resolverEnabled ? 1 : 0}`,
-    line('ORCH_RESOLVER_POLL_INTERVAL_MS', resolverEnabled ? pollInterval : '', '300000'),
-    line('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', resolverEnabled ? maxConcurrent : '', '3'),
-    line('ORCH_RESOLVER_MAX_ATTEMPTS', resolverEnabled ? maxAttempts : '', '3'),
-    line('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS', resolverEnabled && retrySkipped ? 1 : '', '0'),
-    '',
-  ];
-
-  writeFileSync(envPath, lines.join('\n'));
+  writeFileSync(
+    envPath,
+    buildEnvFile({
+      port,
+      dataDir,
+      providerOrder,
+      useOllama,
+      ollamaUrl,
+      ollamaModel,
+      deepseekKey,
+      deepseekModel,
+      anthropicKey,
+      anthropicModel,
+      errorsEnabled,
+      ingestPort,
+      ingestHost,
+      dsnKey,
+      githubLabels,
+      minLevel,
+      commentThresholds,
+      retentionDays,
+      resolverEnabled,
+      pollInterval,
+      maxConcurrent,
+      maxAttempts,
+      retrySkipped,
+    }),
+  );
 
   console.log(`\nWrote ${envPath}`);
   if (useDeepseek && !deepseekKey) console.log('Note: no DeepSeek key was entered, so it was left out.');

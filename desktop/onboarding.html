@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FixFlow setup</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --border: #e2e2e6;
+    --text: #1b1b1f;
+    --muted: #6b6b73;
+    --accent: #2f6fed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15151a; --card: #1e1e24; --border: #30303a; --text: #ececf0; --muted: #96969e; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; font-size: 13px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  section h2 { font-size: 14px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  label.field { display: block; margin: 10px 0; font-size: 13px; }
+  label.field span.name { display: block; margin-bottom: 4px; color: var(--muted); }
+  input[type="text"], input[type="number"], input[type="password"] {
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .toggle-row input { width: 16px; height: 16px; }
+  .sub-fields { margin-top: 8px; padding-left: 24px; }
+  .sub-fields.off { display: none; }
+  button#save {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button#save:disabled { opacity: 0.6; cursor: default; }
+  #status { margin-top: 10px; font-size: 13px; color: var(--muted); text-align: center; min-height: 18px; }
+  #status.error { color: #e0523f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Set up FixFlow</h1>
+  <p class="sub">Everything below is optional — the defaults work out of the box. This writes your .env once, then starts FixFlow.</p>
+
+  <section>
+    <h2>Dashboard</h2>
+    <label class="field"><span class="name">Port</span><input type="number" id="port" value="7420" /></label>
+    <label class="field"><span class="name">Data folder</span><input type="text" id="dataDir" value="~/.fixflow" /></label>
+  </section>
+
+  <section>
+    <h2>Models</h2>
+    <label class="toggle-row"><input type="checkbox" id="useOllama" checked /> Use Ollama (runs a model locally)</label>
+    <div class="sub-fields" id="ollamaFields">
+      <label class="field"><span class="name">Ollama URL</span><input type="text" id="ollamaUrl" value="http://localhost:11434" /></label>
+      <label class="field"><span class="name">Ollama model (`ollama pull &lt;model&gt;` first)</span><input type="text" id="ollamaModel" value="qwen2.5-coder:7b" /></label>
+    </div>
+
+    <label class="toggle-row" style="margin-top:14px"><input type="checkbox" id="useDeepseek" /> Use DeepSeek (hosted; sends error text and source code to it)</label>
+    <div class="sub-fields off" id="deepseekFields">
+      <label class="field"><span class="name">DeepSeek API key</span><input type="password" id="deepseekKey" /></label>
+      <label class="field"><span class="name">DeepSeek model</span><input type="text" id="deepseekModel" value="deepseek-flash" /></label>
+    </div>
+
+    <label class="toggle-row" style="margin-top:14px"><input type="checkbox" id="useAnthropic" /> Use Anthropic (hosted; sends error text and source code to it)</label>
+    <div class="sub-fields off" id="anthropicFields">
+      <label class="field"><span class="name">Anthropic API key</span><input type="password" id="anthropicKey" /></label>
+      <label class="field"><span class="name">Anthropic model</span><input type="text" id="anthropicModel" value="claude-haiku-4-5" /></label>
+    </div>
+  </section>
+
+  <section>
+    <label class="toggle-row"><input type="checkbox" id="errorsEnabled" checked /> <strong>Enable error tracking</strong> — Sentry-compatible ingest + GitHub issue filing</label>
+    <div class="sub-fields" id="errorsFields">
+      <div class="grid2">
+        <label class="field"><span class="name">Ingest port</span><input type="number" id="ingestPort" value="3000" /></label>
+        <label class="field"><span class="name">Ingest host</span><input type="text" id="ingestHost" value="127.0.0.1" /></label>
+      </div>
+      <label class="field"><span class="name">Require this sentry_key on ingest requests (blank = no check)</span><input type="text" id="dsnKey" /></label>
+      <div class="grid2">
+        <label class="field"><span class="name">GitHub labels</span><input type="text" id="githubLabels" value="bug,sentry" /></label>
+        <label class="field"><span class="name">Lowest level filed on GitHub</span><input type="text" id="minLevel" value="error" /></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span class="name">Comment thresholds</span><input type="text" id="commentThresholds" value="100,1000,10000" /></label>
+        <label class="field"><span class="name">Retention days (0 = keep everything)</span><input type="number" id="retentionDays" value="30" /></label>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <label class="toggle-row"><input type="checkbox" id="resolverEnabled" checked /> <strong>Enable the resolver</strong> — attempts fixes and opens pull requests</label>
+    <div class="sub-fields" id="resolverFields">
+      <div class="grid2">
+        <label class="field"><span class="name">Poll interval, ms (min 30000)</span><input type="number" id="pollInterval" value="300000" /></label>
+        <label class="field"><span class="name">Max fixes running at once</span><input type="number" id="maxConcurrent" value="3" /></label>
+      </div>
+      <label class="field"><span class="name">Max attempts per issue</span><input type="number" id="maxAttempts" value="3" /></label>
+      <label class="toggle-row" style="margin-top:6px"><input type="checkbox" id="retrySkipped" /> Retry SKIPPED issues every poll (testing aid)</label>
+    </div>
+  </section>
+
+  <button id="save">Save &amp; start FixFlow</button>
+  <div id="status"></div>
+</div>
+
+<script>
+function wireToggle(checkboxId, fieldsId) {
+  const box = document.getElementById(checkboxId);
+  const fields = document.getElementById(fieldsId);
+  const sync = () => fields.classList.toggle('off', !box.checked);
+  box.addEventListener('change', sync);
+  sync();
+}
+wireToggle('useOllama', 'ollamaFields');
+wireToggle('useDeepseek', 'deepseekFields');
+wireToggle('useAnthropic', 'anthropicFields');
+wireToggle('errorsEnabled', 'errorsFields');
+wireToggle('resolverEnabled', 'resolverFields');
+
+const val = (id) => document.getElementById(id).value.trim();
+const checked = (id) => document.getElementById(id).checked;
+const int = (id, fallback) => {
+  const n = Number(val(id));
+  return Number.isInteger(n) && n >= 0 ? n : fallback;
+};
+
+document.getElementById('save').addEventListener('click', async () => {
+  const button = document.getElementById('save');
+  const status = document.getElementById('status');
+  button.disabled = true;
+  status.className = '';
+  status.textContent = 'Writing .env and starting FixFlow…';
+
+  const useOllama = checked('useOllama');
+  const useDeepseek = checked('useDeepseek') && val('deepseekKey') !== '';
+  const useAnthropic = checked('useAnthropic') && val('anthropicKey') !== '';
+  const providers = [useOllama && 'ollama', useDeepseek && 'deepseek', useAnthropic && 'anthropic'].filter(Boolean);
+
+  const values = {
+    port: int('port', 7420),
+    dataDir: val('dataDir') || '~/.fixflow',
+    providerOrder: providers.join(','),
+    useOllama,
+    ollamaUrl: val('ollamaUrl'),
+    ollamaModel: val('ollamaModel'),
+    deepseekKey: useDeepseek ? val('deepseekKey') : '',
+    deepseekModel: val('deepseekModel'),
+    anthropicKey: useAnthropic ? val('anthropicKey') : '',
+    anthropicModel: val('anthropicModel'),
+    errorsEnabled: checked('errorsEnabled'),
+    ingestPort: int('ingestPort', 3000),
+    ingestHost: val('ingestHost') || '127.0.0.1',
+    dsnKey: val('dsnKey'),
+    githubLabels: val('githubLabels') || 'bug,sentry',
+    minLevel: val('minLevel') || 'error',
+    commentThresholds: val('commentThresholds') || '100,1000,10000',
+    retentionDays: int('retentionDays', 30),
+    resolverEnabled: checked('resolverEnabled'),
+    pollInterval: int('pollInterval', 300000),
+    maxConcurrent: int('maxConcurrent', 3),
+    maxAttempts: int('maxAttempts', 3),
+    retrySkipped: checked('retrySkipped'),
+  };
+
+  try {
+    await window.fixflow.saveConfig(values);
+    status.textContent = 'Starting FixFlow…';
+  } catch (err) {
+    status.className = 'error';
+    status.textContent = String(err?.message || err);
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

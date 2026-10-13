@@ -16,6 +16,8 @@
 {% block extrahead %}
   {{ super() }}
   <link rel="apple-touch-icon" href="{{ 'assets/apple-touch-icon.png' | url }}">
+  {#- Proves ownership of the site to Google Search Console. -#}
+  <meta name="google-site-verification" content="SKl1k_VMdG-ZW4iDIvRSOpnTAJou1suk3CFy_XBXScM">
   {#- Link previews on social sites and chat apps. -#}
   {% set ff_description = page.meta.description if page.meta and page.meta.description else config.site_description %}
   {% set ff_image = config.site_url ~ "assets/social-preview.png" %}

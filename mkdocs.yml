@@ -8,14 +8,13 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: overrides
-  # The app's look: its neutral palette (dark first, as the app is), Geist, and its layers mark.
+  # The app's look: the icon's palette (dark first, as the app is), Geist, and the app icon.
   # Colours live in docs/assets/stylesheets/code-akos.css.
   font:
     text: Geist
     code: Geist Mono
-  icon:
-    logo: code-akos/layers
-  favicon: assets/favicon.svg
+  logo: assets/icon.png
+  favicon: assets/favicon.png
   palette:
     - scheme: slate
       primary: custom

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/icon.png" alt="Code Akos icon" width="112" height="112"></p>
+
 # Code Akos
 
 Code Akos is self-hosted, Sentry-compatible error tracking. It groups the errors your app's Sentry SDK sends, opens a GitHub issue for each new one, and has an LLM attempt a fix that it opens as a pull request for you to review. The model runs locally through Ollama (default `qwen2.5-coder:7b`) or through the DeepSeek or Anthropic API.
@@ -9,7 +11,7 @@ Code Akos is self-hosted, Sentry-compatible error tracking. It groups the errors
 
 ![Code Akos: an error arrives, the model triages it, a GitHub issue is filed and the resolver opens a pull request](docs/assets/demo/code-akos-demo.gif)
 
-[Watch the one-minute demo](https://github.com/user-attachments/assets/5e524299-858a-46d1-950a-6e437657eb0e) (setup wizard, then an error going all the way to a pull request).
+[Watch the one-minute demo](https://ayesh96.github.io/code-akos/) (setup wizard, then an error going all the way to a pull request).
 
 ## The problem
 

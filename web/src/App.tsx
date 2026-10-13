@@ -1,4 +1,4 @@
-import { Layers, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { PANELS } from '@/components/extensions';
 import { Card } from '@/components/ui/card';
@@ -44,7 +44,7 @@ export default function App() {
       <Tabs value={tab} onValueChange={setTab} className="min-h-screen gap-0">
         <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-[2000px] items-center gap-3 px-4 sm:px-8">
-            <Layers className="size-5" aria-hidden />
+            <img src="/mark.png" alt="" className="h-5 w-auto" aria-hidden />
             <span className="font-semibold tracking-tight">{copy.name}</span>
             <span className="hidden text-sm text-muted-foreground sm:inline">{copy.tagline}</span>
             {load.state === 'ready' && <SettingsButton />}

@@ -27,6 +27,8 @@
       "preload.js",
       "dashboard-preload.js",
       "onboarding.html",
+      "icon.png",
+      "mark.png",
       "fonts/*.woff2"
     ],
     "extraResources": [

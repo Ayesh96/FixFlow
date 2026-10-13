@@ -3,34 +3,35 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
-/* Dark-only app: the `dark` class is set on <html> in index.html. Tokens are documented in DESIGN.md. */
+/* Dark-only app: the `dark` class is set on <html> in index.html. Tokens are documented in DESIGN.md.
+   The palette follows the app icon: its navy background, its blue and its white. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
   color-scheme: dark;
   --radius: 0.5rem;
 
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: #171717; /* every data color is validated against this surface */
-  --card-foreground: #fafafa;
-  --popover: #171717;
-  --popover-foreground: #fafafa;
-  --primary: #e5e5e5;
-  --primary-foreground: #171717;
-  --secondary: #262626;
-  --secondary-foreground: #fafafa;
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
-  --accent: #262626;
-  --accent-foreground: #fafafa;
+  --background: #090a12;
+  --foreground: #f7f8fa;
+  --card: #12141d; /* every data color is validated against this surface */
+  --card-foreground: #f7f8fa;
+  --popover: #12141d;
+  --popover-foreground: #f7f8fa;
+  --primary: #e8eaf0;
+  --primary-foreground: #12141d;
+  --secondary: #1d202b;
+  --secondary-foreground: #f7f8fa;
+  --muted: #1d202b;
+  --muted-foreground: #a3a7b3;
+  --accent: #1d202b;
+  --accent-foreground: #f7f8fa;
   --destructive: #e5484d;
   --border: rgb(255 255 255 / 10%);
-  --input: #6e6e6e; /* 3.4:1 on --card: field boundaries must reach 3:1 (WCAG 1.4.11) */
-  --ring: #d4d4d4; /* shadcn draws the ring at 50% alpha: 3.9:1 effective on --card */
+  --input: #6d7182; /* 3.4:1 on --card: field boundaries must reach 3:1 (WCAG 1.4.11) */
+  --ring: #d3d6de; /* shadcn draws the ring at 50% alpha: 3.9:1 effective on --card */
 
   /* Data viz (dataviz skill): categorical slot 1 for sparklines, muted ink for history */
-  --chart-1: #3987e5;
+  --chart-1: #2589fe; /* the icon's blue */
   --chart-muted: #898781;
   /* Status colors are for icons only; text stays in normal ink */
   --status-running: #0ca30c;

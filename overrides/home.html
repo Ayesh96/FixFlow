@@ -6,6 +6,7 @@
   {{ super() }}
   <section class="ff-hero" aria-labelledby="ff-hero-title">
     <div class="ff-hero__inner">
+      <img class="ff-hero__icon" src="{{ 'assets/icon.png' | url }}" alt="Code Akos icon" width="512" height="512">
       <div class="ff-eyebrow">Errors in. Pull requests out.</div>
       <h1 id="ff-hero-title">The self-hosted Sentry alternative <span>that opens the fix for you.</span></h1>
       <p class="ff-lede">Code Akos collects the errors your app's Sentry SDK sends, files a GitHub issue for each new one, and has an AI model write the fix as a pull request for you to review. It runs as one desktop app on your own computer, with a model on your machine through Ollama or through the DeepSeek or Anthropic API.</p>

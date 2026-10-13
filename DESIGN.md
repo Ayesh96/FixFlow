@@ -6,28 +6,28 @@ Components live in `web/src/components/ui/` (shadcn source, owned by this repo);
 ## 1. Foundations
 
 - **Consistency over creativity.** Everything is a shadcn primitive or a thin composition of one. No bespoke dialogs, selects or switches.
-- **Data is the loud part.** Chrome is neutral grayscale; the only saturated pixels are status icons and chart marks.
+- **Data is the loud part.** Chrome is near-neutral (gray with the icon's slight navy tint); the only saturated pixels are status icons, chart marks and the app icon.
 - **No pills.** A state is an icon and a word as plain text (`StateLabel`), never a capsule around it. Tags are small square chips (`rounded-sm`). The shadcn `Badge` is removed so a pill can't creep back in.
 - **Never color alone.** Status is icon + label (see §4). Verified, not assumed: the validator gives running↔crashed a deutan ΔE of 4.1 (fail), so shape carries the meaning.
 - **Dark only.** The app is an ops tool; one theme, fully validated, rather than two half-checked ones.
 
 ## 2. Tokens
 
-Neutral base is shadcn's `neutral` dark theme, so every shadcn component renders correctly with no overrides.
+The base is shadcn's `neutral` dark theme, shifted toward the app icon: its navy (`#090a12`) for the page, its white (`#f7f8fa`) for text and its blue (`#2589fe`) for data. Every shadcn component still renders correctly with no overrides. The icon itself is `web/public/icon.png` (cut from the 1024 px master, transparent outside its rounded square); the docs, the setup window and the desktop build use copies of it. On the dark UI the icon's tile is the same navy as the page, so headers use `mark.png`, the chevrons and A alone on transparency; the tile is for favicons, the app icon and light backgrounds.
 
 | Token | Value | Use |
 |---|---|---|
-| `--background` | `#0a0a0a` | page |
-| `--card` / `--popover` | `#171717` | tiles, table, dialogs, sheet. **The surface every data color is validated against** |
+| `--background` | `#090a12` | page (the icon's navy) |
+| `--card` / `--popover` | `#12141d` | tiles, table, dialogs, sheet. **The surface every data color is validated against** |
 | `--border` | `rgb(255 255 255 / 10%)` | all hairlines |
-| `--input` | `#6e6e6e` | field borders (3.4:1 on card; WCAG 1.4.11 needs 3:1) |
-| `--foreground` | `#fafafa` | primary text |
-| `--muted-foreground` | `#a3a3a3` | secondary text, labels |
-| `--primary` | `#e5e5e5` on `#171717` | primary buttons (white-on-dark, Vercel style) |
+| `--input` | `#6d7182` | field borders (3.8:1 on card; WCAG 1.4.11 needs 3:1) |
+| `--foreground` | `#f7f8fa` | primary text (the icon's white) |
+| `--muted-foreground` | `#a3a7b3` | secondary text, labels |
+| `--primary` | `#e8eaf0` on `#12141d` | primary buttons (white-on-dark, Vercel style) |
 | `--destructive` | `#e5484d` | delete only |
-| `--ring` | `#d4d4d4` | focus ring; shadcn draws it at 50% alpha = 3.9:1 effective on card |
+| `--ring` | `#d3d6de` | focus ring; shadcn draws it at 50% alpha = 4.0:1 effective on card |
 | `--radius` | `0.5rem` | cards 8px, controls 6px |
-| `--chart-1` | `#3987e5` | pipeline bars, in-progress icon (categorical slot 1, dark step) |
+| `--chart-1` | `#2589fe` | pipeline bars, in-progress icon (the icon's blue; 5.3:1 on card) |
 | `--chart-muted` | `#898781` | muted chart ink |
 | `--status-running` | `#0ca30c` | icon only |
 | `--status-stopped` | `#898781` | icon only |
@@ -62,7 +62,7 @@ Components: shadcn primitives in `components/ui/`; product components in `compon
 
 **Form.** Counts per stage are a funnel of five ordered magnitudes, so they are **stat tiles with a proportion bar**, not a chart. Per-error progress is the lifecycle track. There are no time-series charts because the server stores first/last seen and a count per error, not a series; do not draw a sparkline from two timestamps.
 
-**Color.** The pipeline bars use one hue, categorical slot 1 (`#3987e5`), over a hairline track. Validator on the card surface: lightness band, chroma floor and ≥3:1 contrast PASS. Stage names and percentages are text, so nothing depends on the hue.
+**Color.** The pipeline bars use one hue, the icon's blue (`#2589fe`), over a hairline track. On the card surface it reaches 5.3:1, above the 3:1 a graphic needs. Stage names and percentages are text, so nothing depends on the hue.
 
 **Resolver status** (one component, `StatusBadge`; shape carries the meaning, color only reinforces it):
 
@@ -82,7 +82,7 @@ Labels stay in normal text ink. Text never wears a data color. No ad-hoc colors 
 
 - Every interactive element reachable and operable by keyboard; visible 2px focus ring.
 - Dialogs/Sheet/AlertDialog trap focus, close on Esc, and restore focus (Radix).
-- Text ≥ 4.5:1 (`#a3a3a3` on `#171717` = 7.1:1). Status icons ≥ 3:1 and never sole carriers of meaning.
+- Text ≥ 4.5:1 (`#a3a7b3` on `#12141d` = 7.6:1). Status icons ≥ 3:1 and never sole carriers of meaning.
 - Live-updating numbers are **not** announced on every poll; the inbox has one polite live region that announces the filtered count when a filter changes.
 - The lifecycle track is `role="img"` with the stage as its label; the drawer timeline is an ordered list with "(done)" / "(not yet)" text for screen readers.
 - Wizard: step list is an ordered list; validation errors are announced and focus moves to the first invalid field.

@@ -17,6 +17,9 @@ const LEGACY_ENV_PATH = path.join(ROOT, '.env');
 /** The user-data folder of builds from before the rename to Code Akos, when the app was called FixFlow. */
 const PRE_RENAME_DIR = path.join(app.getPath('appData'), 'FixFlow');
 
+/** The window icon on Windows and Linux; macOS takes the app bundle's icon. */
+const APP_ICON = path.join(__dirname, 'icon.png');
+
 let setupWindow = null;
 let mainWindow = null;
 let serverProcess = null;
@@ -111,7 +114,8 @@ function openSetup(mode) {
     ...bounds,
     minWidth: 520,
     minHeight: 560,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#090a12',
+    icon: APP_ICON,
     title: mode === 'settings' ? 'Code Akos settings' : 'Set up Code Akos',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
@@ -175,7 +179,8 @@ async function showDashboard(url) {
     ...bounds,
     minWidth: 800,
     minHeight: 560,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#090a12',
+    icon: APP_ICON,
     title: 'Code Akos',
     webPreferences: { preload: path.join(__dirname, 'dashboard-preload.js'), contextIsolation: true, nodeIntegration: false },
   });

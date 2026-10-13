@@ -1,17 +1,17 @@
 ---
-title: "FixFlow: self-hosted Sentry alternative with AI fix PRs"
-description: "FixFlow is free, self-hosted error tracking for Sentry SDKs. It groups errors, files GitHub issues and has a local or hosted LLM open fix pull requests."
+title: "Code Akos: self-hosted Sentry alternative with AI fix PRs"
+description: "Code Akos is free, self-hosted error tracking for Sentry SDKs. It groups errors, files GitHub issues and has a local or hosted LLM open fix pull requests."
 template: home.html
 hide:
   - navigation
   - toc
 ---
 
-## Why FixFlow exists
+## Why Code Akos exists
 
 When something breaks in production, the error report is only the start. Someone still has to notice it, check whether it is a duplicate, write up an issue, find the line that caused it and open a pull request with the fix. For a solo developer or a small team, that work piles up.
 
-Sentry can automate part of it, but its AI fixes (Seer) are a paid add-on, and running Sentry yourself means a Docker Compose stack of 53 services that needs 16 GB of RAM. FixFlow does the whole job in a single desktop app with a SQLite database. You keep your existing Sentry SDK, change one setting (the DSN), and choose which model writes the fixes: one running on your own machine through Ollama, or DeepSeek or Anthropic through their APIs.
+Sentry can automate part of it, but its AI fixes (Seer) are a paid add-on, and running Sentry yourself means a Docker Compose stack of 53 services that needs 16 GB of RAM. Code Akos does the whole job in a single desktop app with a SQLite database. You keep your existing Sentry SDK, change one setting (the DSN), and choose which model writes the fixes: one running on your own machine through Ollama, or DeepSeek or Anthropic through their APIs.
 
 ## How an error becomes a pull request
 
@@ -19,7 +19,7 @@ Sentry can automate part of it, but its AI fixes (Seer) are a paid add-on, and r
 
 -   <span class="ff-step">1. Receive</span>
 
-    Your app's Sentry SDK sends errors to FixFlow instead of sentry.io. FixFlow speaks the same protocol, so the only change in your code is the DSN.
+    Your app's Sentry SDK sends errors to Code Akos instead of sentry.io. Code Akos speaks the same protocol, so the only change in your code is the DSN.
 
 -   <span class="ff-step">2. Group</span>
 
@@ -31,11 +31,11 @@ Sentry can automate part of it, but its AI fixes (Seer) are a paid add-on, and r
 
 -   <span class="ff-step">4. File an issue</span>
 
-    Each new error with a stack trace becomes one GitHub issue. FixFlow comments on it again when it has happened 100, 1,000 and 10,000 times.
+    Each new error with a stack trace becomes one GitHub issue. Code Akos comments on it again when it has happened 100, 1,000 and 10,000 times.
 
 -   <span class="ff-step">5. Open a pull request</span>
 
-    The model edits a temporary copy of your repository. Your test command runs before and after the change, and the fix is opened as a pull request for you to review. FixFlow never merges anything.
+    The model edits a temporary copy of your repository. Your test command runs before and after the change, and the fix is opened as a pull request for you to review. Code Akos never merges anything.
 
 -   <span class="ff-step">Or explain why not</span>
 
@@ -47,15 +47,15 @@ Sentry can automate part of it, but its AI fixes (Seer) are a paid add-on, and r
 
 <div class="grid cards ff-shots" markdown>
 
--   ![FixFlow dashboard showing two projects and how many errors reached each stage](assets/screenshots/05-dashboard-overview.png){ loading=lazy width="2880" height="1800" }
+-   ![Code Akos dashboard showing two projects and how many errors reached each stage](assets/screenshots/05-dashboard-overview.png){ loading=lazy width="2880" height="1800" }
 
     **Every project at a glance.** How many errors were tracked, triaged, filed, attempted and turned into pull requests.
 
--   ![An error opened in FixFlow, showing what triage found and the bot-safe tag](assets/screenshots/07-error-triage.png){ loading=lazy width="2880" height="1800" }
+-   ![An error opened in Code Akos, showing what triage found and the bot-safe tag](assets/screenshots/07-error-triage.png){ loading=lazy width="2880" height="1800" }
 
     **What happened and what to do.** Triage names the culprit file and line and suggests the next step.
 
--   ![FixFlow explaining why it skipped a fix: the bad date comes from the orders API](assets/screenshots/09-error-skipped.png){ loading=lazy width="2880" height="1800" }
+-   ![Code Akos explaining why it skipped a fix: the bad date comes from the orders API](assets/screenshots/09-error-skipped.png){ loading=lazy width="2880" height="1800" }
 
     **A skipped fix, explained.** The bad date comes from the orders API, so guarding the formatter would only hide the problem.
 
@@ -69,7 +69,7 @@ For a full tour, see [using the dashboard](usage.md).
 
 ## Quick start
 
-[Download FixFlow](https://github.com/Ayesh96/FixFlow/releases/latest){ .md-button .md-button--primary data-ff-download="1" } [All releases](https://github.com/Ayesh96/FixFlow/releases){ .md-button }
+[Download Code Akos](https://github.com/Ayesh96/code-akos/releases/latest){ .md-button .md-button--primary data-ff-download="1" } [All releases](https://github.com/Ayesh96/code-akos/releases){ .md-button }
 
 | Your computer | File to download |
 |---|---|
@@ -81,13 +81,13 @@ For a full tour, see [using the dashboard](usage.md).
 1. **Install the app** and [git](https://git-scm.com/downloads). The builds are not signed yet, so your system asks you to confirm the first time you open the app. The [installation guide](installation.md) shows how on each system.
 2. **Pick a model** in the setup window: [Ollama](https://ollama.com) to keep everything on your machine, or a DeepSeek or Anthropic API key.
 3. **Add a project.** Enter your GitHub repository, a token and the branch to work on.
-4. **Point your Sentry SDK at FixFlow** by setting its `dsn` to the address FixFlow gives you, such as `http://fixflow@localhost:3000/1`.
+4. **Point your Sentry SDK at Code Akos** by setting its `dsn` to the address Code Akos gives you, such as `http://codeakos@localhost:3000/1`.
 
 The [getting started guide](getting-started.md) walks through steps 3 and 4 with screenshots and code for Python, Node.js and the browser.
 
-## Is FixFlow right for you?
+## Is Code Akos right for you?
 
-FixFlow is a good fit if you maintain an app on your own or in a small team, use GitHub, and want errors turned into reviewable pull requests without paying per seat or running a large server.
+Code Akos is a good fit if you maintain an app on your own or in a small team, use GitHub, and want errors turned into reviewable pull requests without paying per seat or running a large server.
 
 Look elsewhere if you need performance tracing, session replay, alert rules or accounts for a whole team. Sentry covers all of these, and GlitchTip and Bugsink are lighter multi-user trackers. The [comparison with Sentry, GlitchTip and Bugsink](sentry-alternative.md) goes into the details.
 
@@ -109,7 +109,7 @@ Look elsewhere if you need performance tracing, session replay, alert rules or a
 
 -   [**Sentry alternatives compared**](sentry-alternative.md)
 
-    FixFlow, Sentry, GlitchTip and Bugsink side by side.
+    Code Akos, Sentry, GlitchTip and Bugsink side by side.
 
 -   [**AI bug fixes as pull requests**](ai-bug-fix-pull-requests.md)
 
@@ -117,12 +117,12 @@ Look elsewhere if you need performance tracing, session replay, alert rules or a
 
 -   [**FAQ**](faq.md)
 
-    Licensing, privacy, supported SDKs and how FixFlow differs from Sentry Seer.
+    Licensing, privacy, supported SDKs and how Code Akos differs from Sentry Seer.
 
 </div>
 
 ## Current limits
 
-FixFlow tracks errors only. It has no performance tracing, session replay or alert rules, and it is built for one person: there are no user accounts. The Apple silicon build is tested; the Windows, Linux and Intel Mac builds are not yet. How often the AI fixes are correct has not been measured, so review every pull request as you would one from a new contributor.
+Code Akos tracks errors only. It has no performance tracing, session replay or alert rules, and it is built for one person: there are no user accounts. The Apple silicon build is tested; the Windows, Linux and Intel Mac builds are not yet. How often the AI fixes are correct has not been measured, so review every pull request as you would one from a new contributor.
 
-FixFlow is source-available under the [Functional Source License](https://github.com/Ayesh96/FixFlow/blob/main/LICENSE) (FSL-1.1-ALv2). You can use and self-host it for free, including at work, and each release becomes Apache 2.0 licensed two years after it is published.
+Code Akos is source-available under the [Functional Source License](https://github.com/Ayesh96/code-akos/blob/main/LICENSE) (FSL-1.1-ALv2). You can use and self-host it for free, including at work, and each release becomes Apache 2.0 licensed two years after it is published.

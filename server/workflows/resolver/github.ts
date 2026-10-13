@@ -35,7 +35,7 @@ export class GitHubClient implements GitHubGateway {
           Authorization: `Bearer ${this.options.token}`,
           Accept: 'application/vnd.github+json',
           ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
-          'User-Agent': 'fixflow',
+          'User-Agent': 'code-akos',
           'X-GitHub-Api-Version': '2022-11-28',
         },
         ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),

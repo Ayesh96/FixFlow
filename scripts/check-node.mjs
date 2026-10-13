@@ -3,7 +3,7 @@
 const MIN_MAJOR = 24;
 
 if (Number(process.versions.node.split('.')[0]) < MIN_MAJOR) {
-  console.error(`FixFlow needs Node ${MIN_MAJOR} or newer; this is Node ${process.versions.node}.`);
+  console.error(`Code Akos needs Node ${MIN_MAJOR} or newer; this is Node ${process.versions.node}.`);
   console.error(`Install a current Node (https://nodejs.org, or \`nvm install ${MIN_MAJOR}\`) and try again.`);
   process.exit(1);
 }

@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('fixflow', {
+contextBridge.exposeInMainWorld('codeAkos', {
   saveConfig: (values) => ipcRenderer.invoke('setup:save', values),
   checkOllama: (url) => ipcRenderer.invoke('setup:checkOllama', url),
   checkDeepseek: (apiKey) => ipcRenderer.invoke('setup:checkDeepseek', apiKey),

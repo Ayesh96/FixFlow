@@ -1,11 +1,11 @@
 ---
 title: "Self-hosted Sentry alternatives compared"
-description: "Compare self-hosted Sentry alternatives: FixFlow, GlitchTip and Bugsink against Sentry on hardware needs, GitHub issues, AI fixes, alerts and licensing."
+description: "Compare self-hosted Sentry alternatives: Code Akos, GlitchTip and Bugsink against Sentry on hardware needs, GitHub issues, AI fixes, alerts and licensing."
 ---
 
 # Self-hosted Sentry alternatives compared
 
-Sentry is the best-known error tracker, and its SDKs are the standard way for apps to report errors. But running Sentry yourself is a big job, and its AI fixes cost extra. This page compares the self-hosted alternatives that accept the same Sentry SDKs: FixFlow, GlitchTip and Bugsink. Because all of them speak Sentry's protocol, switching between them is a change of one setting (the DSN), not a rewrite.
+Sentry is the best-known error tracker, and its SDKs are the standard way for apps to report errors. But running Sentry yourself is a big job, and its AI fixes cost extra. This page compares the self-hosted alternatives that accept the same Sentry SDKs: Code Akos, GlitchTip and Bugsink. Because all of them speak Sentry's protocol, switching between them is a change of one setting (the DSN), not a rewrite.
 
 ## Why look for a Sentry alternative?
 
@@ -21,7 +21,7 @@ If what you need is "tell me when my app breaks, and ideally fix it", a lighter 
 
 Facts about other tools come from their own documentation and repositories, checked in October 2026.
 
-| | FixFlow | Sentry (self-hosted) | GlitchTip | Bugsink |
+| | Code Akos | Sentry (self-hosted) | GlitchTip | Bugsink |
 |---|---|---|---|---|
 | Accepts Sentry SDK events | Yes | Yes | Yes | Yes |
 | What you run | A desktop app, or one Node.js process, with SQLite | Docker Compose, 53 services | One service plus PostgreSQL (Valkey optional) | One container with SQLite, MySQL or PostgreSQL |
@@ -41,11 +41,11 @@ Facts about other tools come from their own documentation and repositories, chec
 
 **Choose Bugsink** if you want a lean, single-container tracker for a team, with chat notifications. It also does not create GitHub issues or fixes.
 
-**Choose FixFlow** if you are one developer or a small team on GitHub and want errors turned into GitHub issues and reviewable pull requests automatically, on your own computer, with a model you pick. That includes a free local model through Ollama, so nothing leaves your machine.
+**Choose Code Akos** if you are one developer or a small team on GitHub and want errors turned into GitHub issues and reviewable pull requests automatically, on your own computer, with a model you pick. That includes a free local model through Ollama, so nothing leaves your machine.
 
-## FixFlow vs Sentry in detail
+## Code Akos vs Sentry in detail
 
-### What FixFlow covers
+### What Code Akos covers
 
 - **Receiving errors** from any Sentry SDK through the standard `store` and `envelope` endpoints, including compressed requests (gzip, deflate, brotli) and browser SDKs (CORS).
 - **Grouping** repeats of the same error by exception type, crashing file and that line's code. The SDK's `fingerprint` setting is respected. See [how grouping works](sentry-errors-to-github-issues.md#how-errors-are-grouped).
@@ -53,16 +53,16 @@ Facts about other tools come from their own documentation and repositories, chec
 - **AI triage** that explains each error and tags it, using a local or hosted model. See [error triage with Ollama](local-llm-error-triage.md).
 - **AI fix attempts** opened as pull requests, with your test command run before and after. See [AI bug fixes as pull requests](ai-bug-fix-pull-requests.md).
 
-### What FixFlow does not cover
+### What Code Akos does not cover
 
 - Performance tracing, profiling, session replay, cron monitoring and uptime checks.
 - Alert rules and notifications other than the GitHub issue itself.
 - Charts, release health and source map processing. Browser stack traces must arrive readable, for example from an unminified build.
-- Users, teams and roles. FixFlow is built for one person.
+- Users, teams and roles. Code Akos is built for one person.
 
-## Is FixFlow open source?
+## Is Code Akos open source?
 
-Not by the strict definition. FixFlow is **source-available** under the Functional Source License (FSL-1.1-ALv2), the same family of license Sentry uses. In practice:
+Not by the strict definition. Code Akos is **source-available** under the Functional Source License (FSL-1.1-ALv2), the same family of license Sentry uses. In practice:
 
 - You can read, run, change and self-host it for free, including inside a company.
 - You cannot use it to sell a competing product or service.
@@ -70,10 +70,10 @@ Not by the strict definition. FixFlow is **source-available** under the Function
 
 If you need an OSI-approved open source license today, GlitchTip (MIT) is the closest match.
 
-## Switching from Sentry to FixFlow
+## Switching from Sentry to Code Akos
 
-1. [Install FixFlow](installation.md) and add your GitHub repository as a project.
-2. Copy the project's DSN, for example `http://fixflow@localhost:3000/1`.
+1. [Install Code Akos](installation.md) and add your GitHub repository as a project.
+2. Copy the project's DSN, for example `http://codeakos@localhost:3000/1`.
 3. Replace the `dsn` in your app's `Sentry.init(...)` call with it. Nothing else in your code changes.
 
-You can also run both for a while by sending the same errors to Sentry and FixFlow from different environments. The [getting started guide](getting-started.md) has the full setup for Python, Node.js and the browser.
+You can also run both for a while by sending the same errors to Sentry and Code Akos from different environments. The [getting started guide](getting-started.md) has the full setup for Python, Node.js and the browser.

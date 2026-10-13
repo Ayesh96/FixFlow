@@ -1,4 +1,4 @@
-/** The models FixFlow can talk to. Adding one means a provider class, a registry line and a name here. */
+/** The models Code Akos can talk to. Adding one means a provider class, a registry line and a name here. */
 export const PROVIDER_IDS = ['ollama', 'deepseek', 'anthropic'] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
@@ -8,7 +8,7 @@ export type Purpose = (typeof PURPOSES)[number];
 
 export interface ToolCall {
   id: string;
-  /** `arguments` is a JSON string everywhere inside FixFlow; providers convert at their own edge. */
+  /** `arguments` is a JSON string everywhere inside Code Akos; providers convert at their own edge. */
   function: { name: string; arguments: string };
 }
 

@@ -80,7 +80,7 @@ const groups: { title: string; scenarios: Scenario[] }[] = [
     scenarios: [
       {
         name: 'a test message at info level is read as a test, and is not filed',
-        event: message('fixflow test from MacRemote'),
+        event: message('code-akos test from MacRemote'),
         expect: { tags: ['test-event', 'no-stack-trace'], message: /test message.*no culprit/i, suggestion: DONT, filed: null },
       },
       {
@@ -214,7 +214,7 @@ const groups: { title: string; scenarios: Scenario[] }[] = [
       },
       {
         name: 'a test message that came with a stack is still a test, and is not filed',
-        event: logged('fixflow test from MacRemote', 'info'),
+        event: logged('code-akos test from MacRemote', 'info'),
         expect: { tags: ['test-event'], suggestion: DONT, filed: null },
       },
       {

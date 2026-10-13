@@ -116,9 +116,9 @@ describe('RepoManager', () => {
     remote.commit('app.txt', 'v2-new-upstream');
 
     const work = join(mkdtempSync(join(tmpdir(), 'work-')), 'attempt');
-    await addWorktree(path, work, 'fixflow/issue-7', 'main', 'ghp_test');
+    await addWorktree(path, work, 'code-akos/issue-7', 'main', 'ghp_test');
     assert.equal(readFileSync(join(work, 'app.txt'), 'utf8'), 'v2-new-upstream');
-    assert.equal(git(work, 'branch', '--show-current'), 'fixflow/issue-7');
+    assert.equal(git(work, 'branch', '--show-current'), 'code-akos/issue-7');
   });
 
   it('removes a clone', async () => {

@@ -8,14 +8,14 @@ import { copy } from '@/lib/copy';
 declare global {
   interface Window {
     /** Present only inside the desktop app (desktop/dashboard-preload.js). */
-    fixflowDesktop?: { openSettings: () => Promise<void> };
+    codeAkosDesktop?: { openSettings: () => Promise<void> };
   }
 }
 
 /** Opens the settings screen in the desktop app; in a browser, explains how to change them. */
 export function SettingsButton() {
   const [open, setOpen] = useState(false);
-  const desktop = window.fixflowDesktop;
+  const desktop = window.codeAkosDesktop;
   const c = copy.settings;
 
   return (

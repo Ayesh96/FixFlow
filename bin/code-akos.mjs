@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Starts FixFlow from a release tarball or a clone. The Node check comes first and the server is imported
+// Starts Code Akos from a release tarball or a clone. The Node check comes first and the server is imported
 // dynamically, because a Node too old to run TypeScript cannot even load server/main.ts to print a message.
 import '../scripts/check-node.mjs';
 import { spawnSync } from 'node:child_process';

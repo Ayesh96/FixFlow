@@ -1,4 +1,4 @@
-# FixFlow dashboard: design system
+# Code Akos dashboard: design system
 
 Dark-only, minimalist, Vercel/Supabase-style. Built on **shadcn/ui** (Radix primitives) + **Tailwind v4**.
 Components live in `web/src/components/ui/` (shadcn source, owned by this repo); product components in `web/src/components/`.

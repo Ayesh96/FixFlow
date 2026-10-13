@@ -1,6 +1,6 @@
 # Security policy
 
-FixFlow holds GitHub tokens and can push code, so security reports matter.
+Code Akos holds GitHub tokens and can push code, so security reports matter.
 
 **Do not open a public issue for a vulnerability.** Email ayesh.rehman@live.com with what you found, the version (`package.json`) and steps to reproduce. Expect an acknowledgement; there is one maintainer, so fixes are handled on a best-effort basis.
 

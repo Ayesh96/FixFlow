@@ -379,14 +379,14 @@ describe('Scheduler', () => {
       filesChanged: ['src/user.ts'],
       verifyRan: true,
       verified: true,
-      branchName: `fixflow/issue-${input.issue.number}`,
+      branchName: `code-akos/issue-${input.issue.number}`,
       baseBranch: 'main',
     });
     const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
     await scheduler.pollOnce();
 
     assert.ok(captured.params);
-    assert.equal(captured.params.head, 'fixflow/issue-7');
+    assert.equal(captured.params.head, 'code-akos/issue-7');
     assert.equal(captured.params.base, 'main');
     assert.match(captured.params.body, /Closes #7/);
 
@@ -414,7 +414,7 @@ describe('Scheduler', () => {
       filesChanged: ['src/user.ts'],
       verifyRan: false,
       verified: false,
-      branchName: `fixflow/issue-${input.issue.number}`,
+      branchName: `code-akos/issue-${input.issue.number}`,
       baseBranch: 'main',
     });
     const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
@@ -541,7 +541,7 @@ describe('Scheduler', () => {
       filesChanged: ['src/user.ts'],
       verifyRan: true,
       verified: true,
-      branchName: `fixflow/issue-${input.issue.number}`,
+      branchName: `code-akos/issue-${input.issue.number}`,
       baseBranch: 'main',
     });
     const scheduler = new Scheduler({ issueSource, githubFor: () => github, projects, store, config: makeConfig(), logger: silent, attemptFix });
@@ -616,7 +616,7 @@ describe('Scheduler with projects', () => {
 
   const fixedOnto = (seen: { input?: unknown }) => async (input: { baseBranch: string; token: string }) => {
     seen.input = input;
-    return { kind: 'fixed' as const, explanation: 'x', filesChanged: ['a.ts'], verifyRan: false, verified: false, branchName: 'fixflow/issue-7', baseBranch: input.baseBranch };
+    return { kind: 'fixed' as const, explanation: 'x', filesChanged: ['a.ts'], verifyRan: false, verified: false, branchName: 'code-akos/issue-7', baseBranch: input.baseBranch };
   };
 
   it("bases the fix on the project's branch and opens the pull request against that same branch", async () => {
@@ -625,7 +625,7 @@ describe('Scheduler with projects', () => {
     const scheduler = new Scheduler({ issueSource, githubFor, projects: makeProjects({ branch: 'release/2' }), store: newStore(), config: makeConfig(), logger: silent, attemptFix: fixedOnto(seen) });
     await scheduler.pollOnce();
     assert.equal(seen.input?.baseBranch, 'release/2');
-    assert.deepEqual(record.pullRequests, [{ base: 'release/2', head: 'fixflow/issue-7' }]);
+    assert.deepEqual(record.pullRequests, [{ base: 'release/2', head: 'code-akos/issue-7' }]);
     assert.equal(record.defaultBranchAsked, 0, "the user's branch is used as given, GitHub is not asked");
   });
 

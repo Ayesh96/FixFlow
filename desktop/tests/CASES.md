@@ -62,7 +62,7 @@ Run each case for both providers.
 ## E. Step 4: Resolver and saving (`resolver-save.spec.ts`)
 
 Every case that saves must call `chooseDataFolder` with `testInfo.outputPath(...)` and set both ports
-with `freePort()`. Never save with the default `~/.fixflow`.
+with `freePort()`. Never save with the default `~/.code-akos`.
 
 | ID | Case | Expected |
 |---|---|---|
@@ -96,13 +96,13 @@ with `freePort()`. Never save with the default `~/.fixflow`.
 
 ## S. Settings after onboarding (`settings.spec.ts`)
 
-Opened from the app menu (FixFlow › Settings…, ⌘,) once .env exists. Same wizard, filled from .env.
+Opened from the app menu (Code Akos › Settings…, ⌘,) once .env exists. Same wizard, filled from .env.
 
 | ID | Case | Expected |
 |---|---|---|
-| S1 | Open settings after a first save | Window titled "FixFlow settings"; every field shows the saved value (ports, folder, labels, counts, level, interval, retry) |
+| S1 | Open settings after a first save | Window titled "Code Akos settings"; every field shows the saved value (ports, folder, labels, counts, level, interval, retry) |
 | S2 | Saved provider | Switch is on, model list loads from real data with the saved model selected; hosted key re-verified automatically |
-| S3 | FixFlow's own running ports | Not reported as busy |
+| S3 | Code Akos's own running ports | Not reported as busy |
 | S4 | Save is on every step | Change one field on step 1 and save without walking through the other steps |
 | S5 | Save new settings | .env updated, server restarted, the same dashboard window reloads; settings window closes |
 | S6 | New settings the server will not start with | Message on the page; old .env restored byte for byte; dashboard still works |

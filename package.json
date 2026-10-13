@@ -1,19 +1,19 @@
 {
-  "name": "fixflow",
+  "name": "code-akos",
   "version": "1.1.1",
-  "description": "FixFlow, the coding factory. Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
+  "description": "Code Akos, the coding factory. Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
   "license": "FSL-1.1-ALv2",
   "author": "Ayesh",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ayesh96/FixFlow.git"
+    "url": "git+https://github.com/Ayesh96/code-akos.git"
   },
-  "bugs": "https://github.com/Ayesh96/FixFlow/issues",
-  "homepage": "https://github.com/Ayesh96/FixFlow#readme",
+  "bugs": "https://github.com/Ayesh96/code-akos/issues",
+  "homepage": "https://github.com/Ayesh96/code-akos#readme",
   "keywords": ["error-tracking", "sentry", "self-hosted", "triage", "github", "ollama", "deepseek"],
   "type": "module",
   "bin": {
-    "fixflow": "bin/fixflow.mjs"
+    "code-akos": "bin/code-akos.mjs"
   },
   "engines": {
     "node": ">=24"

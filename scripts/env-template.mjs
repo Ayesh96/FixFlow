@@ -25,7 +25,7 @@ export function parseEnvFile(text) {
   const configured = [useOllama && 'ollama', deepseekKey && 'deepseek', anthropicKey && 'anthropic'].filter(Boolean);
   return {
     port: num('PORT', 7420),
-    dataDir: get('ORCH_DATA_DIR', '~/.fixflow'),
+    dataDir: get('ORCH_DATA_DIR', '~/.code-akos'),
     providerOrder: get('ORCH_LLM_PROVIDERS') || configured.join(','),
     useOllama,
     ollamaUrl: get('ORCH_OLLAMA_URL', 'http://localhost:11434'),
@@ -52,12 +52,12 @@ export function parseEnvFile(text) {
 
 export function buildEnvFile(v) {
   return [
-    '# FixFlow configuration, written by the setup wizard. Re-run it any time to change these, or edit by hand.',
+    '# Code Akos configuration, written by the setup wizard. Re-run it any time to change these, or edit by hand.',
     '',
     `PORT=${v.port}`,
     '',
     '# Where the token, databases, encryption key and clones live.',
-    line('ORCH_DATA_DIR', v.dataDir === '~/.fixflow' ? '' : v.dataDir, '~/.fixflow'),
+    line('ORCH_DATA_DIR', v.dataDir === '~/.code-akos' ? '' : v.dataDir, '~/.code-akos'),
     '',
     '# GitHub tokens are NOT configured here: each project has its own, stored encrypted in',
     '# <data folder>/projects.db. Add projects on the Projects tab.',

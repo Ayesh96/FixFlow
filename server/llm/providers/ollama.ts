@@ -17,7 +17,7 @@ export interface OllamaProviderOptions {
 }
 
 
-/** Ollama expects tool_calls[].function.arguments as an object; inside FixFlow it is a JSON string, so convert it on the way out. */
+/** Ollama expects tool_calls[].function.arguments as an object; inside Code Akos it is a JSON string, so convert it on the way out. */
 function toWireMessage(message: ChatMessage): unknown {
   if (!message.tool_calls) return message;
   return {

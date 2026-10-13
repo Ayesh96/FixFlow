@@ -50,7 +50,7 @@ describe('DeepSeekProvider', () => {
     assert.equal('response_format' in req?.body, false);
   });
 
-  it('reads native tool calls into FixFlow tool calls, keeping the ids', async () => {
+  it('reads native tool calls into Code Akos tool calls, keeping the ids', async () => {
     replies = [answer({ role: 'assistant', content: 'looking', tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'read_file', arguments: '{"path":"a.js"}' } }] })];
     const out = await provider().chat([{ role: 'user', content: 'u' }], TOOLS);
     assert.deepEqual(out, { role: 'assistant', content: 'looking', tool_calls: [{ id: 'call_1', function: { name: 'read_file', arguments: '{"path":"a.js"}' } }] });

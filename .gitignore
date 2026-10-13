@@ -8,3 +8,4 @@ site/
 docs/internal/
 
 .DS_Store
+__pycache__/

@@ -1,5 +1,5 @@
 // Builds the release tarball: the server, the prebuilt UI and express, so a user needs only Node 24 and git.
-//   node scripts/pack-release.mjs   →   release/fixflow-v<version>.tar.gz + release/sha256sums.txt
+//   node scripts/pack-release.mjs   →   release/code-akos-v<version>.tar.gz + release/sha256sums.txt
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-const name = `fixflow-v${pkg.version}`;
+const name = `code-akos-v${pkg.version}`;
 const out = join(root, 'release');
 const stage = join(out, name);
 

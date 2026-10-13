@@ -14,6 +14,8 @@ const ENV_DIR = app.isPackaged ? app.getPath('userData') : ROOT;
 const ENV_PATH = path.join(ENV_DIR, '.env');
 /** Where builds before 1.1.0 wrote .env. */
 const LEGACY_ENV_PATH = path.join(ROOT, '.env');
+/** The user-data folder of builds from before the rename to Code Akos, when the app was called FixFlow. */
+const PRE_RENAME_DIR = path.join(app.getPath('appData'), 'FixFlow');
 
 let setupWindow = null;
 let mainWindow = null;
@@ -66,7 +68,7 @@ const centered = (area, width, height) => ({
 
 /**
  * Sends http(s) links that leave the app (target=_blank, window.open, or a plain navigation to
- * another origin) to the default browser instead of opening them inside the FixFlow window.
+ * another origin) to the default browser instead of opening them inside the Code Akos window.
  */
 function openLinksExternally(win) {
   const isExternal = (url) => {
@@ -110,7 +112,7 @@ function openSetup(mode) {
     minWidth: 520,
     minHeight: 560,
     backgroundColor: '#0a0a0a',
-    title: mode === 'settings' ? 'FixFlow settings' : 'Set up FixFlow',
+    title: mode === 'settings' ? 'Code Akos settings' : 'Set up Code Akos',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   openLinksExternally(setupWindow);
@@ -123,11 +125,11 @@ function openSetup(mode) {
 
 // ---- Server -----------------------------------------------------------------------------------
 
-// Forks bin/fixflow.mjs in Electron's own bundled Node — no system Node install required.
+// Forks bin/code-akos.mjs in Electron's own bundled Node — no system Node install required.
 // Resolves with the dashboard URL (including the login token) once the server prints it.
 function startServer() {
   return new Promise((resolve, reject) => {
-    const child = utilityProcess.fork(path.join(ROOT, 'bin', 'fixflow.mjs'), [], { cwd: ENV_DIR, stdio: 'pipe' });
+    const child = utilityProcess.fork(path.join(ROOT, 'bin', 'code-akos.mjs'), [], { cwd: ENV_DIR, stdio: 'pipe' });
     serverProcess = child;
     let buffer = '';
     let settled = false;
@@ -142,13 +144,13 @@ function startServer() {
     });
     child.stderr.on('data', (chunk) => {
       buffer += chunk.toString();
-      console.error('[fixflow]', chunk.toString());
+      console.error('[code-akos]', chunk.toString());
     });
     child.on('exit', (code) => {
       if (serverProcess === child) serverProcess = null;
       if (!settled) {
         settled = true;
-        reject(new Error(`FixFlow exited before starting (code ${code}).\n${buffer.trim()}`));
+        reject(new Error(`Code Akos exited before starting (code ${code}).\n${buffer.trim()}`));
       }
     });
   });
@@ -174,7 +176,7 @@ async function showDashboard(url) {
     minWidth: 800,
     minHeight: 560,
     backgroundColor: '#0a0a0a',
-    title: 'FixFlow',
+    title: 'Code Akos',
     webPreferences: { preload: path.join(__dirname, 'dashboard-preload.js'), contextIsolation: true, nodeIntegration: false },
   });
   if (bounds.maximized) mainWindow.maximize();
@@ -191,7 +193,7 @@ async function launchDashboard() {
   try {
     url = await startServer();
   } catch (err) {
-    dialog.showErrorBox('FixFlow failed to start', err instanceof Error ? err.message : String(err));
+    dialog.showErrorBox('Code Akos failed to start', err instanceof Error ? err.message : String(err));
     app.quit();
     return;
   }
@@ -213,11 +215,11 @@ async function applySettings(envText) {
     if (previous === null) fs.rmSync(ENV_PATH, { force: true });
     else fs.writeFileSync(ENV_PATH, previous);
     if (previous !== null) await startServer().catch(() => {});
-    throw new Error(`FixFlow did not start with these settings, so nothing was changed.\n${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Code Akos did not start with these settings, so nothing was changed.\n${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
-/** Ports the running server holds; they are "busy" only because FixFlow itself is using them. */
+/** Ports the running server holds; they are "busy" only because Code Akos itself is using them. */
 async function ownPorts() {
   if (!serverProcess || !fs.existsSync(ENV_PATH)) return new Set();
   const { parseEnvFile } = await importScript('env-template.mjs');
@@ -256,7 +258,7 @@ ipcMain.handle('setup:current', async () => {
 });
 
 ipcMain.handle('setup:pickFolder', async () => {
-  const options = { title: 'Choose the FixFlow data folder', properties: ['openDirectory', 'createDirectory'] };
+  const options = { title: 'Choose the Code Akos data folder', properties: ['openDirectory', 'createDirectory'] };
   const parent = BrowserWindow.getFocusedWindow() ?? setupWindow;
   const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options);
   return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
@@ -306,12 +308,20 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-/** Brings settings saved inside the app by an older build over to ENV_PATH, once. */
+/**
+ * Brings settings saved by an older build over to ENV_PATH, once: from the FixFlow user-data folder
+ * (before the rename), or from inside the app (before 1.1.0). The window size comes along when there is one.
+ */
 function migrateLegacyEnv() {
-  if (ENV_PATH === LEGACY_ENV_PATH || fs.existsSync(ENV_PATH) || !fs.existsSync(LEGACY_ENV_PATH)) return;
+  if (ENV_PATH === LEGACY_ENV_PATH || fs.existsSync(ENV_PATH)) return;
+  const fromRename = path.join(PRE_RENAME_DIR, '.env');
+  const source = [fromRename, LEGACY_ENV_PATH].find((file) => fs.existsSync(file));
+  if (!source) return;
   try {
     fs.mkdirSync(ENV_DIR, { recursive: true });
-    fs.copyFileSync(LEGACY_ENV_PATH, ENV_PATH);
+    fs.copyFileSync(source, ENV_PATH);
+    const oldState = path.join(PRE_RENAME_DIR, 'window-state.json');
+    if (source === fromRename && fs.existsSync(oldState) && !fs.existsSync(stateFile())) fs.copyFileSync(oldState, stateFile());
   } catch {
     // The setup runs again instead, which is what a first launch looks like anyway.
   }

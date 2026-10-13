@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 test('opens on the Basics step with every switch off and Continue available once the port is free', async ({ launch }) => {
   const { page } = await launch();
-  await expect(page.locator('section[data-step="0"] h1')).toHaveText('Where FixFlow runs');
+  await expect(page.locator('section[data-step="0"] h1')).toHaveText('Where Code Akos runs');
   await expect(page.locator('#useOllama')).not.toBeChecked();
   await expect(page.locator('#errorsEnabled')).toHaveCount(0);
   await expect(page.locator('#resolverEnabled')).toHaveCount(0);

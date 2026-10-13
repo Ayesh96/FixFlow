@@ -1,8 +1,8 @@
-# FixFlow: glossary
+# Code Akos: glossary
 
 **Project**: a GitHub repo, the branch to work on, and the token(s) used to reach it. Errors and fixes belong to a project. Its id is the number at the end of the DSN.
 
-**Managed clone**: the single bare, shallow copy of a project's repo that FixFlow keeps to fetch from and to make fix worktrees. Never worked in directly.
+**Managed clone**: the single bare, shallow copy of a project's repo that Code Akos keeps to fetch from and to make fix worktrees. Never worked in directly.
 
 **Error**: one event an app reports through its Sentry SDK. Events are grouped by a fingerprint (exception type, crashing file, and that frame's source line text) into one **issue** with a count.
 

@@ -6,7 +6,7 @@ import { chooseDataFolder, DEEPSEEK_MODELS, expect, freePort, GOOD_KEY, OLLAMA_M
 // Section S of CASES.md: the Settings window opened from the app menu after onboarding.
 //
 // SAFETY: every test that saves first points the data folder at a scratch folder inside the test's
-// output directory, and uses ports from freePort(). The default ~/.fixflow is never used. Ollama and
+// output directory, and uses ports from freePort(). The default ~/.code-akos is never used. Ollama and
 // the hosted providers point at the local fake, never at a real URL.
 
 const SAVE_TIMEOUT = 120_000;
@@ -173,7 +173,7 @@ test.describe('S. Settings after onboarding', () => {
     });
 
     const settings = await openSettings(app);
-    await expect(settings).toHaveTitle('FixFlow settings');
+    await expect(settings).toHaveTitle('Code Akos settings');
 
     await expect(settings.locator('#port')).toHaveValue(String(ports.dashboard));
     await expect(settings.locator('#dataDir')).toHaveValue(dataDir);
@@ -221,7 +221,7 @@ test.describe('S. Settings after onboarding', () => {
     await expect(settings.locator('#deepseekModel option')).toHaveText(DEEPSEEK_MODELS);
   });
 
-  test('S3 FixFlow own running ports are not reported as busy', async ({ launch, fake }, testInfo) => {
+  test('S3 Code Akos own running ports are not reported as busy', async ({ launch, fake }, testInfo) => {
     test.setTimeout(SAVE_TIMEOUT * 2);
     const { app, page } = await launch();
     const ports = await freePorts();
@@ -245,8 +245,8 @@ test.describe('S. Settings after onboarding', () => {
     await button.click();
     const settings = await opened;
     await settings.waitForLoadState('domcontentloaded');
-    await expect(settings).toHaveTitle('FixFlow settings');
-    await expect(settings.locator('#save')).toHaveText('Save and restart FixFlow');
+    await expect(settings).toHaveTitle('Code Akos settings');
+    await expect(settings.locator('#save')).toHaveText('Save and restart Code Akos');
   });
 
   test('S4 save is on every step: one change on step 1 saves without walking through the others', async ({ launch, fake }, testInfo) => {
@@ -348,7 +348,7 @@ test.describe('S. Settings after onboarding', () => {
     await expect(settings.locator('#port')).toHaveClass(/invalid/);
     await expect(settings.locator('#save')).toBeDisabled();
 
-    // Restore the port (FixFlow's own, so it reads as free) before moving on.
+    // Restore the port (Code Akos's own, so it reads as free) before moving on.
     await settings.fill('#port', String(ports.dashboard));
     await expect(settings.locator('.msg[data-key="port"]')).toHaveText('Free.');
     await expect(settings.locator('#save')).toBeEnabled();

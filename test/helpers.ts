@@ -7,7 +7,7 @@ import type { Config } from '../server/config.ts';
 
 /** A configuration whose files all live in a fresh temporary folder. */
 export async function tempConfig(overrides: Partial<Config> = {}): Promise<Config> {
-  const root = await mkdtemp(join(tmpdir(), 'fixflow-'));
+  const root = await mkdtemp(join(tmpdir(), 'code-akos-'));
   return {
     port: 7420,
     home: root,

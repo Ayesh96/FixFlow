@@ -5,7 +5,7 @@ import { chooseDataFolder, expect, freePort, readEnv, test, type Fake } from './
 // Section E of CASES.md: the resolver step (step 4), Save, and relaunching after a save.
 //
 // SAFETY: every test that clicks Save first points the data folder at a scratch folder inside the
-// test's output directory, and uses ports from freePort(). The default ~/.fixflow is never used.
+// test's output directory, and uses ports from freePort(). The default ~/.code-akos is never used.
 // Ollama always points at the local fake, never a real URL.
 
 const SAVE_TIMEOUT = 120_000;

@@ -5,7 +5,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 
-const BUILT_APP = join(__dirname, '..', 'release', 'mac-arm64', 'FixFlow.app');
+const BUILT_APP = join(__dirname, '..', 'release', 'mac-arm64', 'Code Akos.app');
 const CLONES = join(__dirname, '..', '.test-apps');
 
 export const GOOD_KEY = 'sk-good';
@@ -83,7 +83,7 @@ export const test = base.extend<{ fake: Fake; launch: (options?: LaunchOptions) 
     const copyRoot = join(CLONES, `${testInfo.workerIndex}-${testInfo.testId}`);
     rmSync(copyRoot, { recursive: true, force: true });
     execFileSync('mkdir', ['-p', copyRoot]);
-    const appCopy = join(copyRoot, 'FixFlow.app');
+    const appCopy = join(copyRoot, 'Code Akos.app');
     execFileSync('cp', ['-cR', BUILT_APP, appCopy]);
     const userData = join(copyRoot, 'user-data');
     const envPath = join(userData, '.env');
@@ -95,7 +95,7 @@ export const test = base.extend<{ fake: Fake; launch: (options?: LaunchOptions) 
       const env = { ...process.env, ORCH_DEEPSEEK_API_URL: fake.url, ORCH_ANTHROPIC_API_URL: fake.url, ...options.env } as Record<string, string>;
       delete env.ELECTRON_RUN_AS_NODE;
       const app = await electron.launch({
-        executablePath: join(appCopy, 'Contents', 'MacOS', 'FixFlow'),
+        executablePath: join(appCopy, 'Contents', 'MacOS', 'Code Akos'),
         args: [`--user-data-dir=${userData}`],
         env,
       });
@@ -130,7 +130,7 @@ export async function occupyPort(): Promise<{ port: number; close: () => Promise
 
 /**
  * Makes the native "Choose folder…" dialog return `dir`, then clicks the button. Every test that
- * saves MUST use this with a scratch folder: the default ~/.fixflow is the user's real data.
+ * saves MUST use this with a scratch folder: the default ~/.code-akos is the user's real data.
  */
 export async function chooseDataFolder(app: ElectronApplication, page: Page, dir: string): Promise<void> {
   await app.evaluate(({ dialog }, picked) => {

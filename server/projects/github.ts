@@ -48,7 +48,7 @@ export async function inspectRepo({ token, apiUrl, repo, branch, timeoutMs = 10_
   const get = async (url: string): Promise<Reply | null> => {
     try {
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'fixflow', 'X-GitHub-Api-Version': '2022-11-28' },
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'code-akos', 'X-GitHub-Api-Version': '2022-11-28' },
         signal: AbortSignal.timeout(timeoutMs),
         redirect: 'error', // never replay the token to wherever a redirect points
       });

@@ -1,11 +1,11 @@
 ---
 title: "Error triage with Ollama and a local LLM"
-description: "How FixFlow uses a local LLM through Ollama, or DeepSeek or Anthropic, to explain production errors, tag them and suggest a fix. Guardrails and test results."
+description: "How Code Akos uses a local LLM through Ollama, or DeepSeek or Anthropic, to explain production errors, tag them and suggest a fix. Guardrails and test results."
 ---
 
 # Error triage with Ollama and a local LLM
 
-Triage is the first thing FixFlow does with a new error. A language model reads the error once and records three things: what happened, what to do about it, and tags that sort it (for example, a small fix in your code, or a problem with a server). You see the result in the dashboard, and a small fix gets the `bot-safe` label on its GitHub issue.
+Triage is the first thing Code Akos does with a new error. A language model reads the error once and records three things: what happened, what to do about it, and tags that sort it (for example, a small fix in your code, or a problem with a server). You see the result in the dashboard, and a small fix gets the `bot-safe` label on its GitHub issue.
 
 You can run triage entirely on your own computer with [Ollama](https://ollama.com), so error details and code never leave your machine. DeepSeek and Anthropic are available too.
 
@@ -20,15 +20,15 @@ You can run triage entirely on your own computer with [Ollama](https://ollama.co
         ollama pull qwen2.5-coder:7b
         ```
 
-    3. In FixFlow's setup (or **Settings**), switch on **Ollama**, click **Test connection** and pick the model.
+    3. In Code Akos's setup (or **Settings**), switch on **Ollama**, click **Test connection** and pick the model.
 
     Qwen2.5-Coder 7B is a code-focused model that runs on a typical developer laptop. Any model you have pulled in Ollama appears in the list, so you can choose a larger or smaller one.
 
 === "DeepSeek or Anthropic (hosted)"
 
-    Switch on the provider in FixFlow's setup and paste an API key. The defaults are `deepseek-flash` and `claude-haiku-4-5`, both fast and inexpensive. Error details are sent to the provider (see [what the model sees](#what-the-model-sees)).
+    Switch on the provider in Code Akos's setup and paste an API key. The defaults are `deepseek-flash` and `claude-haiku-4-5`, both fast and inexpensive. Error details are sent to the provider (see [what the model sees](#what-the-model-sees)).
 
-With more than one provider set up, FixFlow uses them in order and falls back to the next if a call fails. With **no** provider set up, FixFlow uses built-in rules instead, which recognise common mistakes by their message. If providers are set up but all of them fail, the error is marked **Couldn't triage** rather than silently handed to the rules, and you can click **Triage again** later.
+With more than one provider set up, Code Akos uses them in order and falls back to the next if a call fails. With **no** provider set up, Code Akos uses built-in rules instead, which recognise common mistakes by their message. If providers are set up but all of them fail, the error is marked **Couldn't triage** rather than silently handed to the rules, and you can click **Triage again** later.
 
 When running from source, the same choices are made with environment variables: `ORCH_OLLAMA_URL`, `ORCH_OLLAMA_MODEL`, `ORCH_DEEPSEEK_API_KEY`, `ORCH_ANTHROPIC_API_KEY` and `ORCH_TRIAGE_PROVIDERS`. See the [configuration reference](reference.md#configuration).
 
@@ -63,7 +63,7 @@ It answers in JSON. The instructions define a small fix as a thrown exception th
 
 ## Guardrails
 
-Small models sometimes contradict the facts. FixFlow corrects the answer where it disagrees with the event itself:
+Small models sometimes contradict the facts. Code Akos corrects the answer where it disagrees with the event itself:
 
 - `bot-safe` requires a stack trace that reaches your own code (or a lint finding). A log line or a crash inside a library is never `bot-safe`.
 - `bot-safe` and `needs-human` are never set together.

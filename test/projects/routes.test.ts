@@ -126,7 +126,7 @@ describe('projects routes', () => {
     const { status, json } = await create();
     assert.equal(status, 201);
     assert.deepEqual([json.project.id, json.project.repo, json.project.branch, json.project.tokenHint], ['1', 'acme/web', 'main', GITHUB_TOKEN.slice(-4)]);
-    assert.equal(json.dsn, 'http://fixflow@localhost:3000/1');
+    assert.equal(json.dsn, 'http://codeakos@localhost:3000/1');
 
     await until('ready');
     assert.equal(existsSync(repos.pathFor('acme/web')), true);

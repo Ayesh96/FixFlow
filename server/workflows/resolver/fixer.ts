@@ -6,7 +6,7 @@ import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
 import { AGENT_MAX_TURNS, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
-export const BRANCH_PREFIX = 'fixflow/issue-';
+export const BRANCH_PREFIX = 'code-akos/issue-';
 
 const SYSTEM_PROMPT =
   'You are a narrow bug-fixing agent. You only have four tools: read_file, list_directory, grep, and ' +

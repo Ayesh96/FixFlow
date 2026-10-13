@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{#- A page's front-matter title is used as written. The theme would add " - FixFlow" to every one,
+{#- A page's front-matter title is used as written. The theme would add " - Code Akos" to every one,
     which repeats the name on pages that already have it and pushes the keywords out of view in results. -#}
 {% block htmltitle %}
   {% if page.meta and page.meta.title %}
@@ -33,13 +33,13 @@
   <meta property="og:image" content="{{ ff_image }}">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
-  <meta property="og:image:alt" content="FixFlow: self-hosted, Sentry-compatible error tracking that opens fix pull requests">
+  <meta property="og:image:alt" content="Code Akos: self-hosted, Sentry-compatible error tracking that opens fix pull requests">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ ff_og_title }}">
   <meta name="twitter:description" content="{{ ff_description }}">
   <meta name="twitter:image" content="{{ ff_image }}">
 
-  {#- Structured data: what FixFlow is on the home page, where a page sits on the others. -#}
+  {#- Structured data: what Code Akos is on the home page, where a page sits on the others. -#}
   {% if page and page.is_homepage %}
   <script type="application/ld+json">
   {
@@ -47,7 +47,7 @@
     "@graph": [
       {
         "@type": "SoftwareApplication",
-        "name": "FixFlow",
+        "name": "Code Akos",
         "description": "Self-hosted, Sentry-compatible error tracking. It groups errors from Sentry SDKs, files a GitHub issue for each new one and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests.",
         "url": "{{ config.site_url }}",
         "applicationCategory": "DeveloperApplication",
@@ -72,7 +72,7 @@
       },
       {
         "@type": "SoftwareSourceCode",
-        "name": "FixFlow",
+        "name": "Code Akos",
         "codeRepository": "{{ config.repo_url }}",
         "programmingLanguage": "TypeScript",
         "runtimePlatform": "Node.js 24 or newer",

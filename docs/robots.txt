@@ -16,4 +16,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://ayesh96.github.io/FixFlow/sitemap.xml
+Sitemap: https://ayesh96.github.io/code-akos/sitemap.xml

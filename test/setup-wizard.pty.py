@@ -5,7 +5,7 @@ Covers section T of desktop/tests/CASES.md. Prints `PASS <id>` or `FAIL <id>: <w
 
 Each case runs in a fresh scratch copy of scripts/, server/ and package.json, with node_modules
 symlinked, so the wizard writes only to the scratch copy. HOME is also pointed at the scratch
-copy, so the default ~/.fixflow is never created. A fake Ollama, DeepSeek and Anthropic run in
+copy, so the default ~/.code-akos is never created. A fake Ollama, DeepSeek and Anthropic run in
 this process, and the busy-port cases hold real listening sockets. The real repo .env is only
 checksummed before and after the run (case GUARD).
 
@@ -101,7 +101,7 @@ def free_port():
 # ---- scratch copy ----------------------------------------------------------------------------
 
 def make_scratch(env_bytes=None):
-    d = Path(tempfile.mkdtemp(prefix='fixflow-setup-'))
+    d = Path(tempfile.mkdtemp(prefix='code-akos-setup-'))
     shutil.copytree(REPO / 'scripts', d / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
     shutil.copytree(REPO / 'server', d / 'server', ignore=shutil.ignore_patterns('__pycache__'))
     shutil.copy(REPO / 'package.json', d / 'package.json')
@@ -522,7 +522,7 @@ def write_edit_fixture(c):
 
 
 def hold_port(port):
-    """A listening socket, so the port is busy the way a running FixFlow server would leave it."""
+    """A listening socket, so the port is busy the way a running Code Akos server would leave it."""
     s = socket.socket()
     s.bind(('127.0.0.1', port))
     s.listen(1)

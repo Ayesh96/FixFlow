@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **FixFlow is now Code Akos.** The app, its windows and the docs use the new name, the command is `code-akos`, and the repository is `Ayesh96/code-akos`.
+- **Existing installs carry over.** On first launch, the data folder moves from `~/.fixflow` to `~/.code-akos` (unless `ORCH_DATA_DIR` points elsewhere), and the desktop app copies its settings from the old `FixFlow` user-data folder. Projects, tokens and error history are kept.
+- What the resolver leaves in your repository now says Code Akos: branches are `code-akos/issue-<n>`, commits are by `Code Akos <code-akos@localhost>`. Pull requests already opened keep their old branch.
+- New DSNs use `codeakos` as the key (`http://codeakos@localhost:3000/1`). DSNs that still say `fixflow` keep working, since no key is checked unless you set one.
+- Release files are named `code-akos-<version>-<os>-<arch>`. On Windows the installer has a new app ID, so uninstall FixFlow separately.
+
 ## 1.1.1
 
 - **Intel Macs.** Each release now has a `mac-x64.dmg` beside the Apple Silicon `mac-arm64.dmg`. The 1.1.0 `.dmg` was Apple Silicon only, so an Intel Mac refused to open it ("not supported on this Mac").

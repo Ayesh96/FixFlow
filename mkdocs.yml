@@ -1,20 +1,20 @@
-site_name: FixFlow
-site_description: FixFlow is free, self-hosted error tracking for Sentry SDKs. It groups errors, files GitHub issues and has a local or hosted LLM open fix pull requests.
-site_url: https://ayesh96.github.io/FixFlow/
-repo_url: https://github.com/Ayesh96/FixFlow
-repo_name: Ayesh96/FixFlow
+site_name: Code Akos
+site_description: Code Akos is free, self-hosted error tracking for Sentry SDKs. It groups errors, files GitHub issues and has a local or hosted LLM open fix pull requests.
+site_url: https://ayesh96.github.io/code-akos/
+repo_url: https://github.com/Ayesh96/code-akos
+repo_name: Ayesh96/code-akos
 edit_uri: edit/main/docs/
 
 theme:
   name: material
   custom_dir: overrides
   # The app's look: its neutral palette (dark first, as the app is), Geist, and its layers mark.
-  # Colours live in docs/assets/stylesheets/fixflow.css.
+  # Colours live in docs/assets/stylesheets/code-akos.css.
   font:
     text: Geist
     code: Geist Mono
   icon:
-    logo: fixflow/layers
+    logo: code-akos/layers
   favicon: assets/favicon.svg
   palette:
     - scheme: slate
@@ -39,7 +39,7 @@ theme:
     - search.highlight
 
 extra_css:
-  - assets/stylesheets/fixflow.css
+  - assets/stylesheets/code-akos.css
 
 # Google Analytics 4, loaded only after a visitor accepts cookies in the consent banner.
 extra:
@@ -52,7 +52,7 @@ extra:
     title: Cookie consent
     description: >-
       This site uses cookies to count visits and see which pages people read, through
-      Google Analytics. Nothing is tracked unless you accept. FixFlow itself sends no analytics.
+      Google Analytics. Nothing is tracked unless you accept. Code Akos itself sends no analytics.
     actions:
       - accept
       - reject

@@ -1,6 +1,6 @@
 // Interactive first-run setup: asks for every .env.example setting and writes .env.
 // Run directly with `npm run setup`, or it runs itself once, automatically, from
-// ensure-build.mjs and bin/fixflow.mjs when no .env exists yet. When a .env already exists
+// ensure-build.mjs and bin/code-akos.mjs when no .env exists yet. When a .env already exists
 // and the user chooses to overwrite it, the same questions run with its values as defaults.
 import './check-node.mjs';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, accessSync, constants } from 'node:fs';
@@ -177,8 +177,8 @@ async function main() {
   const d = parseEnvFile(editing ? readFileSync(envPath, 'utf8') : '');
 
   console.log(editing
-    ? 'FixFlow setup — editing the existing settings. Press Enter to keep each value shown in [brackets]. Everything here is optional.\n'
-    : 'FixFlow setup — press Enter to accept the default shown in [brackets]. Everything here is optional.\n');
+    ? 'Code Akos setup — editing the existing settings. Press Enter to keep each value shown in [brackets]. Everything here is optional.\n'
+    : 'Code Akos setup — press Enter to accept the default shown in [brackets]. Everything here is optional.\n');
 
   const port = await askPort('Dashboard port', d.port, undefined, editing ? d.port : undefined);
   const dataDir = await askDataDir('Data folder (token, databases, key and clones)', d.dataDir);
@@ -265,7 +265,7 @@ async function main() {
   const commentThresholds = await askThresholds('  Event counts at which it comments on the GitHub issue', d.commentThresholds);
   const retentionDays = await askInt('  Days to keep raw events (0 keeps everything)', d.retentionDays, 0);
 
-  console.log('\nResolver — attempts a fix and opens a pull request for issues FixFlow filed.');
+  console.log('\nResolver — attempts a fix and opens a pull request for issues Code Akos filed.');
   // A poll interval set by hand that is not one of the choices is offered as its own choice, so Enter keeps it.
   const pollChoices = POLL_INTERVALS.some((p) => p.ms === d.pollInterval)
     ? POLL_INTERVALS
@@ -319,7 +319,7 @@ async function main() {
   writeFileSync(envPath, envText);
 
   console.log(`\nWrote ${envPath}`);
-  console.log('Run `npm start` to launch FixFlow with this configuration.');
+  console.log('Run `npm start` to launch Code Akos with this configuration.');
 }
 
 await main();

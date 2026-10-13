@@ -1,3 +1,4 @@
+import { existsSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createLlm, loadLlmSettings } from './llm/index.ts';
@@ -28,12 +29,31 @@ export interface Config {
 
 type Env = Record<string, string | undefined>;
 
+/**
+ * Builds from before the rename to Code Akos kept their data in ~/.fixflow. Moves that folder to the
+ * new default once, so projects, tokens and error history carry over. Returns where the data now is,
+ * or null when there was nothing to move. If the move fails, the old folder is used where it is.
+ */
+export function moveLegacyDataDir(env: Env = process.env, home = homedir()): string | null {
+  if (env.ORCH_DATA_DIR) return null;
+  const legacy = join(home, '.fixflow');
+  const current = join(home, '.code-akos');
+  if (existsSync(current) || !existsSync(legacy)) return null;
+  try {
+    renameSync(legacy, current);
+    return current;
+  } catch {
+    env.ORCH_DATA_DIR = legacy;
+    return legacy;
+  }
+}
+
 export function loadConfig(env: Env = process.env): Config {
   const home = homedir();
   const port = Number(env.PORT ?? 7420);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`PORT must be 1-65535 (got "${env.PORT}")`);
 
-  const dataDir = env.ORCH_DATA_DIR ?? join(home, '.fixflow');
+  const dataDir = env.ORCH_DATA_DIR ?? join(home, '.code-akos');
 
   // The models are read once and shared: both workflows ask for one by purpose, never by name.
   const llm = createLlm(loadLlmSettings(env));

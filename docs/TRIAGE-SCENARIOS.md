@@ -1,11 +1,11 @@
 ---
-description: "What happens to an error in FixFlow between arriving and becoming a GitHub issue, scenario by scenario."
+description: "What happens to an error in Code Akos between arriving and becoming a GitHub issue, scenario by scenario."
 ---
 
 # Triage scenarios
 
 What happens to an error between arriving and (maybe) becoming a GitHub issue. The executable version is
-[`test/workflows/errors/scenarios.test.ts`](https://github.com/Ayesh96/FixFlow/blob/main/test/workflows/errors/scenarios.test.ts); this is the index.
+[`test/workflows/errors/scenarios.test.ts`](https://github.com/Ayesh96/code-akos/blob/main/test/workflows/errors/scenarios.test.ts); this is the index.
 
 ## The two questions
 
@@ -31,7 +31,7 @@ The one thing filing takes from triage is the `bot-safe` label, which is what th
 
 | Situation | Tags | Suggestion | Filed |
 |---|---|---|---|
-| Test message at `info` ("fixflow test from MacRemote") | `test-event` `no-stack-trace` | Don't report it | no |
+| Test message at `info` ("code-akos test from MacRemote") | `test-event` `no-stack-trace` | Don't report it | no |
 | "hello world ping" at `debug` | `test-event` `no-stack-trace` | Don't report it | no |
 | "testing the alert pipeline, please ignore" at `warning` | `test-event` `no-stack-trace` | Don't report it | no |
 | "sentry test please ignore" sent as `error` | `no-stack-trace` `needs-human` | Report it only if someone recognises it | no (filed*) |

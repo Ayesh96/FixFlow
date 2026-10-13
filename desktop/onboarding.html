@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Set up FixFlow</title>
+<title>Set up Code Akos</title>
 <style>
   /* Tokens mirror web/src/index.css and DESIGN.md: dark only, neutral grayscale. */
   @font-face { font-family: "Geist"; src: url("fonts/geist-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
@@ -151,7 +151,7 @@
 <div class="shell">
   <header class="brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
-    <span>FixFlow</span>
+    <span>Code Akos</span>
   </header>
 
   <ol class="steps" id="stepper" aria-label="Progress"></ol>
@@ -159,8 +159,8 @@
   <main>
     <!-- Step 1 -->
     <section data-step="0">
-      <h1>Where FixFlow runs</h1>
-      <p class="lede" id="basicsLede">The defaults work for most setups. You can change any of this later from FixFlow &rsaquo; Settings.</p>
+      <h1>Where Code Akos runs</h1>
+      <p class="lede" id="basicsLede">The defaults work for most setups. You can change any of this later from Code Akos &rsaquo; Settings.</p>
       <div class="card">
         <label class="field" for="port"><span class="name">Dashboard port</span>
           <input type="number" id="port" value="7420" min="1" max="65535" step="1" />
@@ -169,7 +169,7 @@
         <div class="field">
           <span class="name">Data folder <small>holds the login token, databases, encryption key and clones</small></span>
           <div class="row">
-            <input type="text" id="dataDir" value="~/.fixflow" readonly aria-label="Data folder" />
+            <input type="text" id="dataDir" value="~/.code-akos" readonly aria-label="Data folder" />
             <button type="button" class="small" id="chooseFolder">Choose folder…</button>
           </div>
           <span class="msg" data-key="dataDir"></span>
@@ -333,7 +333,7 @@
     <button type="button" class="small" id="back" hidden>Back</button>
     <span class="spacer"></span>
     <button type="button" class="small primary" id="next">Continue</button>
-    <button type="button" class="small primary" id="save" hidden disabled>Save and start FixFlow</button>
+    <button type="button" class="small primary" id="save" hidden disabled>Save and start Code Akos</button>
   </footer>
 </div>
 
@@ -349,8 +349,8 @@ const modelName = (m) => (typeof m === 'string' ? m : String(m?.id ?? m?.name ??
 
 const LABEL = { ollama: 'Ollama', deepseek: 'DeepSeek', anthropic: 'Anthropic' };
 const PROV = {
-  deepseek: { label: 'DeepSeek', box: 'useDeepseek', key: 'deepseekKey', model: 'deepseekModel', verify: 'verifyDeepseek', def: 'deepseek-flash', check: (k) => window.fixflow.checkDeepseek(k) },
-  anthropic: { label: 'Anthropic', box: 'useAnthropic', key: 'anthropicKey', model: 'anthropicModel', verify: 'verifyAnthropic', def: 'claude-haiku-4-5', check: (k) => window.fixflow.checkAnthropic(k) },
+  deepseek: { label: 'DeepSeek', box: 'useDeepseek', key: 'deepseekKey', model: 'deepseekModel', verify: 'verifyDeepseek', def: 'deepseek-flash', check: (k) => window.codeAkos.checkDeepseek(k) },
+  anthropic: { label: 'Anthropic', box: 'useAnthropic', key: 'anthropicKey', model: 'anthropicModel', verify: 'verifyAnthropic', def: 'claude-haiku-4-5', check: (k) => window.codeAkos.checkAnthropic(k) },
 };
 const OLLAMA_DEFAULT_MODEL = 'qwen2.5-coder:7b';
 const MODE = new URLSearchParams(location.search).get('mode') === 'settings' ? 'settings' : 'first';
@@ -565,7 +565,7 @@ function collect() {
   const useAnthropic = isEnabled('anthropic');
   return {
     port: intOr('port', 7420),
-    dataDir: val('dataDir') || '~/.fixflow',
+    dataDir: val('dataDir') || '~/.code-akos',
     providerOrder: providers.join(','),
     useOllama: checked('useOllama'),
     ollamaUrl: val('ollamaUrl'),
@@ -608,7 +608,7 @@ async function runPortCheck(key) {
     return;
   }
   let r;
-  try { r = await window.fixflow.checkPort(value); } catch (err) { r = { ok: false, error: errText(err) }; }
+  try { r = await window.codeAkos.checkPort(value); } catch (err) { r = { ok: false, error: errText(err) }; }
   if (seq !== portSeq[key]) return;
   portState[key] = { value, state: r?.ok ? 'free' : 'busy' };
   refresh();
@@ -624,7 +624,7 @@ async function testOllama() {
   refresh();
 
   let r;
-  try { r = await window.fixflow.checkOllama(val('ollamaUrl')); } catch (err) { r = { ok: false, error: errText(err) }; }
+  try { r = await window.codeAkos.checkOllama(val('ollamaUrl')); } catch (err) { r = { ok: false, error: errText(err) }; }
   if (seq !== ollamaSeq) return;
   $('testOllama').disabled = false;
 
@@ -741,7 +741,7 @@ for (const id of ['deepseek', 'anthropic']) {
 
 $('chooseFolder').addEventListener('click', async () => {
   try {
-    const picked = await window.fixflow.pickFolder();
+    const picked = await window.codeAkos.pickFolder();
     if (picked) $('dataDir').value = picked;
   } catch (err) {
     setStatus(`Could not open the folder picker: ${errText(err)}`, 'error');
@@ -791,8 +791,8 @@ $('save').addEventListener('click', async () => {
   refresh();
   setStatus(MODE === 'settings' ? 'Checking your settings…' : 'Checking your settings and writing .env…', '');
   try {
-    await window.fixflow.saveConfig(collect());
-    setStatus(MODE === 'settings' ? 'Restarting FixFlow…' : 'Starting FixFlow…', '');
+    await window.codeAkos.saveConfig(collect());
+    setStatus(MODE === 'settings' ? 'Restarting Code Akos…' : 'Starting Code Akos…', '');
   } catch (err) {
     saving = false;
     showSaveError(err);
@@ -876,7 +876,7 @@ $('back').addEventListener('click', () => goTo(step - 1));
 
 async function loadConstants() {
   try {
-    const { LEVEL_CHOICES, POLL_INTERVALS } = await window.fixflow.constants();
+    const { LEVEL_CHOICES, POLL_INTERVALS } = await window.codeAkos.constants();
     $('minLevel').disabled = false;
     $('pollInterval').disabled = false;
     setOptions($('minLevel'), LEVEL_CHOICES.map((c) => ({ value: c.value, label: c.label })), [currentValues?.minLevel, 'error']);
@@ -927,12 +927,12 @@ function prefill(v) {
 
 (async function init() {
   if (MODE === 'settings') {
-    document.title = 'FixFlow settings';
-    $('basicsLede').textContent = 'Change what you need. Saving checks everything again and restarts FixFlow with the new settings.';
-    $('save').textContent = 'Save and restart FixFlow';
+    document.title = 'Code Akos settings';
+    $('basicsLede').textContent = 'Change what you need. Saving checks everything again and restarts Code Akos with the new settings.';
+    $('save').textContent = 'Save and restart Code Akos';
     reached = STEPS.length - 1;
     try {
-      currentValues = await window.fixflow.current();
+      currentValues = await window.codeAkos.current();
     } catch (err) {
       setStatus(`Could not read the current settings: ${errText(err)}`, 'error');
     }

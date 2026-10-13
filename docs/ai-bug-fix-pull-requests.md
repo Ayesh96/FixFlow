@@ -1,34 +1,34 @@
 ---
 title: "AI bug fixes as PRs: a Sentry Seer alternative"
-description: "How FixFlow turns production errors into AI fix pull requests with a local or hosted model: what it attempts, what the model can do, cost and safety."
+description: "How Code Akos turns production errors into AI fix pull requests with a local or hosted model: what it attempts, what the model can do, cost and safety."
 ---
 
 # AI bug fixes as pull requests
 
-FixFlow's **resolver** reads each GitHub issue FixFlow filed, asks an AI model to fix the bug in a temporary copy of your repository, runs your tests, and opens the change as a pull request. You review it and decide whether to merge. FixFlow never merges anything itself.
+Code Akos's **resolver** reads each GitHub issue Code Akos filed, asks an AI model to fix the bug in a temporary copy of your repository, runs your tests, and opens the change as a pull request. You review it and decide whether to merge. Code Akos never merges anything itself.
 
 It does a similar job to Sentry's Seer, but it runs on your own computer, works with a model you choose (including a free local model through [Ollama](https://ollama.com)) and has no per-seat price.
 
 ## Which issues it works on
 
-Every 5 minutes, the resolver looks at the issues FixFlow filed and attempts each one that:
+Every 5 minutes, the resolver looks at the issues Code Akos filed and attempts each one that:
 
 - is still open on GitHub and belongs to a project that still exists;
-- does not already have a pull request from FixFlow, and was not skipped before;
+- does not already have a pull request from Code Akos, and was not skipped before;
 - is not waiting after a failed attempt. It waits 15 minutes after the first failure, then twice as long each time, and stops trying on its own after 3 failures.
 
 Up to 3 issues are worked on at the same time. **Run resolver now** on the Projects page starts a round immediately, and **Try again anyway** on a single error retries it even after it was skipped or reached the failure limit. All of these numbers can be changed in Settings.
 
 !!! warning "Triage tags do not stop the resolver"
-    The resolver currently attempts every open issue FixFlow filed, including ones triage tagged `needs-human` or `infrastructure`. With a paid API, each of those attempts costs money. To keep the resolver away from an issue, close it on GitHub.
+    The resolver currently attempts every open issue Code Akos filed, including ones triage tagged `needs-human` or `infrastructure`. With a paid API, each of those attempts costs money. To keep the resolver away from an issue, close it on GitHub.
 
 ## What happens in one attempt
 
-1. **Prepare a copy.** FixFlow fetches the latest commit of your project's branch and creates a temporary working copy on a new branch, `fixflow/issue-<number>`.
+1. **Prepare a copy.** Code Akos fetches the latest commit of your project's branch and creates a temporary working copy on a new branch, `code-akos/issue-<number>`.
 2. **Check that the tests pass first.** If you set a check command (such as `npm ci && npm test`), it runs now. If it already fails before any change, the issue is skipped, because a fix could not be verified.
 3. **Let the model work.** The model gets the issue and up to 3 source files named in the stack trace. It can then use four tools: read a file, list a folder, search the code and edit a file. It has no shell, so it cannot run commands or install anything. It gets up to 20 turns.
 4. **Get a verdict.** The model must finish with either `FIX: <what changed>` or `SKIP: <why>`. A skip, or a "fix" that changed no files, is recorded as skipped. Running out of turns without a verdict counts as a failure.
-5. **Check again and open the pull request.** The check command runs again, the change is committed as `FixFlow <fixflow@localhost>`, pushed, and opened as a pull request against your branch.
+5. **Check again and open the pull request.** The check command runs again, the change is committed as `Code Akos <code-akos@localhost>`, pushed, and opened as a pull request against your branch.
 
 The instructions given to the model ask it to change only a few lines in one or two files, to fix only the reported bug, to make no change when the cause is unclear, and to treat the issue text as data, not as instructions. That last rule matters because error messages can contain text an attacker controls.
 
@@ -70,9 +70,9 @@ Hosted models are generally stronger at code than a 7-billion-parameter local mo
 - **Your check command runs on your computer.** It runs as your user, in the temporary copy, and it runs code from the branch, including the model's change. Only use a command you would run yourself.
 - **Fix quality is not measured yet.** How often the fixes are correct has not been measured. Review every pull request as carefully as one from a new contributor.
 
-## FixFlow resolver vs Sentry Seer
+## Code Akos resolver vs Sentry Seer
 
-| | FixFlow resolver | Sentry Seer |
+| | Code Akos resolver | Sentry Seer |
 |---|---|---|
 | Where it runs | Your computer or server | Sentry's cloud |
 | Model | Your choice: Ollama (local), DeepSeek or Anthropic | Sentry's choice |

@@ -1,11 +1,11 @@
 ---
-title: "FixFlow configuration and security reference"
-description: "Every FixFlow setting and environment variable, how GitHub tokens are stored, the dashboard and ingest listeners, the security model and the code layout."
+title: "Code Akos configuration and security reference"
+description: "Every Code Akos setting and environment variable, how GitHub tokens are stored, the dashboard and ingest listeners, the security model and the code layout."
 ---
 
 # Configuration and security reference
 
-This page lists every FixFlow setting and explains how projects, tokens and the two network listeners work. Most people never need it: the setup window covers the common settings. To install FixFlow, see [installation](installation.md).
+This page lists every Code Akos setting and explains how projects, tokens and the two network listeners work. Most people never need it: the setup window covers the common settings. To install Code Akos, see [installation](installation.md).
 
 ## What a project is
 
@@ -18,7 +18,7 @@ A **project** is a repository, the **branch** to work on, and the **GitHub token
 - Each project's repository is cloned once, when it is added, into `repos/` as a bare, shallow (`--depth 1`), single-branch clone, and fetched before every fix. One clone serves every branch of a repo.
 - **The check command** runs through a shell, in a throwaway copy of the repository, before and after each fix. If it already fails before the fix, the resolver skips the issue; if it fails after, the pull request says it is unverified. It runs as you, on your machine, so only put commands there that you would run yourself.
 
-All of it lives in one data folder, `~/.fixflow` by default (`ORCH_DATA_DIR`).
+All of it lives in one data folder, `~/.code-akos` by default (`ORCH_DATA_DIR`).
 
 ## Two listeners
 
@@ -38,7 +38,7 @@ Sentry SDKs, browsers included, post cross-origin with no cookie, so none of the
 This server holds your GitHub tokens and can push code, so:
 
 1. It listens on **127.0.0.1 only**.
-2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on FixFlow's port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
+2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on Code Akos's port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
 3. Every `/api` route needs a **secret token**, kept in `<data folder>/token` (mode `0600`). The link printed at startup exchanges it for an `HttpOnly; SameSite=Strict` cookie. Treat the token file like an SSH key.
 4. Strict CSP, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, and `no-store` on API responses.
 5. Git and the model's tools use argument arrays. The only shell is your own check command.
@@ -56,7 +56,7 @@ The setup, in the desktop app and in the terminal, differs from a hand-written `
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `7420` | The dashboard. |
-| `ORCH_DATA_DIR` | `~/.fixflow` | Where the token, databases, key and clones live. |
+| `ORCH_DATA_DIR` | `~/.code-akos` | Where the token, databases, key and clones live. |
 | `ORCH_TOKEN_FILE`, `ORCH_SECRET_KEY_FILE`, `ORCH_PROJECTS_DB`, `ORCH_REPOS_DIR` | inside `ORCH_DATA_DIR` | Move one of those out of the data folder. |
 | `ORCH_GITHUB_API_URL` | `https://api.github.com` | For GitHub Enterprise. |
 | `ORCH_GITHUB_CLONE_URL` | `https://github.com/{repo}.git` | Where to clone from, with `{repo}` for `owner/name`. |
@@ -87,7 +87,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
 | `ORCH_ERRORS_DB` | `<data>/errors.db` | |
 
-**What reaches GitHub.** Every error is kept in FixFlow and listed on its project's page. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing IDs in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex IDs replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
+**What reaches GitHub.** Every error is kept in Code Akos and listed on its project's page. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing IDs in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex IDs replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
 
 ### Resolver
 
@@ -100,21 +100,21 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How many failed attempts one issue gets before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
 | `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
 
-The resolver attempts every open GitHub issue FixFlow filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at 20 model turns (`AGENT_MAX_TURNS` in `server/constants.ts`). It runs your check command as you, on your machine.
+The resolver attempts every open GitHub issue Code Akos filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at 20 model turns (`AGENT_MAX_TURNS` in `server/constants.ts`). It runs your check command as you, on your machine.
 
 ## Running from source
 
-For a headless server, or working on FixFlow itself. Needs Node 24+ and git, on Linux or macOS.
+For a headless server, or working on Code Akos itself. Needs Node 24+ and git, on Linux or macOS.
 
 ```bash
-git clone https://github.com/Ayesh96/FixFlow.git && cd FixFlow
+git clone https://github.com/Ayesh96/code-akos.git && cd code-akos
 npm install     # also installs the UI's dependencies
 npm start       # builds the UI if it is stale, then serves it
 ```
 
 The first `npm start` in a terminal runs the same setup as the desktop app and writes `.env`; `npm run setup` changes it later, starting from the current values. `npm start` then prints `http://localhost:7420/?token=…`: open it once, and the token is kept in an HttpOnly cookie. `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
 
-Each release also has a tarball with the UI prebuilt, so there is no build step: check it against `sha256sums.txt`, unpack it, and run `node bin/fixflow.mjs`.
+Each release also has a tarball with the UI prebuilt, so there is no build step: check it against `sha256sums.txt`, unpack it, and run `node bin/code-akos.mjs`.
 
 ## Development
 
@@ -142,13 +142,13 @@ python3 test/setup-wizard.pty.py   # drives the terminal setup in a pseudo-termi
 
 ### Desktop app
 
-`desktop/` is an Electron shell for macOS, Windows and Linux. It forks `bin/fixflow.mjs` in Electron's own Node (so the machine needs no Node install), shows the setup as a window on first launch (`desktop/onboarding.html`, the same checks as the terminal setup through `scripts/setup-checks.mjs`), and opens the dashboard in a window. **Settings** in the dashboard header, or FixFlow › Settings… (⌘,), reopens the setup filled in from `.env` (**File › Settings…**, Ctrl+, on Windows and Linux). Saving restarts the server; if it will not start, the previous `.env` is restored and the previous server started again.
+`desktop/` is an Electron shell for macOS, Windows and Linux. It forks `bin/code-akos.mjs` in Electron's own Node (so the machine needs no Node install), shows the setup as a window on first launch (`desktop/onboarding.html`, the same checks as the terminal setup through `scripts/setup-checks.mjs`), and opens the dashboard in a window. **Settings** in the dashboard header, or Code Akos › Settings… (⌘,), reopens the setup filled in from `.env` (**File › Settings…**, Ctrl+, on Windows and Linux). Saving restarts the server; if it will not start, the previous `.env` is restored and the previous server started again.
 
 ```bash
 cd desktop
 npm install
 npm start                 # run from the repo (uses the repo's .env)
-npm run dist:mac          # build release/FixFlow-<version>-mac-arm64.dmg and -mac-x64.dmg (Intel)
+npm run dist:mac          # build release/code-akos-<version>-mac-arm64.dmg and -mac-x64.dmg (Intel)
 npm run dist:win          # an NSIS .exe installer
 npm run dist:linux        # an AppImage
 npm run test:e2e          # Playwright against the built macOS app; build first
@@ -156,10 +156,10 @@ npm run test:e2e          # Playwright against the built macOS app; build first
 
 Pushing a `v*` tag builds all three on GitHub Actions and attaches them to the release, unsigned. Only the Apple Silicon build is tested.
 
-In the built app, `.env` lives in the app's user-data folder, separate from the repo's and kept across updates: `~/Library/Application Support/FixFlow/.env` on macOS, `%APPDATA%\FixFlow\.env` on Windows, `~/.config/FixFlow/.env` on Linux. The server runs with that folder as its working directory. Builds before 1.1.0 kept it inside the app; the first launch of a newer build copies it over. The macOS build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Removing that step for users needs a Developer ID certificate and notarization; on Windows, a code-signing certificate.
+In the built app, `.env` lives in the app's user-data folder, separate from the repo's and kept across updates: `~/Library/Application Support/Code Akos/.env` on macOS, `%APPDATA%\Code Akos\.env` on Windows, `~/.config/Code Akos/.env` on Linux. The server runs with that folder as its working directory. Builds before 1.1.0 kept it inside the app; the first launch of a newer build copies it over. The macOS build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Removing that step for users needs a Developer ID certificate and notarization; on Windows, a code-signing certificate.
 
-The end-to-end tests give each test its own APFS clone of the built app, fake Ollama, DeepSeek and Anthropic servers, and a stubbed folder picker, so they never touch `~/.fixflow` or a real API. The cases are listed in `desktop/tests/CASES.md`.
+The end-to-end tests give each test its own APFS clone of the built app, fake Ollama, DeepSeek and Anthropic servers, and a stubbed folder picker, so they never touch `~/.code-akos` or a real API. The cases are listed in `desktop/tests/CASES.md`.
 
 To add another workflow, implement `Workflow` from `server/workflows/types.ts` (`id`, `title`, `routes(router)`, optional `start`/`stop`, and `ingestRoutes(router)` only if it needs unauthenticated outside traffic), switch it on in `server/workflows/index.ts`, and register a panel for its `id` in `web/src/components/extensions.ts`.
 
-[`DESIGN.md`](https://github.com/Ayesh96/FixFlow/blob/main/DESIGN.md) documents the tokens, components, accessibility rules and copy conventions.
+[`DESIGN.md`](https://github.com/Ayesh96/code-akos/blob/main/DESIGN.md) documents the tokens, components, accessibility rules and copy conventions.

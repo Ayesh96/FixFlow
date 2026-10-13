@@ -36,7 +36,7 @@ function jsonObjectText(json: string): string {
   return '{}';
 }
 
-/** FixFlow's history is already OpenAI-shaped; the wire form only adds `type: "function"` to each call. */
+/** Code Akos's history is already OpenAI-shaped; the wire form only adds `type: "function"` to each call. */
 function toWireMessage(message: ChatMessage): unknown {
   if (message.role === 'tool') return { role: 'tool', tool_call_id: message.tool_call_id ?? '', content: message.content ?? '' };
   if (message.role === 'assistant' && message.tool_calls && message.tool_calls.length > 0) {

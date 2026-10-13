@@ -1,17 +1,17 @@
 ---
 title: "Self-hosted error tracking without Docker"
-description: "FixFlow is self-hosted error tracking in one process with SQLite: no Docker, no database server. What it stores, where, and what leaves your machine."
+description: "Code Akos is self-hosted error tracking in one process with SQLite: no Docker, no database server. What it stores, where, and what leaves your machine."
 ---
 
 # Self-hosted error tracking
 
-Self-hosting your error tracker means your errors, stack traces and source code stay on hardware you control. The catch is usually the setup: most self-hosted trackers need Docker, a database server and a background queue. FixFlow needs none of these. It is a single process that stores everything in SQLite files in one folder, and it runs as a desktop app or on a small server.
+Self-hosting your error tracker means your errors, stack traces and source code stay on hardware you control. The catch is usually the setup: most self-hosted trackers need Docker, a database server and a background queue. Code Akos needs none of these. It is a single process that stores everything in SQLite files in one folder, and it runs as a desktop app or on a small server.
 
-This page explains what FixFlow runs, what it stores and exactly what leaves your machine.
+This page explains what Code Akos runs, what it stores and exactly what leaves your machine.
 
 ## What runs
 
-FixFlow is one Node.js process. The desktop app includes its own copy of Node.js, so you do not install anything except git. There is no database server, no queue and no cache: storage is SQLite, built into Node.js.
+Code Akos is one Node.js process. The desktop app includes its own copy of Node.js, so you do not install anything except git. There is no database server, no queue and no cache: storage is SQLite, built into Node.js.
 
 The process opens two ports:
 
@@ -29,11 +29,11 @@ Both ports listen only on your own computer (loopback) by default. They are kept
 To accept errors from apps on a server or another computer, set **Accept reports from** to **Any machine on the network** in Settings (or `ORCH_ERRORS_INGEST_HOST=0.0.0.0` when running from source). Then:
 
 - set an **access key**, so only your apps can send errors;
-- put a reverse proxy with HTTPS (such as Caddy or nginx) in front of the ingest port if errors travel over the internet, because FixFlow itself serves plain HTTP.
+- put a reverse proxy with HTTPS (such as Caddy or nginx) in front of the ingest port if errors travel over the internet, because Code Akos itself serves plain HTTP.
 
 ## What it stores
 
-Everything lives in one data folder, `~/.fixflow` by default:
+Everything lives in one data folder, `~/.code-akos` by default:
 
 | File or folder | Contents |
 |---|---|
@@ -61,15 +61,15 @@ Individual events older than 30 days are deleted every hour. Error groups, count
 **With Ollama on the same computer, nothing goes to a third party.**
 
 !!! note "Local variables"
-    Some SDKs, including the Python SDK by default, capture the values of local variables when an error happens. FixFlow never writes them into GitHub issues, but it does show them to the model, because they often explain the bug. If those values can include personal data, use a local model or turn off local variables in your SDK.
+    Some SDKs, including the Python SDK by default, capture the values of local variables when an error happens. Code Akos never writes them into GitHub issues, but it does show them to the model, because they often explain the bug. If those values can include personal data, use a local model or turn off local variables in your SDK.
 
-FixFlow sends no analytics or telemetry of its own.
+Code Akos sends no analytics or telemetry of its own.
 
 ## Requirements compared with other trackers
 
 | | What you need to run it |
 |---|---|
-| FixFlow | The desktop app, or Node.js 24+ and git on a server |
+| Code Akos | The desktop app, or Node.js 24+ and git on a server |
 | Sentry (self-hosted) | Docker Compose with 53 services; 4 cores, 16 GB RAM and 16 GB swap |
 | GlitchTip | The app plus PostgreSQL; from 256 MB RAM |
 | Bugsink | One container; SQLite, MySQL or PostgreSQL |
@@ -78,4 +78,4 @@ For features, not just footprint, see the [comparison of Sentry alternatives](se
 
 ## Running on a server
 
-The desktop app suits running FixFlow on the computer you develop on. For an always-on Linux server, run it from source with Node.js 24 or newer: see [installation](installation.md#run-fixflow-on-a-server) and [running from source](reference.md#running-from-source). The [security section of the reference](reference.md#security) covers how the dashboard is protected.
+The desktop app suits running Code Akos on the computer you develop on. For an always-on Linux server, run it from source with Node.js 24 or newer: see [installation](installation.md#run-code-akos-on-a-server) and [running from source](reference.md#running-from-source). The [security section of the reference](reference.md#security) covers how the dashboard is protected.

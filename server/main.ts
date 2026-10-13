@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { loadOrCreateToken } from './auth.ts';
 import { createApp } from './app.ts';
-import { loadConfig } from './config.ts';
+import { loadConfig, moveLegacyDataDir } from './config.ts';
 import { createIngestApp } from './ingest.ts';
 import { loadWorkflows } from './workflows/index.ts';
 
@@ -11,6 +11,8 @@ try {
   // Ignore if .env doesn't exist
 }
 
+const moved = moveLegacyDataDir();
+if (moved) console.log(`Data from ~/.fixflow (the name before Code Akos) is now in ${moved}`);
 const config = loadConfig();
 const token = await loadOrCreateToken(config.tokenFile);
 const { workflows, projects, events } = loadWorkflows(config);

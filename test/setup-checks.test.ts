@@ -159,7 +159,7 @@ describe('setup checks', () => {
   describe('validateValues', () => {
     const good = {
       port: 7420,
-      dataDir: '~/.fixflow',
+      dataDir: '~/.code-akos',
       providerOrder: 'ollama,deepseek',
       useOllama: true,
       ollamaUrl: 'http://localhost:11434',

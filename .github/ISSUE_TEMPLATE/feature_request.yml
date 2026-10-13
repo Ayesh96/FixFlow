@@ -11,7 +11,7 @@ body:
   - type: textarea
     id: idea
     attributes:
-      label: What would you like FixFlow to do?
+      label: What would you like Code Akos to do?
   - type: textarea
     id: alternatives
     attributes:

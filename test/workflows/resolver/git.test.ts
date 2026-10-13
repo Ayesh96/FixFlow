@@ -244,17 +244,17 @@ describe('git operations', () => {
       const destDir = await mkdtemp(`${tmpdir()}/git-worktree-`);
       await cleanup(destDir); // worktree add requires the target not already exist as a non-empty dir it didn't create
 
-      await addWorktree(localRepoDir, destDir, 'fixflow/issue-1', 'main', 'test-token');
+      await addWorktree(localRepoDir, destDir, 'code-akos/issue-1', 'main', 'test-token');
 
       const content = await readFile(`${destDir}/README.md`, 'utf-8');
       assert.equal(content, 'hello');
       const branch = execFileSync('git', ['-C', destDir, 'branch', '--show-current'], { encoding: 'utf-8' }).trim();
-      assert.equal(branch, 'fixflow/issue-1');
+      assert.equal(branch, 'code-akos/issue-1');
 
       const worktreeList = execFileSync('git', ['-C', localRepoDir, 'worktree', 'list'], { encoding: 'utf-8' });
-      assert.match(worktreeList, /fixflow\/issue-1/);
+      assert.match(worktreeList, /code-akos\/issue-1/);
 
-      await removeWorktree(localRepoDir, destDir, 'fixflow/issue-1');
+      await removeWorktree(localRepoDir, destDir, 'code-akos/issue-1');
     });
 
     test('addWorktree does not move the local clone off whatever branch it was on', async () => {
@@ -262,20 +262,20 @@ describe('git operations', () => {
       const destDir = await mkdtemp(`${tmpdir()}/git-worktree-`);
       await cleanup(destDir);
 
-      await addWorktree(localRepoDir, destDir, 'fixflow/issue-2', 'main', 'test-token');
+      await addWorktree(localRepoDir, destDir, 'code-akos/issue-2', 'main', 'test-token');
 
       const stillOnBranch = execFileSync('git', ['-C', localRepoDir, 'branch', '--show-current'], { encoding: 'utf-8' }).trim();
       assert.equal(stillOnBranch, originalBranch);
 
-      await removeWorktree(localRepoDir, destDir, 'fixflow/issue-2');
+      await removeWorktree(localRepoDir, destDir, 'code-akos/issue-2');
     });
 
     test('removeWorktree deletes the directory, deregisters the worktree, and deletes the branch', async () => {
       const destDir = await mkdtemp(`${tmpdir()}/git-worktree-`);
       await cleanup(destDir);
-      await addWorktree(localRepoDir, destDir, 'fixflow/issue-3', 'main', 'test-token');
+      await addWorktree(localRepoDir, destDir, 'code-akos/issue-3', 'main', 'test-token');
 
-      await removeWorktree(localRepoDir, destDir, 'fixflow/issue-3');
+      await removeWorktree(localRepoDir, destDir, 'code-akos/issue-3');
 
       let exists = true;
       try {
@@ -286,9 +286,9 @@ describe('git operations', () => {
       assert.equal(exists, false, 'worktree directory should be removed');
 
       const worktreeList = execFileSync('git', ['-C', localRepoDir, 'worktree', 'list'], { encoding: 'utf-8' });
-      assert.doesNotMatch(worktreeList, /fixflow\/issue-3/);
+      assert.doesNotMatch(worktreeList, /code-akos\/issue-3/);
 
-      const branches = execFileSync('git', ['-C', localRepoDir, 'branch', '--list', 'fixflow/issue-3'], { encoding: 'utf-8' });
+      const branches = execFileSync('git', ['-C', localRepoDir, 'branch', '--list', 'code-akos/issue-3'], { encoding: 'utf-8' });
       assert.equal(branches.trim(), '');
     });
 
@@ -298,25 +298,25 @@ describe('git operations', () => {
       await cleanup(destA);
       await cleanup(destB);
 
-      await addWorktree(localRepoDir, destA, 'fixflow/issue-10', 'main', 'test-token');
-      await addWorktree(localRepoDir, destB, 'fixflow/issue-11', 'main', 'test-token');
+      await addWorktree(localRepoDir, destA, 'code-akos/issue-10', 'main', 'test-token');
+      await addWorktree(localRepoDir, destB, 'code-akos/issue-11', 'main', 'test-token');
 
       const branchA = execFileSync('git', ['-C', destA, 'branch', '--show-current'], { encoding: 'utf-8' }).trim();
       const branchB = execFileSync('git', ['-C', destB, 'branch', '--show-current'], { encoding: 'utf-8' }).trim();
-      assert.equal(branchA, 'fixflow/issue-10');
-      assert.equal(branchB, 'fixflow/issue-11');
+      assert.equal(branchA, 'code-akos/issue-10');
+      assert.equal(branchB, 'code-akos/issue-11');
 
-      await removeWorktree(localRepoDir, destA, 'fixflow/issue-10');
-      await removeWorktree(localRepoDir, destB, 'fixflow/issue-11');
+      await removeWorktree(localRepoDir, destA, 'code-akos/issue-10');
+      await removeWorktree(localRepoDir, destB, 'code-akos/issue-11');
     });
 
     test('removeWorktree does not throw when the worktree was already removed', async () => {
       const destDir = await mkdtemp(`${tmpdir()}/git-worktree-`);
       await cleanup(destDir);
-      await addWorktree(localRepoDir, destDir, 'fixflow/issue-4', 'main', 'test-token');
-      await removeWorktree(localRepoDir, destDir, 'fixflow/issue-4');
+      await addWorktree(localRepoDir, destDir, 'code-akos/issue-4', 'main', 'test-token');
+      await removeWorktree(localRepoDir, destDir, 'code-akos/issue-4');
 
-      await removeWorktree(localRepoDir, destDir, 'fixflow/issue-4'); // should not throw
+      await removeWorktree(localRepoDir, destDir, 'code-akos/issue-4'); // should not throw
     });
   });
 

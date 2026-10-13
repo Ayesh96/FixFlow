@@ -1,11 +1,11 @@
 ---
-title: "Using the FixFlow dashboard"
-description: "A tour of the FixFlow dashboard: projects, the error list and filters, triage results, GitHub issues, AI fix attempts, pull requests and settings."
+title: "Using the Code Akos dashboard"
+description: "A tour of the Code Akos dashboard: projects, the error list and filters, triage results, GitHub issues, AI fix attempts, pull requests and settings."
 ---
 
 # Using the dashboard
 
-The dashboard is where you see every error your apps report and what FixFlow did about it. This page walks through each screen. If you have not added a project yet, start with [getting started](getting-started.md).
+The dashboard is where you see every error your apps report and what Code Akos did about it. This page walks through each screen. If you have not added a project yet, start with [getting started](getting-started.md).
 
 ## The five stages
 
@@ -13,7 +13,7 @@ Every error moves through up to five stages, and the dashboard counts how many r
 
 | Stage | What it means |
 |---|---|
-| **Tracked** | FixFlow received the error and grouped it with any repeats. |
+| **Tracked** | Code Akos received the error and grouped it with any repeats. |
 | **Triaged** | A model (or the built-in rules) read it and explained it. |
 | **Filed** | It was opened as an issue on GitHub. |
 | **Fix tried** | The resolver attempted a fix. |
@@ -23,11 +23,11 @@ An error can stop early on purpose. A warning or an error without a stack trace 
 
 ## Projects overview
 
-![FixFlow projects overview: totals for the five stages and a card for each project](assets/screenshots/05-dashboard-overview.png){ loading=lazy width="2880" height="1800" }
+![Code Akos projects overview: totals for the five stages and a card for each project](assets/screenshots/05-dashboard-overview.png){ loading=lazy width="2880" height="1800" }
 
 The **Projects** page is the first thing you see.
 
-- **Tracker running** confirms that FixFlow is accepting errors, with the number received and when the last one arrived.
+- **Tracker running** confirms that Code Akos is accepting errors, with the number received and when the last one arrived.
 - **Run resolver now** starts a round of fixes immediately instead of waiting for the next scheduled check (every 5 minutes by default). Next to it is the time of the last check.
 - The **totals row** adds up the five stages across all projects.
 - Each **project card** shows its repository and branch, its own five stages, which apps report to it (the `service` tag) and when it last heard from them. **View errors** opens the project page.
@@ -36,7 +36,7 @@ The **Projects** page is the first thing you see.
 
 ## A project's errors
 
-![A FixFlow project page listing five errors, each with its stage, how often it happened and when it was last seen](assets/screenshots/06-project-errors.png){ loading=lazy width="2880" height="1800" }
+![A Code Akos project page listing five errors, each with its stage, how often it happened and when it was last seen](assets/screenshots/06-project-errors.png){ loading=lazy width="2880" height="1800" }
 
 The project page lists every error group, most recently seen first. Each row shows:
 
@@ -64,7 +64,7 @@ Click an error to open its details on the right. The top shows how many times it
 
 ### Triage
 
-![Error details in FixFlow: triage explains that OrderHistory reads session.user.id while the session is null, and tags it bot-safe](assets/screenshots/07-error-triage.png){ loading=lazy width="2880" height="1800" }
+![Error details in Code Akos: triage explains that OrderHistory reads session.user.id while the session is null, and tags it bot-safe](assets/screenshots/07-error-triage.png){ loading=lazy width="2880" height="1800" }
 
 - **What happened** explains the error in plain words and names the file and line where it started.
 - **What to do** suggests the next step.
@@ -78,13 +78,13 @@ Shows the issue number and links to it on GitHub. The issue holds the full stack
 
 ### Resolver and pull request
 
-![Error details in FixFlow: the resolver's change to OrderHistory.tsx, verified by the check command, and a link to pull request #219](assets/screenshots/08-error-pull-request.png){ loading=lazy width="2880" height="1800" }
+![Error details in Code Akos: the resolver's change to OrderHistory.tsx, verified by the check command, and a link to pull request #219](assets/screenshots/08-error-pull-request.png){ loading=lazy width="2880" height="1800" }
 
 When the resolver has made a fix, **What it changed** describes the change, lists the files and says whether your check command passed. **Open pull request** takes you to it on GitHub. Review it there and merge or close it as you would any pull request.
 
 ### When a fix is skipped
 
-![Error details in FixFlow: the resolver skipped a fix because the empty date comes from the orders API](assets/screenshots/09-error-skipped.png){ loading=lazy width="2880" height="1800" }
+![Error details in Code Akos: the resolver skipped a fix because the empty date comes from the orders API](assets/screenshots/09-error-skipped.png){ loading=lazy width="2880" height="1800" }
 
 The resolver skips an error when the cause is outside your code, when your check command already fails before any change, or when it is not sure what the right fix is. **Why it was skipped** gives the reason. In this example, the bad date comes from another service, so guarding the code that formats it would only hide the problem.
 
@@ -104,7 +104,7 @@ Changes apply from the next fix attempt. **Delete project** removes the project,
 
 ## App settings
 
-**Settings** at the top right reopens the setup window with your current values: ports, data folder, models, error tracking and the resolver. See [installation](installation.md#the-setup-window) for what each option does. Saving restarts FixFlow, and if the new settings do not work, the previous ones are restored.
+**Settings** at the top right reopens the setup window with your current values: ports, data folder, models, error tracking and the resolver. See [installation](installation.md#the-setup-window) for what each option does. Saving restarts Code Akos, and if the new settings do not work, the previous ones are restored.
 
 ## Next steps
 

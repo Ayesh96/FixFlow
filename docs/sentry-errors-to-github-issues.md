@@ -1,53 +1,71 @@
 ---
 title: "Sentry errors to GitHub issues, automatically"
-description: "FixFlow turns Sentry SDK events into GitHub issues: DSN setup, token permissions, grouping, filing rules, issue contents and count comments."
+description: "FixFlow opens one GitHub issue per new error from your Sentry SDK, with the stack trace and context. No Sentry account needed. Setup, grouping and contents."
 ---
 
-# Sentry errors to GitHub issues
+# Turn Sentry errors into GitHub issues automatically
 
-FixFlow receives events from any Sentry SDK and opens one GitHub issue per new error group, without a Sentry account.
+If your team already works from GitHub issues, errors belong there too. FixFlow receives errors from your app's Sentry SDK and opens one GitHub issue for each new problem, with the stack trace, the lines of code involved and the context needed to fix it. You do not need a Sentry account, alert rules or a paid plan, and repeats of the same error never create duplicate issues.
 
-## Setup
+## Set it up
 
-1. Start FixFlow and open the dashboard link it prints.
-2. **Projects → Add project**: `owner/name`, a GitHub token and the branch. FixFlow checks the token and repository with GitHub before saving and clones the repository.
-3. Set your SDK's `dsn` to the project's DSN, for example `http://fixflow@localhost:3000/1`. The trailing number is the project id.
+1. [Install FixFlow](installation.md).
+2. Click **Add project** and enter the repository (`owner/name`), a GitHub token and the branch to work on. FixFlow checks the token and the repository with GitHub before saving.
+3. Set your SDK's `dsn` to the project's address, for example `http://fixflow@localhost:3000/1`. The number at the end is the project ID.
+
+The [getting started guide](getting-started.md) shows each step with screenshots and code for Python, Node.js and the browser.
 
 ## Token permissions
 
-For a fine-grained token on the repository:
+Use a fine-grained personal access token limited to the repository:
 
-| Purpose | Permission |
+| What FixFlow does | Permissions needed |
 |---|---|
-| Clone, open issues, comment | Contents: read, Issues: read and write |
-| Resolver: push a branch, open a pull request | Contents: read and write, Pull requests: read and write |
+| Copy the repository, open issues and comment on them | Contents: read; Issues: read and write |
+| Push a fix branch and open a pull request | Contents: read and write; Pull requests: read and write |
 
-A project can hold a second token used only by the resolver, so the main token does not need write access to code. If the token cannot push, the GitHub check warns that pull requests will fail; issues still work.
+A project can have a second token used only for pull requests, so the main token never needs write access to your code. If the token cannot push, FixFlow warns you when you add the project. Issues keep working; only pull requests fail.
 
-## Grouping
+## How errors are grouped
 
-Default key: exception type, the crashing frame's file path (origin, query string and content hashes stripped), and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so `User 42 not found` and `User 7 not found` from the same line are one group, and a line-number shift does not split it.
+The same bug can fire thousands of times, and each occurrence carries slightly different details, such as a user ID in the message. FixFlow groups occurrences into one issue using:
 
-Without a stack, the key is the message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint`, including `{{ default }}`, overrides the key. Groups are scoped per project and per `service` tag.
+- the **exception type**, such as `TypeError`;
+- the **file** where it crashed, ignoring the domain, query string and content hashes in browser file names;
+- the **line of code** that crashed, using its text rather than its line number, or the function name when the SDK does not send source code.
 
-## When an issue is filed
+The message is deliberately left out. `User 42 not found` and `User 7 not found` from the same line are one issue, and adding a line above the bug does not split it into a new one.
 
-- The group is new, and its first event (or a later one) has a stack trace. A project can opt in to filing stack-less errors too.
-- The level is at least `ORCH_ERRORS_MIN_LEVEL` (default `error`). Lower levels are stored and triaged but not filed.
-- Filing waits for triage, so the `bot-safe` label can be set at creation. If GitHub fails, the next event retries after a minute.
+An error without a stack trace is grouped by its message, with numbers, UUIDs and hex IDs blanked out. If your SDK sets a `fingerprint` (including `{{ default }}`), that takes priority. Groups are separate per project and per `service` tag, so two apps never share an issue.
 
-## Issue contents
+## When an issue is opened
 
-- Title: `[Error] <Type>: <message>`.
-- A table: environment, platform, level, time, release, server, culprit, request method and path, event id, fingerprint.
-- The message, and the stack newest frame first: your own frames with their source line, runs of library frames folded to `… N library frames`, and chained causes as `Caused by:`.
-- SDK tags.
-- Labels: `ORCH_ERRORS_GITHUB_LABELS`, plus `bot-safe` when triage set it.
+An error group gets a GitHub issue when all of these are true:
 
-Local variables and request bodies are never written to the issue.
+- **It is new**, and it has a stack trace. A log line without a stack gives a fixer too little to work with, so by default it is kept in FixFlow only. A project can opt in to filing those too.
+- **Its level is high enough.** By default `error` and `fatal` are filed; `warning`, `info` and `debug` are stored and triaged but not filed. You can change this in Settings.
+- **Triage has finished**, so the `bot-safe` label can be added when the issue is created.
 
-When the count reaches 100, 1,000 or 10,000 (`ORCH_ERRORS_COMMENT_THRESHOLDS`), FixFlow comments with the count and last-seen time.
+If GitHub cannot be reached, FixFlow tries again on the next event, at most once a minute.
 
-## SDK coverage
+## What the issue contains
 
-The endpoints are the standard `/api/<id>/store/` and `/api/<id>/envelope/`, with gzip, deflate or brotli bodies and CORS for browsers. The [triage test run](TRIAGE-BEFORE-AFTER.md) used a real Sentry SDK in a Python app. Other SDKs use the same endpoints but have not been tested here.
+- **Title:** `[Error] <Type>: <message>`, for example `[Error] TypeError: Cannot read properties of null (reading 'id')`.
+- **A summary table:** environment, platform, level, time, release, server, culprit, request method and path, event ID and fingerprint.
+- **The message and the stack trace**, newest frame first. Frames from your own code include their line of code. Runs of library frames are folded into `… N library frames`, and chained exceptions appear as `Caused by:`.
+- **Your SDK's tags.**
+- **Labels:** any you set in Settings, plus `bot-safe` when triage considers it a small fix.
+
+Local variables and request bodies are never written to the issue, so personal data in them does not end up on GitHub.
+
+## Follow-up comments
+
+When an error keeps happening, FixFlow comments on its issue at 100, 1,000 and 10,000 occurrences with the count and when it was last seen. You can change these numbers in Settings. That way a rare bug and a bug hitting every user look different in your issue list.
+
+## Which SDKs work
+
+FixFlow implements Sentry's standard endpoints (`/api/<id>/store/` and `/api/<id>/envelope/`), with gzip, deflate or brotli compression and CORS for browsers. The [triage test run](TRIAGE-BEFORE-AFTER.md) used the official Python SDK. Other official Sentry SDKs use the same endpoints and are expected to work, but have not been tested yet. If you try one, please [report how it went](https://github.com/Ayesh96/FixFlow/issues).
+
+## From issue to fix
+
+Every issue FixFlow opens is also picked up by its resolver, which tries to fix it and opens a pull request for you to review. See [AI bug fixes as pull requests](ai-bug-fix-pull-requests.md).

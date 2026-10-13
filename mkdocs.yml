@@ -1,5 +1,5 @@
 site_name: FixFlow
-site_description: Self-hosted, Sentry-compatible error tracking that files GitHub issues and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests.
+site_description: FixFlow is free, self-hosted error tracking for Sentry SDKs. It groups errors, files GitHub issues and has a local or hosted LLM open fix pull requests.
 site_url: https://ayesh96.github.io/FixFlow/
 repo_url: https://github.com/Ayesh96/FixFlow
 repo_name: Ayesh96/FixFlow
@@ -32,7 +32,11 @@ theme:
   features:
     - navigation.sections
     - navigation.top
+    - navigation.footer
     - content.code.copy
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
 
 extra_css:
   - assets/stylesheets/fixflow.css
@@ -60,18 +64,26 @@ copyright: <a href="#__consent">Change cookie settings</a>
 exclude_docs: |
   internal/
   triage-results/
-  assets/social-preview.*
+
+# Builds the FAQ page's structured data from its questions. See the file for details.
+hooks:
+  - overrides/hooks/seo.py
 
 nav:
   - Home: index.md
+  - Get started:
+      - Installation: installation.md
+      - Getting started: getting-started.md
+      - Using the dashboard: usage.md
   - Guides:
+      - Sentry alternatives compared: sentry-alternative.md
       - Self-hosted error tracking: self-hosted-error-tracking.md
-      - Sentry alternative: sentry-alternative.md
       - Sentry errors to GitHub issues: sentry-errors-to-github-issues.md
-      - AI fixes as pull requests: ai-bug-fix-pull-requests.md
+      - AI bug fixes as pull requests: ai-bug-fix-pull-requests.md
       - Error triage with Ollama: local-llm-error-triage.md
   - Reference:
-      - Projects, ports and settings: reference.md
+      - FAQ: faq.md
+      - Configuration and security: reference.md
       - Triage test results: TRIAGE-BEFORE-AFTER.md
       - Triage scenarios: TRIAGE-SCENARIOS.md
 
@@ -82,6 +94,12 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

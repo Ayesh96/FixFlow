@@ -7,18 +7,22 @@ Facts that are easy to get wrong:
 - Grouping key: exception type + crashing file + that frame's source line text (not line number); the SDK `fingerprint` overrides it.
 - Triage tags (bot-safe, needs-human, infrastructure, third-party, no-stack-trace, test-event) do not gate the resolver; it attempts every open issue FixFlow filed.
 - The resolver's agent has read_file, list_directory, grep and edit_file, no shell; up to 20 turns per attempt; at most 3 failed attempts per issue.
-- Install: the desktop app from the latest release (macOS .dmg for Apple Silicon or Intel, Windows .exe, Linux AppImage); it bundles its own Node and needs only git. Running from source (Node 24+) is for servers and development.
+- Install: the desktop app from the latest release (https://ayesh96.github.io/FixFlow/installation/) (macOS .dmg for Apple Silicon or Intel, Windows .exe, Linux AppImage); it bundles its own Node and needs only git. Running from source (Node 24+) is for servers and development.
+- GitHub only (GitHub Enterprise Server via ORCH_GITHUB_API_URL); no GitLab or Bitbucket.
 - No tracing, session replay, alert rules or multi-user accounts. Windows, Linux and Intel Mac desktop builds untested. Fix success rate not measured.
 
 ## Docs
 
-- [Quick start](https://ayesh96.github.io/FixFlow/#quick-start): download and first launch.
+- [Installation](https://ayesh96.github.io/FixFlow/installation/): download, first open on macOS, Windows and Linux, model setup, the four-step setup window.
+- [Getting started](https://ayesh96.github.io/FixFlow/getting-started/): GitHub token permissions, adding a project, SDK code for Python, Node.js and the browser, a test event, the path to a pull request.
+- [Using the dashboard](https://ayesh96.github.io/FixFlow/usage/): projects overview, error list and filters, triage, resolver and pull request details, settings.
 - [Download](https://github.com/Ayesh96/FixFlow/releases/latest)
+- [Sentry alternatives compared](https://ayesh96.github.io/FixFlow/sentry-alternative/): scope and comparison with Sentry, GlitchTip, Bugsink; licensing.
 - [Self-hosted error tracking](https://ayesh96.github.io/FixFlow/self-hosted-error-tracking/): listeners, data folder, what leaves the machine.
-- [Sentry alternative](https://ayesh96.github.io/FixFlow/sentry-alternative/): scope and comparison with Sentry, GlitchTip, Bugsink.
 - [Sentry errors to GitHub issues](https://ayesh96.github.io/FixFlow/sentry-errors-to-github-issues/): grouping, filing rules, issue contents, token permissions.
-- [AI fixes as pull requests](https://ayesh96.github.io/FixFlow/ai-bug-fix-pull-requests/): attempt selection, agent loop, pull request contents, cost.
+- [AI bug fixes as pull requests](https://ayesh96.github.io/FixFlow/ai-bug-fix-pull-requests/): attempt selection, agent loop, pull request contents, cost, comparison with Sentry Seer.
 - [Error triage with Ollama](https://ayesh96.github.io/FixFlow/local-llm-error-triage/): providers, tags, guardrails, measured results.
+- [FAQ](https://ayesh96.github.io/FixFlow/faq/): licensing, privacy, supported SDKs, GitHub only, cost.
 - [Reference](https://ayesh96.github.io/FixFlow/reference/): every setting and the security model.
 
 ## Source

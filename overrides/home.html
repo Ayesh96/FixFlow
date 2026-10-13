@@ -6,14 +6,14 @@
   {{ super() }}
   <section class="ff-hero" aria-labelledby="ff-hero-title">
     <div class="ff-hero__inner">
-      <div class="ff-eyebrow">Self-hosted · Works with Sentry SDKs · Ollama, DeepSeek or Anthropic</div>
-      <h1 id="ff-hero-title">Errors in. <span>Pull requests out.</span></h1>
-      <p class="ff-lede">FixFlow groups the errors your app's Sentry SDK sends, files a GitHub issue for each new one, and has a model write the fix as a pull request for you to review. One Node process and SQLite, on your machine.</p>
+      <div class="ff-eyebrow">Errors in. Pull requests out.</div>
+      <h1 id="ff-hero-title">The self-hosted Sentry alternative <span>that opens the fix for you.</span></h1>
+      <p class="ff-lede">FixFlow collects the errors your app's Sentry SDK sends, files a GitHub issue for each new one, and has an AI model write the fix as a pull request for you to review. It runs as one desktop app on your own computer, with a model on your machine through Ollama or through the DeepSeek or Anthropic API.</p>
       <div class="ff-actions">
         <a class="ff-button ff-button--primary" href="#quick-start" data-ff-download>Download</a>
         <a class="ff-button" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} View on GitHub</a>
       </div>
-      <p class="ff-download-note">macOS (Apple Silicon and Intel), Windows and Linux · <a href="#quick-start">All downloads</a></p>
+      <p class="ff-download-note">Free for macOS (Apple silicon and Intel), Windows and Linux. <a href="{{ 'installation/' | url }}">Installation guide</a></p>
       <ol class="ff-stages" aria-label="What happens to an error">
         <li><span>Tracked</span></li>
         <li><span>Triaged</span></li>
@@ -22,7 +22,7 @@
         <li><span>PR open</span></li>
       </ol>
       <div class="ff-demo">
-        <video controls muted playsinline preload="metadata" poster="{{ 'assets/screenshots/05-dashboard-overview.png' | url }}">
+        <video controls muted playsinline preload="metadata" width="2880" height="1800" title="FixFlow demo: an error goes from the Sentry SDK to a GitHub issue and a pull request" poster="{{ 'assets/screenshots/05-dashboard-overview.png' | url }}">
           <source src="{{ 'assets/demo/fixflow-demo.mp4' | url }}" type="video/mp4">
           <a href="{{ 'assets/demo/fixflow-demo.mp4' | url }}">Watch the demo video</a>
         </video>

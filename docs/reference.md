@@ -1,15 +1,15 @@
 ---
 title: "FixFlow configuration and security reference"
-description: "FixFlow reference: projects and tokens, the dashboard and ingest listeners, the security model, every environment variable, and the code layout."
+description: "Every FixFlow setting and environment variable, how GitHub tokens are stored, the dashboard and ingest listeners, the security model and the code layout."
 ---
 
-# Reference
+# Configuration and security reference
 
-Projects, ports, security and every setting. To install, [download the app](index.md#quick-start).
+This page lists every FixFlow setting and explains how projects, tokens and the two network listeners work. Most people never need it: the setup window covers the common settings. To install FixFlow, see [installation](installation.md).
 
 ## What a project is
 
-A **project** is a repository, the **branch** to work on, and the **GitHub token** to do it with. Its id is the number at the end of the DSN.
+A **project** is a repository, the **branch** to work on, and the **GitHub token** to do it with. Its ID is the number at the end of the DSN.
 
 - The **branch is the one you give**, not GitHub's default. Errors are filed against it, fixes are based on its latest commit, and pull requests target it.
 - Tokens are stored **encrypted** (AES-256-GCM) in `projects.db`, never in `.env`, and are never sent to the browser (only the last 4 characters, to tell tokens apart). The key is `secret.key` (mode 0600), beside it.
@@ -38,7 +38,7 @@ Sentry SDKs, browsers included, post cross-origin with no cookie, so none of the
 This server holds your GitHub tokens and can push code, so:
 
 1. It listens on **127.0.0.1 only**.
-2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on our port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
+2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on FixFlow's port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
 3. Every `/api` route needs a **secret token**, kept in `<data folder>/token` (mode `0600`). The link printed at startup exchanges it for an `HttpOnly; SameSite=Strict` cookie. Treat the token file like an SSH key.
 4. Strict CSP, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, and `no-store` on API responses.
 5. Git and the model's tools use argument arrays. The only shell is your own check command.
@@ -87,7 +87,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_ERRORS_RETENTION_DAYS` | `30` | Raw events older than this are pruned hourly; issue rows and counters stay. `0` keeps everything. |
 | `ORCH_ERRORS_DB` | `<data>/errors.db` | |
 
-**What reaches GitHub.** Every error is kept in FixFlow and listed on its project's page. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing ids in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex ids replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
+**What reaches GitHub.** Every error is kept in FixFlow and listed on its project's page. A GitHub issue is opened only for an error that carries a stack trace (a bare log line gives a fixer little to go on), unless the project ticks *Also file errors without a stack trace on GitHub*. Grouping uses the exception type, the crashing file (origin, query string and content hashes stripped) and that frame's source line text, or its function name when the SDK sent no source. The message is not used, so changing IDs in it do not split a group. An event without a stack is grouped by its message with numbers, UUIDs and hex IDs replaced. The SDK's `fingerprint` (including `{{ default }}`) overrides all of this. Groups are per project and per `service` tag.
 
 ### Resolver
 

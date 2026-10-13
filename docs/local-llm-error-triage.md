@@ -1,45 +1,76 @@
 ---
 title: "Error triage with Ollama and a local LLM"
-description: "How FixFlow triages production errors with a model served by Ollama, DeepSeek or Anthropic: setup, tags, what the model sees, guardrails, and measured results."
+description: "How FixFlow uses a local LLM through Ollama, or DeepSeek or Anthropic, to explain production errors, tag them and suggest a fix. Guardrails and test results."
 ---
 
-# Error triage with Ollama
+# Error triage with Ollama and a local LLM
 
-Triage reads each new error group once and records tags, a one-line finding and a suggested next step. Its only effect outside the dashboard is the `bot-safe` GitHub label; the resolver does not use the tags.
+Triage is the first thing FixFlow does with a new error. A language model reads the error once and records three things: what happened, what to do about it, and tags that sort it (for example, a small fix in your code, or a problem with a server). You see the result in the dashboard, and a small fix gets the `bot-safe` label on its GitHub issue.
 
-## Providers
+You can run triage entirely on your own computer with [Ollama](https://ollama.com), so error details and code never leave your machine. DeepSeek and Anthropic are available too.
 
-- **Ollama.** Set `ORCH_OLLAMA_URL=http://localhost:11434`. Triage uses Ollama only when this is set. Model: `ORCH_OLLAMA_MODEL`, default `qwen2.5-coder:7b` (`ollama pull qwen2.5-coder:7b`).
-- **DeepSeek / Anthropic.** Set `ORCH_DEEPSEEK_API_KEY` or `ORCH_ANTHROPIC_API_KEY`. Default models: `deepseek-flash`, `claude-haiku-4-5`.
-- **Order.** `ORCH_TRIAGE_PROVIDERS`, falling back to `ORCH_LLM_PROVIDERS` (default `ollama,deepseek,anthropic`).
+## Set up a model
 
-With no provider set up, built-in rules triage every error. With providers set up and all failing, the error is marked `ERRORED`; the rules are not used as a substitute. It can be re-run from the dashboard.
+=== "Ollama (local)"
 
-## Tags
+    1. Install [Ollama](https://ollama.com) and start it.
+    2. Download the default model:
 
-| Tag | Set when |
+        ```bash
+        ollama pull qwen2.5-coder:7b
+        ```
+
+    3. In FixFlow's setup (or **Settings**), switch on **Ollama**, click **Test connection** and pick the model.
+
+    Qwen2.5-Coder 7B is a code-focused model that runs on a typical developer laptop. Any model you have pulled in Ollama appears in the list, so you can choose a larger or smaller one.
+
+=== "DeepSeek or Anthropic (hosted)"
+
+    Switch on the provider in FixFlow's setup and paste an API key. The defaults are `deepseek-flash` and `claude-haiku-4-5`, both fast and inexpensive. Error details are sent to the provider (see [what the model sees](#what-the-model-sees)).
+
+With more than one provider set up, FixFlow uses them in order and falls back to the next if a call fails. With **no** provider set up, FixFlow uses built-in rules instead, which recognise common mistakes by their message. If providers are set up but all of them fail, the error is marked **Couldn't triage** rather than silently handed to the rules, and you can click **Triage again** later.
+
+When running from source, the same choices are made with environment variables: `ORCH_OLLAMA_URL`, `ORCH_OLLAMA_MODEL`, `ORCH_DEEPSEEK_API_KEY`, `ORCH_ANTHROPIC_API_KEY` and `ORCH_TRIAGE_PROVIDERS`. See the [configuration reference](reference.md#configuration).
+
+## What triage records
+
+- **What happened:** a plain explanation, naming the file and line where it went wrong.
+- **What to do:** a suggested next step.
+- **Tags:** one or more of those below.
+
+| Tag | Meaning |
 |---|---|
-| `bot-safe` | The model says it is a small fix and the stack reaches your own code (or it is a lint finding). Rules: the message matches a known small mistake, such as `Cannot read properties of undefined`, `X is not defined`, `X is not a function`, Python `NameError`, `'NoneType' object has no attribute`, an unbound local, or a lint finding. |
-| `needs-human` | Anything that is not `bot-safe` and not a test. |
-| `no-stack-trace` | No frames, so there is no culprit to point at. |
-| `infrastructure` | Permission or configuration wording (`EACCES`, `permission denied`, `forbidden`, …) or network wording (`ECONNREFUSED`, `ETIMEDOUT`, `503`, `rate limited`, …). |
-| `third-party` | The stack has frames, but none of them is in your app's code. |
-| `test-event` | A message (not an exception) at `debug`, `info` or `warning` that contains test words such as "test" or "please ignore" and no failure words. |
+| `bot-safe` | A small fix in your own code, such as a missing null check, a typo in a name or a missing import. It is the only tag that becomes a GitHub label. |
+| `needs-human` | Anything that is not `bot-safe` and not a test: a person should look at it. |
+| `infrastructure` | A network, permission or configuration problem, recognised by wording such as `ECONNREFUSED`, `ETIMEDOUT`, `503`, `EACCES` or `permission denied`. |
+| `third-party` | The stack trace has frames, but none of them is in your app's code. |
+| `no-stack-trace` | There is no stack trace, so there is no culprit line to point at. |
+| `test-event` | A message (not an exception) at `debug`, `info` or `warning` level that contains words like "test" or "please ignore" and no failure words. The connection test in the setup guide is one. |
+
+Without a model, the built-in rules give `bot-safe` to messages that match well-known small mistakes: `Cannot read properties of undefined`, `X is not defined`, `X is not a function`, Python's `NameError`, `'NoneType' object has no attribute`, an unbound local variable, and lint findings.
+
+Triage only describes. It does not decide whether an error is filed on GitHub, and the resolver does not currently read the tags; see [which issues are attempted](ai-bug-fix-pull-requests.md#which-issues-it-works-on).
 
 ## What the model sees
 
-The exception type and message, level, platform, environment, `service` tag, request method and path, and up to 8 frames newest first, with source lines and, for your own frames, local variables. It replies in JSON; `small_fix` is defined in the prompt as a thrown exception fixable by about 2 to 5 lines in one place in your code (a missing null check, a typo, a missing import, a wrong variable), or a lint finding.
+For each new error group, the model receives:
+
+- the exception type and message, the level, platform and environment, and the `service` tag;
+- the request method and path, if the error happened during a request;
+- up to 8 stack frames, newest first, with their lines of code and, for frames in your own code, the values of local variables.
+
+It answers in JSON. The instructions define a small fix as a thrown exception that can be fixed with about 2 to 5 lines in one place in your code, or a lint finding.
 
 ## Guardrails
 
-The model's answer is corrected where it contradicts facts about the event:
+Small models sometimes contradict the facts. FixFlow corrects the answer where it disagrees with the event itself:
 
-- `bot-safe` requires a stack that reaches your own code, or a lint finding. A log line or a failure inside a library is never `bot-safe`.
+- `bot-safe` requires a stack trace that reaches your own code (or a lint finding). A log line or a crash inside a library is never `bot-safe`.
 - `bot-safe` and `needs-human` are never set together.
 - `test-event` is removed from a real exception.
-- `third-party` is removed when there is no stack or the stack has an app frame.
-- A "don't report it" suggestion on anything not tagged `test-event` is replaced with a neutral one.
+- `third-party` is removed when there is no stack trace, or when the stack includes your own code.
+- A suggestion to ignore the error is replaced with a neutral one unless the error is a `test-event`.
 
 ## Measured results
 
-Twelve situations were replayed against a copy of a real Python project with five injected bugs, with rules only and with `qwen2.5-coder:7b`, before and after a round of fixes that included these guardrails: [Triage test results](TRIAGE-BEFORE-AFTER.md). That run measures triage only, not fixes.
+Twelve situations were replayed against a copy of a real Python project with five bugs added on purpose, once with the rules only and once with `qwen2.5-coder:7b`, before and after a round of fixes that included these guardrails. The full tables are in [triage test results](TRIAGE-BEFORE-AFTER.md), and each scenario is described in [triage scenarios](TRIAGE-SCENARIOS.md). That test measures triage only, not the quality of fixes.

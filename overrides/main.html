@@ -1,21 +1,104 @@
 {% extends "base.html" %}
 
+{#- A page's front-matter title is used as written. The theme would add " - FixFlow" to every one,
+    which repeats the name on pages that already have it and pushes the keywords out of view in results. -#}
+{% block htmltitle %}
+  {% if page.meta and page.meta.title %}
+    {% set ff_title = page.meta.title if config.site_name in page.meta.title else page.meta.title ~ " | " ~ config.site_name %}
+  {% elif page.title and not page.is_homepage %}
+    {% set ff_title = (page.title | striptags) ~ " | " ~ config.site_name %}
+  {% else %}
+    {% set ff_title = config.site_name %}
+  {% endif %}
+  <title>{{ ff_title }}</title>
+{% endblock %}
+
 {% block extrahead %}
   {{ super() }}
+  {#- Link previews on social sites and chat apps. -#}
+  {% set ff_description = page.meta.description if page.meta and page.meta.description else config.site_description %}
+  {% set ff_image = config.site_url ~ "assets/social-preview.png" %}
+  {% if page.meta and page.meta.title %}
+    {% set ff_og_title = page.meta.title %}
+  {% elif page.title and not page.is_homepage %}
+    {% set ff_og_title = (page.title | striptags) ~ " | " ~ config.site_name %}
+  {% else %}
+    {% set ff_og_title = config.site_name %}
+  {% endif %}
+  <meta property="og:type" content="{{ 'website' if page.is_homepage else 'article' }}">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ ff_og_title }}">
+  <meta property="og:description" content="{{ ff_description }}">
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  <meta property="og:image" content="{{ ff_image }}">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="FixFlow: self-hosted, Sentry-compatible error tracking that opens fix pull requests">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ ff_og_title }}">
+  <meta name="twitter:description" content="{{ ff_description }}">
+  <meta name="twitter:image" content="{{ ff_image }}">
+
+  {#- Structured data: what FixFlow is on the home page, where a page sits on the others. -#}
   {% if page and page.is_homepage %}
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareSourceCode",
-    "name": "FixFlow",
-    "description": "Self-hosted, Sentry-compatible error tracking that files GitHub issues and has an LLM open fix pull requests.",
-    "url": "https://ayesh96.github.io/FixFlow/",
-    "codeRepository": "https://github.com/Ayesh96/FixFlow",
-    "programmingLanguage": "TypeScript",
-    "runtimePlatform": "Node.js 24 or newer",
-    "license": "https://github.com/Ayesh96/FixFlow/blob/main/LICENSE",
-    "author": { "@type": "Person", "name": "Ayesh" }
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "FixFlow",
+        "description": "Self-hosted, Sentry-compatible error tracking. It groups errors from Sentry SDKs, files a GitHub issue for each new one and has an LLM (Ollama, DeepSeek or Anthropic) open fix pull requests.",
+        "url": "{{ config.site_url }}",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "Error tracking",
+        "operatingSystem": "macOS, Windows, Linux",
+        "downloadUrl": "{{ config.repo_url }}/releases/latest",
+        "installUrl": "{{ config.site_url }}installation/",
+        "screenshot": "{{ config.site_url }}assets/screenshots/05-dashboard-overview.png",
+        "image": "{{ ff_image }}",
+        "license": "{{ config.repo_url }}/blob/main/LICENSE",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Accepts events from Sentry SDKs",
+          "Groups repeated errors",
+          "Opens a GitHub issue for each new error",
+          "AI triage with Ollama, DeepSeek or Anthropic",
+          "AI fix attempts opened as pull requests"
+        ],
+        "author": { "@type": "Person", "name": "Ayesh", "url": "https://github.com/Ayesh96" },
+        "sameAs": ["{{ config.repo_url }}"]
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "FixFlow",
+        "codeRepository": "{{ config.repo_url }}",
+        "programmingLanguage": "TypeScript",
+        "runtimePlatform": "Node.js 24 or newer",
+        "license": "{{ config.repo_url }}/blob/main/LICENSE"
+      },
+      {
+        "@type": "WebSite",
+        "name": "{{ config.site_name }}",
+        "url": "{{ config.site_url }}"
+      }
+    ]
   }
   </script>
+  {% elif page %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "{{ config.site_name }}", "item": "{{ config.site_url }}" },
+      { "@type": "ListItem", "position": 2, "name": {{ (page.title | striptags) | tojson }}, "item": "{{ page.canonical_url }}" }
+    ]
+  }
+  </script>
+  {% endif %}
+  {% if page and page.meta and page.meta.faq_schema %}
+  <script type="application/ld+json">{{ page.meta.faq_schema }}</script>
   {% endif %}
 {% endblock %}

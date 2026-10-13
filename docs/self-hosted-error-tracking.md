@@ -63,6 +63,8 @@ Individual events older than 30 days are deleted every hour. Error groups, count
 !!! note "Local variables"
     Some SDKs, including the Python SDK by default, capture the values of local variables when an error happens. Code Akos never writes them into GitHub issues, but it does show them to the model, because they often explain the bug. If those values can include personal data, use a local model or turn off local variables in your SDK.
 
+**To GitHub, for updates (desktop app only):** once at startup and then daily, a request for the latest release version, which tells GitHub your IP address and nothing else. Turn it off with **Automatically Check for Updates** in the app menu.
+
 Code Akos sends no analytics or telemetry of its own.
 
 ## Requirements compared with other trackers

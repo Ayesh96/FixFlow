@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Update check.** The desktop app looks for a newer release at startup and daily, and offers the file for your computer: Download, Later or Skip This Version. **Check for Updates…** and **Automatically Check for Updates** are in the app menu (Help on Windows and Linux). It never installs anything itself.
 - **FixFlow is now Code Akos.** The app, its windows and the docs use the new name, the command is `code-akos`, and the repository is `Ayesh96/code-akos`.
 - **Existing installs carry over.** On first launch, the data folder moves from `~/.fixflow` to `~/.code-akos` (unless `ORCH_DATA_DIR` points elsewhere), and the desktop app copies its settings from the old `FixFlow` user-data folder. Projects, tokens and error history are kept.
 - What the resolver leaves in your repository now says Code Akos: branches are `code-akos/issue-<n>`, commits are by `Code Akos <code-akos@localhost>`. Pull requests already opened keep their old branch.

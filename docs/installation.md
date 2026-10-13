@@ -130,7 +130,11 @@ The settings are kept in a file outside the app, so they survive updates:
 
 ## Update Code Akos
 
-Download the new version from the [releases page](https://github.com/Ayesh96/code-akos/releases/latest) and install it over the old one. Your settings, projects and error history are kept.
+The desktop app checks for a new version shortly after it starts and then once a day. When there is one, it asks you: **Download** opens the file for your computer in your browser, **Later** asks again next time, and **Skip This Version** stays quiet until the version after it.
+
+Install the download over the old app, the same way as the first time. Your settings, projects and error history are kept.
+
+To check yourself, use **Check for Updates…** (in the **Code Akos** menu on macOS, the **Help** menu on Windows and Linux). Untick **Automatically Check for Updates** in the same menu to stop the daily check. You can always download a new version from the [releases page](https://github.com/Ayesh96/code-akos/releases/latest).
 
 ## Uninstall
 

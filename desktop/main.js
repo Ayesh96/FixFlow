@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, utilityProcess, dialog, Menu, screen, shell
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { findUpdate } = require('./updates.js');
 
 // Dev: this file lives in <repo>/desktop, so the project root is one level up.
 // Packaged: electron-builder copies the project (server/, bin/, scripts/, web/dist/, node_modules)
@@ -66,6 +67,69 @@ const centered = (area, width, height) => ({
   x: Math.round(area.x + (area.width - width) / 2),
   y: Math.round(area.y + (area.height - height) / 2),
 });
+
+// ---- Updates ------------------------------------------------------------------------------------
+// Once shortly after launch and then daily, ask GitHub for the latest release. A newer one is offered
+// in a dialog; Download opens this computer's file in the browser. The choice to check automatically,
+// and a version the user skipped, are kept in update-state.json.
+
+const UPDATE_FIRST_CHECK_MS = 15_000;
+const UPDATE_CHECK_EVERY_MS = 24 * 60 * 60 * 1000;
+const updateStateFile = () => path.join(app.getPath('userData'), 'update-state.json');
+let updateTimer = null;
+
+function readUpdateState() {
+  try {
+    return { auto: true, ...JSON.parse(fs.readFileSync(updateStateFile(), 'utf8')) };
+  } catch {
+    return { auto: true };
+  }
+}
+
+function writeUpdateState(changes) {
+  try {
+    fs.mkdirSync(path.dirname(updateStateFile()), { recursive: true });
+    fs.writeFileSync(updateStateFile(), JSON.stringify({ ...readUpdateState(), ...changes }));
+  } catch {
+    // Only a preference: the worst case is being asked about the same version again.
+  }
+}
+
+/** `manual` is the menu item: it also reports "up to date" and errors, and ignores a skipped version. */
+async function checkForUpdates({ manual = false } = {}) {
+  const parent = mainWindow ?? setupWindow ?? undefined;
+  let update;
+  try {
+    update = await findUpdate({ current: app.getVersion(), platform: process.platform, arch: process.arch });
+  } catch (err) {
+    if (manual) await dialog.showMessageBox(parent, { type: 'warning', message: "Couldn't check for updates", detail: `${err instanceof Error ? err.message : String(err)}\n\nCheck your connection and try again.` });
+    return;
+  }
+  if (!update) {
+    if (manual) await dialog.showMessageBox(parent, { type: 'info', message: "You're up to date", detail: `Code Akos ${app.getVersion()} is the latest version.` });
+    return;
+  }
+  if (!manual && readUpdateState().skipped === update.version) return;
+  const { response } = await dialog.showMessageBox(parent, {
+    type: 'info',
+    message: `Code Akos ${update.version} is available`,
+    detail: `You have ${app.getVersion()}. Download it and install it over this one; your settings, projects and error history are kept.`,
+    buttons: ['Download', 'Later', 'Skip This Version'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response === 0) void shell.openExternal(update.url);
+  if (response === 2) writeUpdateState({ skipped: update.version });
+}
+
+/** Starts the automatic checks once per launch, in the built app only (a dev run is not a release). */
+function scheduleUpdateChecks() {
+  if (updateTimer || !app.isPackaged || !readUpdateState().auto) return;
+  updateTimer = setTimeout(function check() {
+    updateTimer = setTimeout(check, UPDATE_CHECK_EVERY_MS);
+    if (readUpdateState().auto) void checkForUpdates();
+  }, UPDATE_FIRST_CHECK_MS);
+}
 
 // ---- External links ----------------------------------------------------------------------------
 
@@ -203,6 +267,7 @@ async function launchDashboard() {
     return;
   }
   await showDashboard(url);
+  scheduleUpdateChecks();
 }
 
 /**
@@ -302,13 +367,26 @@ ipcMain.handle('setup:save', async (_event, values) => {
 
 function buildMenu() {
   const settings = { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => openSetup(fs.existsSync(ENV_PATH) ? 'settings' : 'first') };
+  const updates = [
+    { label: 'Check for Updates…', click: () => void checkForUpdates({ manual: true }) },
+    {
+      label: 'Automatically Check for Updates',
+      type: 'checkbox',
+      checked: readUpdateState().auto,
+      click: (item) => {
+        writeUpdateState({ auto: item.checked });
+        if (item.checked) scheduleUpdateChecks();
+      },
+    },
+  ];
   const template = [
     ...(process.platform === 'darwin'
-      ? [{ label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, settings, { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }]
+      ? [{ label: app.name, submenu: [{ role: 'about' }, ...updates, { type: 'separator' }, settings, { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }]
       : [{ label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] }]),
     { role: 'editMenu' },
     { role: 'viewMenu' },
     { role: 'windowMenu' },
+    ...(process.platform === 'darwin' ? [] : [{ role: 'help', submenu: updates }]),
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

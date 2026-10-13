@@ -156,6 +156,8 @@ npm run test:e2e          # Playwright against the built macOS app; build first
 
 Pushing a `v*` tag builds all three on GitHub Actions and attaches them to the release, unsigned. Only the Apple Silicon build is tested.
 
+The built app looks for a newer release (`desktop/updates.js`) 15 seconds after the dashboard opens and then every 24 hours, using GitHub's latest-release API, and offers this computer's file in a dialog. It installs nothing itself. The automatic check, and a version the user chose to skip, are kept in `update-state.json` in the user-data folder; a run from the repository (`npm start`) never checks on its own.
+
 In the built app, `.env` lives in the app's user-data folder, separate from the repo's and kept across updates: `~/Library/Application Support/Code Akos/.env` on macOS, `%APPDATA%\Code Akos\.env` on Windows, `~/.config/Code Akos/.env` on Linux. The server runs with that folder as its working directory. Builds before 1.1.0 kept it inside the app; the first launch of a newer build copies it over. The macOS build is ad-hoc signed (`mac.identity: "-"`): an Apple Silicon Mac refuses to run an Electron app with no signature at all. It is not notarized, so macOS blocks the first open of a downloaded copy until it is allowed in System Settings › Privacy & Security. Removing that step for users needs a Developer ID certificate and notarization; on Windows, a code-signing certificate.
 
 The end-to-end tests give each test its own APFS clone of the built app, fake Ollama, DeepSeek and Anthropic servers, and a stubbed folder picker, so they never touch `~/.code-akos` or a real API. The cases are listed in `desktop/tests/CASES.md`.

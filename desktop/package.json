@@ -24,6 +24,7 @@
     },
     "files": [
       "main.js",
+      "updates.js",
       "preload.js",
       "dashboard-preload.js",
       "onboarding.html",

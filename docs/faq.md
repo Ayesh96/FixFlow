@@ -84,6 +84,10 @@ Yes. Run it from source with Node.js 24 or newer and git; see [installation](ins
 
 Not yet. Code Akos has a single login and is designed for one person. The GitHub issues and pull requests it creates are visible to your whole team as usual.
 
+### Does Code Akos update itself?
+
+It tells you, but you install it. The desktop app checks GitHub for a new version at startup and once a day, and offers to download it. You then install it over the old app, and your settings and data are kept. Fully automatic updates on macOS need a signed and notarized app, which Code Akos does not have yet. See [updating](installation.md#update-code-akos).
+
 ### Why does my Mac or Windows warn me when I open Code Akos?
 
 The builds are not signed with a paid developer certificate yet. macOS asks you to allow the app once in System Settings › Privacy & Security, and Windows SmartScreen asks you to click **More info › Run anyway**. The [installation guide](installation.md#open-code-akos-for-the-first-time) shows both.

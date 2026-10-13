@@ -1,6 +1,6 @@
 {
   "name": "code-akos",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Code Akos, the coding factory. Self-hosted error tracking, triage and automated fixes: connect a GitHub repo and a Sentry DSN, and get issues and pull requests.",
   "license": "FSL-1.1-ALv2",
   "author": "Ayesh",

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - **Update check.** The desktop app looks for a newer release at startup and daily, and offers the file for your computer: Download, Later or Skip This Version. **Check for Updates…** and **Automatically Check for Updates** are in the app menu (Help on Windows and Linux). It never installs anything itself.
 - **FixFlow is now Code Akos.** The app, its windows and the docs use the new name, the command is `code-akos`, and the repository is `Ayesh96/code-akos`.
@@ -8,6 +8,8 @@
 - What the resolver leaves in your repository now says Code Akos: branches are `code-akos/issue-<n>`, commits are by `Code Akos <code-akos@localhost>`. Pull requests already opened keep their old branch.
 - New DSNs use `codeakos` as the key (`http://codeakos@localhost:3000/1`). DSNs that still say `fixflow` keep working, since no key is checked unless you set one.
 - Release files are named `code-akos-<version>-<os>-<arch>`. On Windows the installer has a new app ID, so uninstall FixFlow separately.
+- **New icon and colors.** The app icon replaces the layers mark in the app, its windows, the desktop build and the docs, and the palette follows it: its navy for the background, its blue for the pipeline bars and links.
+- **Docs.** The site is rewritten, with new pages on installation, getting started, using the dashboard and an FAQ.
 
 ## 1.1.1
 

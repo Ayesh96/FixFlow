@@ -8,7 +8,7 @@ import { loadWorkflows, type LoadedWorkflows } from '../../server/workflows/inde
 import { tempConfig } from '../helpers.ts';
 
 const errors = (over: Partial<ErrorsConfig> = {}): ErrorsConfig => ({
-  ingestPort: 3000, ingestHost: '127.0.0.1', databasePath: ':memory:', dsnPublicKey: null,
+  ingestPort: 3000, ingestHost: '127.0.0.1', publicUrl: null, databasePath: ':memory:', dsnPublicKey: null,
   github: { apiUrl: 'https://api.github.com', labels: [] },
   minIssueLevel: 'error', commentThresholds: [100], retentionDays: 30, llm: fakeLlm(), ...over,
 });
@@ -45,6 +45,6 @@ describe('loadWorkflows', () => {
   it('tells the Projects tab where apps send errors, so it can show the DSN, only when error tracking is on', async () => {
     loaded = loadWorkflows(await tempConfig({ errors: errors({ ingestPort: 3456, dsnPublicKey: 'k' }) }));
     const projectsRoute = loaded.workflows[0] as unknown as { deps: { ingest: unknown } };
-    assert.deepEqual(projectsRoute.deps.ingest, { host: '127.0.0.1', port: 3456, dsnKey: 'k' });
+    assert.deepEqual(projectsRoute.deps.ingest, { host: '127.0.0.1', port: 3456, dsnKey: 'k', publicUrl: null });
   });
 });

@@ -7,9 +7,13 @@ import type { RequestHandler } from 'express';
  *    same-origin. Defeated by only accepting our own loopback Host names.
  *  - Cross-site requests (forms, fetch no-cors): defeated by rejecting state-changing requests
  *    whose Origin / Sec-Fetch-Site show they came from somewhere else.
+ *
+ * `publicPort` is for a container: `-p 127.0.0.1:8080:7420` makes the browser send `localhost:8080`. Only the
+ * port is added; the names stay loopback-only, so a rebound domain is still refused.
  */
-export function localOnly(port: number): RequestHandler {
-  const allowedHosts = new Set([`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`]);
+export function localOnly(port: number, publicPort?: number): RequestHandler {
+  const ports = publicPort === undefined ? [port] : [port, publicPort];
+  const allowedHosts = new Set(ports.flatMap((p) => [`localhost:${p}`, `127.0.0.1:${p}`, `[::1]:${p}`]));
 
   return (req, res, next) => {
     const host = req.headers.host?.toLowerCase();

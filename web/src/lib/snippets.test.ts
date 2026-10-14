@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guides, serviceName, SETTINGS } from './snippets';
+import { dockerCheck, dockerCompose, FLUSH_ON_STOP, guides, serviceName, SETTINGS } from './snippets';
 
 describe('serviceName', () => {
   it('uses the repository name, lower-cased and safe as a tag', () => {
@@ -41,5 +41,33 @@ describe('guides', () => {
 
   it('names every recommended setting in every language', () => {
     for (const guide of Object.values(g)) expect(guide.names).toHaveLength(SETTINGS.length);
+  });
+});
+
+describe('docker snippets', () => {
+  const dsn = 'http://codeakos@host.docker.internal:3080/1';
+
+  it('puts the Docker address, the Linux host alias and a clean stop into the compose service', () => {
+    const yaml = dockerCompose(dsn, 'macremote');
+    expect(yaml).toContain('  macremote:');
+    expect(yaml).toContain(`SENTRY_DSN: "${dsn}"`);
+    expect(yaml).toContain('"host.docker.internal:host-gateway"');
+    expect(yaml).toContain('init: true');
+  });
+
+  it('keeps every compose line short, with comments on their own line', () => {
+    const lines = dockerCompose(dsn, 'macremote').split('\n');
+    expect(lines.filter((l) => l.includes('#')).every((l) => l.trim().startsWith('#') && l.length < 60)).toBe(true);
+    expect(lines.some((l) => /\S.*#/.test(l))).toBe(false);
+  });
+
+  it('checks the health endpoint on the port in the address, through the same host name', () => {
+    expect(dockerCheck(dsn)).toBe('docker run --rm --add-host=host.docker.internal:host-gateway curlimages/curl -s http://host.docker.internal:3080/healthz');
+  });
+
+  it('flushes on SIGTERM', () => {
+    expect(FLUSH_ON_STOP.python).toContain('sentry_sdk.flush');
+    expect(FLUSH_ON_STOP.node).toContain('Sentry.close');
+    expect(FLUSH_ON_STOP.node).toContain('SIGTERM');
   });
 });

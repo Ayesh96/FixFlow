@@ -34,6 +34,8 @@ On first launch a four-step setup asks for the dashboard port and data folder, a
 
 **Models.** The setup needs at least one: [Ollama](https://ollama.com) on this machine (run `ollama pull qwen2.5-coder:7b` first, and nothing leaves your computer), or a DeepSeek or Anthropic API key (error text and source code are then sent to that provider). Pick more than one and Code Akos falls back down the list when one fails.
 
+**Docker.** If your apps run in Docker, run Code Akos beside them from the container image: see [Running in Docker](docs/docker.md).
+
 ## First project
 
 1. **Projects → Add project**: `owner/name`, a GitHub token, the branch to work on, and optionally a check command such as `npm ci && npm test`.
@@ -98,7 +100,6 @@ No committed roadmap. Known gaps:
 - The resolver ignores triage tags (see above).
 - No measured fix success rate.
 - The Windows, Linux and Intel Mac desktop builds are untested, and none of the builds are signed by a recognised developer.
-- No container image.
 
 Bugs and ideas: [issues](https://github.com/Ayesh96/code-akos/issues).
 

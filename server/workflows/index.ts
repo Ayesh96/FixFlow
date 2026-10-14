@@ -41,7 +41,7 @@ export function loadWorkflows(config: Config): LoadedWorkflows {
       // A deleted project's errors and fix attempts go with it, so nothing of it resurfaces in a later project.
       onRemoved: (project) => resolver?.forget(errors?.store.removeProject(project.id) ?? []),
       githubApiUrl: config.errors?.github.apiUrl ?? config.resolver?.githubApiUrl ?? 'https://api.github.com',
-      ingest: config.errors ? { host: config.errors.ingestHost, port: config.errors.ingestPort, dsnKey: config.errors.dsnPublicKey } : null,
+      ingest: config.errors ? { host: config.errors.ingestHost, port: config.errors.ingestPort, dsnKey: config.errors.dsnPublicKey, publicUrl: config.errors.publicUrl } : null,
     }),
   ];
   errors = config.errors ? new ErrorsWorkflow(config.errors, projects, { events }) : null;

@@ -17,13 +17,18 @@ const config = loadConfig();
 const token = await loadOrCreateToken(config.tokenFile);
 const { workflows, projects, events } = loadWorkflows(config);
 await Promise.all(workflows.map(async (workflow) => workflow.start?.()));
-const app = createApp({ port: config.port, publicDir: fileURLToPath(new URL('../web/dist', import.meta.url)), token, workflows, events });
+const app = createApp({ port: config.port, publicPort: config.dashboardPublicPort, publicDir: fileURLToPath(new URL('../web/dist', import.meta.url)), token, workflows, events });
 
-// Loopback only: this server holds your GitHub tokens, so it must never be reachable from the network.
-const server = app.listen(config.port, '127.0.0.1', () => {
-  console.log(`Dashboard  →  http://localhost:${config.port}/?token=${token}`);
+// Loopback unless told otherwise: this server holds your GitHub tokens, so it must not be reachable from the
+// network. The container image widens the bind because a published port cannot reach the container's loopback.
+const dashboardHost = config.dashboardHost ?? '127.0.0.1';
+const server = app.listen(config.port, dashboardHost, () => {
+  console.log(`Dashboard  →  http://localhost:${config.dashboardPublicPort ?? config.port}/?token=${token}`);
   console.log('  (open that link once; your browser remembers it. The token lives in a private file:', `${config.tokenFile})`);
   console.log(`  Data:         ${config.dataDir}`);
+  if (dashboardHost !== '127.0.0.1' && dashboardHost !== 'localhost') {
+    console.warn(`  ⚠  The dashboard is listening on ${dashboardHost}. Only publish it on 127.0.0.1 (for Docker: -p 127.0.0.1:${config.port}:${config.port}).`);
+  }
   console.log(`  Workflows:    ${workflows.map((w) => w.id).join(', ')}`);
 });
 

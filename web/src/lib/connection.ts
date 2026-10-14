@@ -8,10 +8,16 @@ export interface Connection {
   lastSeen: string | null;
   /** The apps that have reported, by the `service` tag they set; empty when none tag themselves. */
   apps: string[];
+  /** The latest refusal, while no event has got through since; null once an app is reporting again. */
+  refusal: { status: number; reason: string; at: string; count: number } | null;
 }
 
 export function connectionOf(group: TrackerProjectGroup | undefined): Connection {
   const events = group?.eventCount ?? 0;
   const apps = [...new Set((group?.issues ?? []).map((i) => i.service).filter((s): s is string => s !== null && s !== ''))].sort();
-  return { connected: events > 0, events, lastSeen: group?.lastSeen ?? null, apps };
+  const lastSeen = group?.lastSeen ?? null;
+  const last = group?.rejections?.last ?? null;
+  // An event newer than the refusal means the problem has passed (or was another app's); stop warning.
+  const refusal = last && (lastSeen === null || last.at > lastSeen) ? { ...last, count: group?.rejections.count ?? 1 } : null;
+  return { connected: events > 0, events, lastSeen, apps, refusal };
 }

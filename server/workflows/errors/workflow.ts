@@ -8,6 +8,7 @@ import type { Config } from './config.ts';
 import { GitHubClient } from './github.ts';
 import { Ingestor } from './ingest.ts';
 import { ingestRoutes } from './ingestRoutes.ts';
+import { Rejections } from './rejections.ts';
 import { Store } from './store.ts';
 import { modelTriager } from './triage.ts';
 import { ERRORS_ISSUE_LIST_LIMIT, ERRORS_PRUNE_INTERVAL_MS } from '../../constants.ts';
@@ -34,6 +35,7 @@ export class ErrorsWorkflow implements Workflow {
   private readonly config: Config;
   private readonly projects: ProjectStore;
   private readonly ingestor: Ingestor;
+  private readonly rejections: Rejections;
   private readonly logger: Logger;
   private pruneTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -41,6 +43,7 @@ export class ErrorsWorkflow implements Workflow {
     this.config = config;
     this.projects = projects;
     this.logger = deps.logger ?? prefixedLogger('errors');
+    this.rejections = new Rejections({ logger: this.logger, onChange: () => deps.events?.publish('errors') });
     this.store = new Store(config.databasePath, () => deps.events?.publish('errors'));
     this.ingestor = new Ingestor(
       this.store,
@@ -81,6 +84,7 @@ export class ErrorsWorkflow implements Workflow {
         eventCount: mine.reduce((sum, issue) => sum + issue.count, 0),
         lastSeen: mine.reduce<string | null>((latest, issue) => (latest === null || issue.lastSeen > latest ? issue.lastSeen : latest), null),
         issues: mine,
+        rejections: this.rejections.summary(project?.id ?? null),
       });
       const groups = projects.map((project) => group(project, issues.filter((issue) => issue.projectId === project.id)));
       // Most recent trouble first; quiet projects follow alphabetically.
@@ -106,7 +110,7 @@ export class ErrorsWorkflow implements Workflow {
   }
 
   ingestRoutes(router: Router): void {
-    ingestRoutes(router, this.ingestor, this.config.dsnPublicKey);
+    ingestRoutes(router, this.ingestor, this.config.dsnPublicKey, this.rejections);
   }
 
   private prune(): void {

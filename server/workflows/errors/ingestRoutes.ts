@@ -1,4 +1,4 @@
-import type { Request, RequestHandler, Router } from 'express';
+import type { ErrorRequestHandler, Request, RequestHandler, Router } from 'express';
 import { timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { brotliDecompress, gunzip, inflate } from 'node:zlib';
@@ -7,6 +7,7 @@ import { parseEnvelope } from './sentry/envelope.ts';
 import { normalizeEvent } from './sentry/normalize.ts';
 import type { NormalizedEvent } from './types.ts';
 import { INGEST_MAX_BODY_BYTES, INGEST_MAX_DECODED_BYTES } from '../../constants.ts';
+import type { Rejections } from './rejections.ts';
 
 /** All these routes need of the Ingestor; a seam so they can be tested without a store. */
 export interface EventSink {
@@ -115,7 +116,7 @@ function keysMatch(provided: string, expected: string): boolean {
  * dashboard: SDKs post here cross-origin with no cookie, so none of the dashboard's Origin,
  * Host or token checks can apply. The only optional credential is the DSN's `sentry_key`.
  */
-export function ingestRoutes(router: Router, sink: EventSink, dsnPublicKey: string | null): void {
+export function ingestRoutes(router: Router, sink: EventSink, dsnPublicKey: string | null, rejections?: Rejections): void {
   router.use((_req, res, next) => {
     res.set(CORS_HEADERS);
     next();
@@ -165,4 +166,13 @@ export function ingestRoutes(router: Router, sink: EventSink, dsnPublicKey: stri
   router.get('/healthz', (_req, res) => {
     res.json({ status: 'ok' });
   });
+
+  // Records what was refused, then passes the error on: the listener's own handler still writes the response.
+  const recordRefusal: ErrorRequestHandler = (err, req, _res, next) => {
+    if (rejections && err instanceof HttpError && err.status >= 400 && err.status < 500) {
+      rejections.record(/^\/api\/([^/]{1,64})\//.exec(req.path)?.[1] ?? null, err.status, err.message);
+    }
+    next(err);
+  };
+  router.use(recordRefusal);
 }

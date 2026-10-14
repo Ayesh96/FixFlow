@@ -59,6 +59,22 @@ describe('errors loadConfig', () => {
     assert.equal(c.databasePath, './data/errors.db');
   });
 
+  it('reads the public address apps use, as a bare origin', () => {
+    assert.equal(load({})?.publicUrl, null);
+    assert.equal(load({ ORCH_ERRORS_PUBLIC_URL: 'http://code-akos:3000' })?.publicUrl, 'http://code-akos:3000');
+    assert.equal(load({ ORCH_ERRORS_PUBLIC_URL: ' https://errors.example.com/ ' })?.publicUrl, 'https://errors.example.com');
+  });
+
+  it('rejects a public address that is not a plain http(s) origin', () => {
+    for (const bad of ['code-akos:3000', 'ftp://code-akos', 'http://code-akos:3000/api', 'http://code-akos:3000?x=1', 'http://key@code-akos:3000', 'not a url']) {
+      assert.throws(
+        () => load({ ORCH_ERRORS_PUBLIC_URL: bad }),
+        (err: unknown) => err instanceof ConfigError && err.problems.length === 1 && err.problems[0]?.includes('ORCH_ERRORS_PUBLIC_URL') === true,
+        bad,
+      );
+    }
+  });
+
   it('carries the GitHub address and the models through, and needs no token of its own', () => {
     const llm = fakeLlm();
     const c = load({ ORCH_ERRORS_ENABLED: '1' }, { githubApiUrl: 'https://ghe.example.com/api/v3', llm });

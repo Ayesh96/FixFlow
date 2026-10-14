@@ -37,7 +37,7 @@ Sentry SDKs, browsers included, post cross-origin with no cookie, so none of the
 
 This server holds your GitHub tokens and can push code, so:
 
-1. It listens on **127.0.0.1 only**.
+1. It listens on **127.0.0.1 only**, unless you set `ORCH_DASHBOARD_HOST` (the Docker image does; publish it on `127.0.0.1` only).
 2. Requests must have a `Host` of `localhost`/`127.0.0.1`/`[::1]` on Code Akos's port (blocks DNS rebinding), and state-changing requests are rejected if `Origin`/`Sec-Fetch-Site` say they came from another site.
 3. Every `/api` route needs a **secret token**, kept in `<data folder>/token` (mode `0600`). The link printed at startup exchanges it for an `HttpOnly; SameSite=Strict` cookie. Treat the token file like an SSH key.
 4. Strict CSP, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, and `no-store` on API responses.
@@ -81,6 +81,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_ERRORS_INGEST_PORT` | `3000` | |
 | `ORCH_ERRORS_INGEST_HOST` | `127.0.0.1` | |
 | `ORCH_ERRORS_DSN_PUBLIC_KEY` | unset | When set, ingest requests must carry this `sentry_key`. |
+| `ORCH_ERRORS_PUBLIC_URL` | unset | The address apps use to reach ingest, such as `http://code-akos:3000` for a container on the same Compose network. DSNs are built from it instead of from the host and port. It must be an `http` or `https` address with no path, query or credentials. |
 | `ORCH_ERRORS_GITHUB_LABELS` | none | Labels applied to new issues. |
 | `ORCH_ERRORS_MIN_LEVEL` | `error` | A threshold: that level and every level above it are filed on GitHub (`error` files `error` and `fatal`; `fatal` files crashes only). The order is `debug`, `info`, `warning`, `error`, `fatal`. Lower levels are still stored and triaged. |
 | `ORCH_ERRORS_COMMENT_THRESHOLDS` | `100,1000,10000` | Event counts at which it comments on the GitHub issue. |
@@ -116,6 +117,10 @@ npm start       # builds the UI if it is stale, then serves it
 The first `npm start` in a terminal runs the same setup as the desktop app and writes `.env`; `npm run setup` changes it later, starting from the current values. `npm start` then prints `http://localhost:7420/?token=…`: open it once, and the token is kept in an HttpOnly cookie. `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/healthz` prints `200` when ingest is up.
 
 Each release also has a tarball with the UI prebuilt, so there is no build step: check it against `sha256sums.txt`, unpack it, and run `node bin/code-akos.mjs`.
+
+## Running in Docker
+
+A container image is published at `ghcr.io/ayesh96/code-akos`. Inside the container the dashboard listens on all interfaces (`ORCH_DASHBOARD_HOST=0.0.0.0`), so publish it on `127.0.0.1` only. `ORCH_DASHBOARD_PUBLIC_PORT` adds the published port to the allowed `Host` values when it differs from `PORT`. See [Running in Docker](docker.md).
 
 ## Development
 

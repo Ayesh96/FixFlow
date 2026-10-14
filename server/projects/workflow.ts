@@ -20,7 +20,7 @@ export interface ProjectsDeps {
   repos: RepoManager;
   githubApiUrl: string;
   /** Where apps send errors, so the wizard can show the address. Null when error tracking is off. */
-  ingest: { host: string; port: number; dsnKey: string | null } | null;
+  ingest: { host: string; port: number; dsnKey: string | null; publicUrl?: string | null } | null;
   logger?: Logger;
   /** Told when a project or its clone changes, so the dashboard can update without asking. */
   events?: ChangeBus;
@@ -54,7 +54,7 @@ export class ProjectsWorkflow implements Workflow {
     router.get('/', (_req, res) => {
       const { ingest } = this.deps;
       res.json({
-        projects: this.deps.projects.listPublic().map((project) => ({ ...project, setup: this.setupOf(project), dsn: this.dsnFor(project.id) })),
+        projects: this.deps.projects.listPublic().map((project) => ({ ...project, setup: this.setupOf(project), dsn: this.dsnFor(project.id), dockerDsn: this.dsnFor(project.id, true) })),
         ingest: ingest ? { host: LOOPBACK.has(ingest.host) ? 'localhost' : ingest.host, port: ingest.port } : null,
       });
     });
@@ -230,8 +230,21 @@ export class ProjectsWorkflow implements Workflow {
     return { id: project.id, repo: project.repo, branch: project.branch, tokenHint: project.token.slice(-4), hasResolverToken: project.resolverToken !== null, verifyCommand: project.verifyCommand, issuesWithoutStack: project.issuesWithoutStack, createdAt: project.createdAt };
   }
 
-  private dsnFor(id: string): string | null {
+  /**
+   * What an app's SDK is pointed at. With `forDocker` it is the host as a container sees it, because
+   * `localhost` inside a container is the container itself; null when the public address is set, since
+   * that is already the one containers use.
+   */
+  private dsnFor(id: string, forDocker = false): string | null {
     const { ingest } = this.deps;
-    return ingest ? `http://${ingest.dsnKey ?? 'codeakos'}@${LOOPBACK.has(ingest.host) ? 'localhost' : ingest.host}:${ingest.port}/${id}` : null;
+    if (!ingest) return null;
+    const key = ingest.dsnKey ?? 'codeakos';
+    if (ingest.publicUrl) {
+      if (forDocker) return null;
+      const url = new URL(ingest.publicUrl);
+      return `${url.protocol}//${key}@${url.host}/${id}`;
+    }
+    const host = forDocker ? 'host.docker.internal' : LOOPBACK.has(ingest.host) ? 'localhost' : ingest.host;
+    return `http://${key}@${host}:${ingest.port}/${id}`;
   }
 }

@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { ExternalLink } from '@/components/Bits';
 import { ErrorList } from '@/components/errors/ErrorList';
 import { Pipeline } from '@/components/Pipeline';
-import { ConnectionButton, ConnectionNote } from '@/components/projects/ConnectionStatus';
+import { ConnectionButton, ConnectionNote, RefusalNote } from '@/components/projects/ConnectionStatus';
 import { SetupLabel } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -107,6 +107,8 @@ export function ProjectPage({ project, group, busy, onRefreshErrors, onConnect, 
           {project.setup.message}
         </p>
       )}
+
+      <RefusalNote connection={connection} />
 
       <Pipeline counts={funnel(issues)} />
 

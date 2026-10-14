@@ -8,6 +8,8 @@ import type { Workflow } from './workflows/types.ts';
 export interface AppDeps {
   /** The dashboard's port, so only its own loopback Host names are accepted. */
   port: number;
+  /** The port a container publishes the dashboard on, if not `port`; also accepted in the Host header. */
+  publicPort?: number;
   publicDir: string;
   /** Secret the browser must present (see auth.ts). */
   token: string;
@@ -39,10 +41,10 @@ const onError: ErrorRequestHandler = (err, _req, res, next) => {
   res.status(500).json({ error: err instanceof Error ? err.message : 'Internal error' });
 };
 
-export function createApp({ port, publicDir, token, workflows = [], events = new ChangeBus() }: AppDeps): Express {
+export function createApp({ port, publicPort, publicDir, token, workflows = [], events = new ChangeBus() }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
-  app.use(localOnly(port));
+  app.use(localOnly(port, publicPort));
   app.use(securityHeaders);
   app.use(tokenLogin(token));
   app.use(express.json({ limit: '256kb' }));

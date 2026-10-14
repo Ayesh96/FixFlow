@@ -27,6 +27,42 @@ export const serviceName = (repo: string): string => (repo.split('/').pop() ?? r
 
 const str = (value: string): string => JSON.stringify(value); // a valid string literal in both Python and JavaScript
 
+/** A compose service that reports to Code Akos on the host: the Docker address, the Linux host alias and a clean stop. */
+export function dockerCompose(dockerDsn: string, service: string): string {
+  return `services:
+  ${service}:
+    environment:
+      # The SDK reads this on its own
+      SENTRY_DSN: ${str(dockerDsn)}
+    extra_hosts:
+      # Linux needs this line; Docker Desktop does not
+      - "host.docker.internal:host-gateway"
+    # Passes the stop signal on, so last errors get sent
+    init: true`;
+}
+
+/** Asks Code Akos if it is up, from inside a container, using the same host name the app will. */
+export function dockerCheck(dockerDsn: string): string {
+  const { host } = new URL(dockerDsn);
+  return `docker run --rm --add-host=host.docker.internal:host-gateway curlimages/curl -s http://${host}/healthz`;
+}
+
+/** Sends the errors still waiting when the container is told to stop. */
+export const FLUSH_ON_STOP = {
+  python: `import signal, sys
+import sentry_sdk
+
+def stop(signum, frame):
+    sentry_sdk.flush(2)  # send what is waiting
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, stop)`,
+  node: `process.on("SIGTERM", async () => {
+  await Sentry.close(2000); // send what is waiting
+  process.exit(0);
+});`,
+} as const;
+
 export function guides(dsn: string, service: string): Record<LanguageId, Guide> {
   const jsInit = (pkg: string, env: string) => `import * as Sentry from "${pkg}";
 

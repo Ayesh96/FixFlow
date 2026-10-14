@@ -74,6 +74,7 @@ nav:
       - Installation: installation.md
       - Getting started: getting-started.md
       - Using the dashboard: usage.md
+      - Running in Docker: docker.md
   - Guides:
       - Sentry alternatives compared: sentry-alternative.md
       - Self-hosted error tracking: self-hosted-error-tracking.md

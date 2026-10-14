@@ -124,6 +124,33 @@ What each setting does:
 !!! note "App on another computer?"
     `localhost` only works when your app runs on the same computer as Code Akos. For an app on a server or another machine, open **Settings**, set **Accept reports from** to **Any machine on the network**, and replace `localhost` in the DSN with the address of the computer running Code Akos.
 
+### Apps running in Docker
+
+Inside a container, `localhost` is the container itself, so the DSN above will not work there. When Code Akos runs on your computer and your app runs in a container, the setup guide has a **Running in Docker** section with a DSN that uses `host.docker.internal`, the name containers use for the host. For example:
+
+```yaml
+services:
+  my-app:
+    environment:
+      SENTRY_DSN: "http://codeakos@host.docker.internal:3000/1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Linux needs this line; Docker Desktop does not
+    init: true # passes the stop signal to your app, so it can send its last errors
+```
+
+To check the connection from a container, run this. It should print `{"status":"ok"}`:
+
+```bash
+docker run --rm --add-host=host.docker.internal:host-gateway curlimages/curl -s http://host.docker.internal:3000/healthz
+```
+
+!!! note "On Linux"
+    Code Akos only accepts reports from its own computer at first, and a container counts as another machine. Open **Settings** and set **Accept reports from** to **Any machine on the network** (`ORCH_ERRORS_INGEST_HOST`). When you do, also set `ORCH_ERRORS_DSN_PUBLIC_KEY`, because anyone who can reach the port can send errors. Docker Desktop on Mac and Windows needs neither.
+
+When a container stops, an app that exits at once loses the errors from its last moments. Call `sentry_sdk.flush()` (Python) or `Sentry.close()` (Node.js) when the app receives `SIGTERM`.
+
+To run Code Akos itself in Docker, see [Running in Docker](docker.md).
+
 ## 4. Send a test
 
 Send one message to check the connection:

@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+web/node_modules
+web/dist
+desktop
+release
+docs
+overrides
+test
+site
+*.md
+.DS_Store

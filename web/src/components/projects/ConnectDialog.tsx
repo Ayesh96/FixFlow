@@ -4,7 +4,7 @@ import { CodeBlock } from '@/components/projects/CodeBlock';
 import type { ProjectView } from '@/lib/api';
 import { copy } from '@/lib/copy';
 import { cn } from '@/lib/utils';
-import { guides, serviceName, SETTINGS, type LanguageId } from '@/lib/snippets';
+import { dockerCheck, dockerCompose, FLUSH_ON_STOP, guides, serviceName, SETTINGS, type LanguageId } from '@/lib/snippets';
 
 const c = copy.connect;
 
@@ -29,6 +29,7 @@ function Step({ n, title, className, children }: { n: number; title: string; cla
 export function ConnectDialog({ project, onClose }: { project: ProjectView | null; onClose: () => void }) {
   const dsn = project?.dsn ?? null;
   const set = project && dsn ? guides(dsn, serviceName(project.repo)) : null;
+  const dockerDsn = project?.dockerDsn ?? null;
   const ids = set ? (Object.keys(set) as LanguageId[]) : [];
 
   return (
@@ -77,6 +78,34 @@ export function ConnectDialog({ project, onClose }: { project: ProjectView | nul
                         <p className="text-xs text-muted-foreground">{c.testNote}</p>
                       </Step>
                     </ol>
+
+                    {project && dockerDsn && id === 'browser' && <p className="text-xs text-muted-foreground">{c.dockerBrowser}</p>}
+                    {project && dockerDsn && id !== 'browser' && (
+                      <details className="group rounded-md border">
+                        <summary className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{c.docker.title}</summary>
+                        <div className="min-w-0 space-y-4 border-t p-3">
+                          <p className="text-sm text-muted-foreground">{c.docker.intro}</p>
+                          <CodeBlock code={dockerDsn} label={c.docker.address} wrap />
+                          <div className="min-w-0 space-y-2">
+                            <h4 className="text-sm font-medium">{c.docker.compose}</h4>
+                            <CodeBlock code={dockerCompose(dockerDsn, serviceName(project.repo))} label={c.docker.compose} />
+                            <p className="text-xs text-muted-foreground">{c.docker.composeNote}</p>
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <h4 className="text-sm font-medium">{c.docker.check}</h4>
+                            <CodeBlock code={dockerCheck(dockerDsn)} label={c.docker.check} wrap />
+                            <p className="text-xs text-muted-foreground">{c.docker.checkNote}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{c.docker.linux}</p>
+                          <div className="min-w-0 space-y-2">
+                            <h4 className="text-sm font-medium">{c.docker.flush}</h4>
+                            <CodeBlock code={FLUSH_ON_STOP[id]} label={`${g.label}: ${c.docker.flush}`} />
+                            <p className="text-xs text-muted-foreground">{c.docker.flushNote}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{c.docker.sameNetwork}</p>
+                        </div>
+                      </details>
+                    )}
 
                     <details className="group rounded-md border">
                       <summary className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{c.settingsTitle}</summary>

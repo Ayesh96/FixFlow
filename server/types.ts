@@ -63,6 +63,8 @@ export interface TrackerProjectGroup {
   eventCount: number;
   lastSeen: string | null;
   issues: TrackerIssue[];
+  /** Requests the ingest listener refused since startup (wrong key, bad body...), which an SDK drops silently. */
+  rejections: { count: number; last: { status: number; reason: string; at: string } | null };
 }
 
 /** Status of an error resolver fix attempt. */
@@ -138,6 +140,8 @@ export interface ProjectView {
   setup: import('./projects/workflow.ts').SetupStatus;
   /** What an app's Sentry SDK is pointed at; null when error tracking is off. */
   dsn: string | null;
+  /** The same address for an app in a Docker container on this machine; null when `dsn` already works there, or errors are off. */
+  dockerDsn: string | null;
 }
 
 export interface ProjectList {

@@ -10,7 +10,7 @@ import { copy } from '@/lib/copy';
 import { formatRelative } from '@/lib/format';
 import { projectHref } from '@/hooks/useProjectRoute';
 import { connectionOf } from '@/lib/connection';
-import { ConnectionButton, ConnectionNote } from '@/components/projects/ConnectionStatus';
+import { ConnectionButton, ConnectionNote, RefusalNote } from '@/components/projects/ConnectionStatus';
 import { funnel } from '@/lib/lifecycle';
 import { cn } from '@/lib/utils';
 
@@ -123,6 +123,8 @@ export function ProjectCard({ project, group, busy, onConnect, onCopyDsn, onRetr
 
       <div className="flex-1 space-y-5 p-4 sm:p-5">
         <Pipeline counts={funnel(issues)} roomy />
+
+        <RefusalNote connection={connection} />
 
         {issues.length > 0 && group ? (
           <div className="flex flex-wrap items-center justify-between gap-2">

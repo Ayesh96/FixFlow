@@ -1,0 +1,34 @@
+# Code Akos next to your app. See docs/docker.md.
+services:
+  code-akos:
+    image: ghcr.io/ayesh96/code-akos:latest
+    restart: unless-stopped
+    ports:
+      # The dashboard holds your GitHub tokens. Publish it on 127.0.0.1 only, never on all interfaces.
+      - "127.0.0.1:7420:7420"
+      # Ingest (port 3000) is not published: apps on this Compose network reach it as http://code-akos:3000.
+    volumes:
+      - code-akos-data:/data
+    environment:
+      # Shown in the dashboard as the DSN your apps use.
+      ORCH_ERRORS_PUBLIC_URL: http://code-akos:3000
+      # Apps must send this key in their DSN. Choose your own long random value.
+      ORCH_ERRORS_DSN_PUBLIC_KEY: change-me-to-a-long-random-string
+      # Ollama running on the host machine.
+      ORCH_OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      # Needed on Linux; Docker Desktop on macOS and Windows already knows this name.
+      - "host.docker.internal:host-gateway"
+
+  # Your own app. Replace this with your real service.
+  app:
+    image: your-app:latest
+    init: true
+    depends_on:
+      - code-akos
+    environment:
+      # http://<key>@<service name>:3000/<project id>. The key is ORCH_ERRORS_DSN_PUBLIC_KEY above.
+      SENTRY_DSN: http://change-me-to-a-long-random-string@code-akos:3000/1
+
+volumes:
+  code-akos-data:

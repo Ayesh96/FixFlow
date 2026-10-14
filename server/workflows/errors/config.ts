@@ -12,6 +12,11 @@ export interface Config {
    * report. Set `0.0.0.0` to accept events from browsers or other hosts.
    */
   ingestHost: string;
+  /**
+   * The base address apps use to reach ingest when it is not this machine's own port, e.g.
+   * `http://code-akos:3000` for a container on the same Compose network. Null builds DSNs from host and port.
+   */
+  publicUrl: string | null;
   databasePath: string;
   /** When set, ingest requests must carry this `sentry_key`. */
   dsnPublicKey: string | null;
@@ -62,6 +67,20 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
   const ingestPort = integer('ORCH_ERRORS_INGEST_PORT', 3000, 1);
   const retentionDays = integer('ORCH_ERRORS_RETENTION_DAYS', 30, 0);
 
+  const publicUrl = ((): string | null => {
+    const raw = text('ORCH_ERRORS_PUBLIC_URL');
+    if (!raw) return null;
+    try {
+      const url = new URL(raw);
+      const plain = (url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/';
+      if (plain) return url.origin;
+    } catch {
+      // falls through to the same message as any other bad value
+    }
+    problems.push(`ORCH_ERRORS_PUBLIC_URL must be an http(s) address with no path, query or credentials, like http://code-akos:3000 (got "${raw}")`);
+    return null;
+  })();
+
   const databaseUrl = text('ORCH_ERRORS_DB') || join(dataDir, 'errors.db');
   const databasePath = parseDatabaseUrl(databaseUrl);
   if (!databasePath) problems.push('ORCH_ERRORS_DB must be a SQLite location (e.g. file:./data/errors.db); PostgreSQL is not supported');
@@ -79,6 +98,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
   return {
     ingestPort,
     ingestHost: text('ORCH_ERRORS_INGEST_HOST') || '127.0.0.1',
+    publicUrl,
     databasePath: databasePath as string,
     dsnPublicKey: text('ORCH_ERRORS_DSN_PUBLIC_KEY') || null,
     github: { apiUrl: githubApiUrl, labels: list('ORCH_ERRORS_GITHUB_LABELS') },

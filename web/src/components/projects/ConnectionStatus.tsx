@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, Plug } from 'lucide-react';
+import { CircleCheck, CircleDashed, Plug, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Connection } from '@/lib/connection';
 import { copy } from '@/lib/copy';
@@ -35,5 +35,27 @@ export function ConnectionNote({ connection, className }: { connection: Connecti
         {connected && lastSeen && ` · ${c.status.last(formatRelative(lastSeen))}`}
       </span>
     </span>
+  );
+}
+
+/**
+ * Says so when the ingest address turned an app away. The SDK drops that silently, so this is the only place it
+ * shows. Words and an icon, with the raw status kept in the text for anyone searching for it.
+ */
+export function RefusalNote({ connection, className }: { connection: Connection; className?: string }) {
+  const { refusal } = connection;
+  if (!refusal) return null;
+  const r = copy.refused;
+  return (
+    <p role="status" className={cn('flex items-start gap-2 rounded-md border border-status-crashed/40 px-3 py-2 text-sm text-foreground', className)} data-refused={refusal.status}>
+      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-crashed" aria-hidden />
+      <span>
+        {r.line(r.reasons[refusal.status] ?? r.other, refusal.status, formatRelative(refusal.at))}{' '}
+        <span className="text-muted-foreground">
+          {refusal.count > 1 && `${r.more(refusal.count)} `}
+          {refusal.status === 401 && r.hint}
+        </span>
+      </span>
+    </p>
   );
 }

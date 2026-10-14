@@ -111,3 +111,44 @@ describe('HTTP API', () => {
     assert.equal(res.headers.get('access-control-allow-origin'), null, 'no CORS: other origins cannot read responses');
   });
 });
+
+describe('published port (container)', () => {
+  let server: Server;
+  let port: number;
+  let published: number;
+
+  before(async () => {
+    port = await freePort();
+    published = await freePort();
+    server = createApp({ port, publicPort: published, publicDir: (await tempConfig()).home, token: TOKEN, workflows: [demo] }).listen(port, '127.0.0.1');
+    await new Promise((resolve) => server.once('listening', resolve));
+  });
+  after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+
+  const status = (hostHeader: string) =>
+    new Promise<number>((resolve, reject) => {
+      request({ host: '127.0.0.1', port, path: '/api/ext/demo/ping', headers: { host: hostHeader, ...AUTH } }, (res) => {
+        res.resume();
+        resolve(res.statusCode ?? 0);
+      })
+        .on('error', reject)
+        .end();
+    });
+
+  it('accepts loopback names on the published port as well as the listening port', async () => {
+    for (const name of ['localhost', '127.0.0.1', '[::1]']) {
+      assert.equal(await status(`${name}:${published}`), 200, `${name}:${published}`);
+      assert.equal(await status(`${name}:${port}`), 200, `${name}:${port}`);
+    }
+  });
+
+  it('still rejects other names and other ports', async () => {
+    assert.equal(await status(`evil.example.com:${published}`), 403);
+    assert.equal(await status(`code-akos:${published}`), 403);
+    assert.equal(await status('localhost'), 403);
+    assert.equal(await status(`localhost:${published + 1 > 65535 ? 1 : published + 1}`), 403);
+  });
+});

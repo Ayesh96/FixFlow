@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { moveLegacyDataDir } from '../server/config.ts';
+import { loadConfig, moveLegacyDataDir } from '../server/config.ts';
 
 const home = () => mkdtemp(join(tmpdir(), 'code-akos-home-'));
 
@@ -36,5 +36,27 @@ describe('moveLegacyDataDir', () => {
 
   it('does nothing on a fresh install', async () => {
     assert.equal(moveLegacyDataDir({}, await home()), null);
+  });
+});
+
+describe('loadConfig dashboard settings', () => {
+  const env = { ORCH_DATA_DIR: '/tmp/code-akos-config-test' };
+
+  it('binds loopback and adds no extra Host port by default', () => {
+    const config = loadConfig(env);
+    assert.equal(config.dashboardHost, '127.0.0.1');
+    assert.equal(config.dashboardPublicPort, undefined);
+  });
+
+  it('reads ORCH_DASHBOARD_HOST and ORCH_DASHBOARD_PUBLIC_PORT', () => {
+    const config = loadConfig({ ...env, ORCH_DASHBOARD_HOST: '0.0.0.0', ORCH_DASHBOARD_PUBLIC_PORT: '8080' });
+    assert.equal(config.dashboardHost, '0.0.0.0');
+    assert.equal(config.dashboardPublicPort, 8080);
+  });
+
+  it('rejects a public port that is not 1-65535', () => {
+    for (const bad of ['0', '70000', 'abc', '80.5']) {
+      assert.throws(() => loadConfig({ ...env, ORCH_DASHBOARD_PUBLIC_PORT: bad }), /ORCH_DASHBOARD_PUBLIC_PORT must be 1-65535/);
+    }
   });
 });

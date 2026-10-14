@@ -8,6 +8,10 @@ import { loadConfig as loadResolverConfig, type Config as ResolverConfig } from 
 
 export interface Config {
   port: number;
+  /** The address the dashboard binds. Loopback unless you run in a container (see docs/docker.md). */
+  dashboardHost?: string;
+  /** The port a container publishes the dashboard on, when it differs from `port`; the Host check accepts it too. */
+  dashboardPublicPort?: number;
   home: string;
   /** Where everything this install keeps lives: the token, the databases, the key and the clones. */
   dataDir: string;
@@ -53,6 +57,11 @@ export function loadConfig(env: Env = process.env): Config {
   const port = Number(env.PORT ?? 7420);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`PORT must be 1-65535 (got "${env.PORT}")`);
 
+  const publicPort = env.ORCH_DASHBOARD_PUBLIC_PORT ? Number(env.ORCH_DASHBOARD_PUBLIC_PORT) : undefined;
+  if (publicPort !== undefined && (!Number.isInteger(publicPort) || publicPort < 1 || publicPort > 65535)) {
+    throw new Error(`ORCH_DASHBOARD_PUBLIC_PORT must be 1-65535 (got "${env.ORCH_DASHBOARD_PUBLIC_PORT}")`);
+  }
+
   const dataDir = env.ORCH_DATA_DIR ?? join(home, '.code-akos');
 
   // The models are read once and shared: both workflows ask for one by purpose, never by name.
@@ -60,6 +69,8 @@ export function loadConfig(env: Env = process.env): Config {
 
   return {
     port,
+    dashboardHost: env.ORCH_DASHBOARD_HOST || '127.0.0.1',
+    dashboardPublicPort: publicPort,
     home,
     dataDir,
     tokenFile: env.ORCH_TOKEN_FILE ?? join(dataDir, 'token'),

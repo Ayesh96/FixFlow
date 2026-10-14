@@ -50,6 +50,8 @@ describe('projects routes', () => {
   /** A test can make GitHub answer differently, such as rejecting the token. */
   let override: ((method: string, path: string) => { status: number; body?: unknown }) | null = null;
   const bodies: string[] = [];
+  /** What the workflow was told about ingest; a test can change it, since the workflow keeps this object. */
+  let ingest: NonNullable<ConstructorParameters<typeof ProjectsWorkflow>[0]['ingest']>;
 
   beforeEach(async () => {
     const routes = githubRoutes(['main', 'staging']);
@@ -60,7 +62,8 @@ describe('projects routes', () => {
     const dir = mkdtempSync(join(tmpdir(), 'wizard-'));
     store = new ProjectStore(join(dir, 'projects.db'), new SecretStore(join(dir, 'secret.key')));
     repos = new RepoManager({ dir: join(dir, 'repos'), remoteUrl: () => remoteUrl });
-    const workflow = new ProjectsWorkflow({ projects: store, repos, githubApiUrl: github.url, ingest: { host: '127.0.0.1', port: 3000, dsnKey: null }, logger: silentLogger() });
+    ingest = { host: '127.0.0.1', port: 3000, dsnKey: null };
+    const workflow = new ProjectsWorkflow({ projects: store, repos, githubApiUrl: github.url, ingest, logger: silentLogger() });
 
     const port = await freePort();
     const config = await tempConfig({ port });
@@ -120,6 +123,25 @@ describe('projects routes', () => {
     assert.equal(json.repo.defaultBranch, 'main');
     assert.deepEqual(await listed(), []);
     assert.ok(github.requests.every((r) => r.authorization === `Bearer ${GITHUB_TOKEN}`));
+  });
+
+  it('also gives containers an address, with the host name Docker provides for the machine Code Akos runs on', async () => {
+    ingest.dsnKey = 'secret';
+    const { json } = await create();
+    assert.equal(json.dsn, 'http://secret@localhost:3000/1');
+    const project = (await call('')).json.projects[0];
+    assert.equal(project.dsn, 'http://secret@localhost:3000/1');
+    assert.equal(project.dockerDsn, 'http://secret@host.docker.internal:3000/1');
+  });
+
+  it('builds the address from the public URL when one is set, and then has no separate Docker address', async () => {
+    ingest.publicUrl = 'http://code-akos:3000';
+    ingest.dsnKey = 'secret';
+    const { json } = await create();
+    assert.equal(json.dsn, 'http://secret@code-akos:3000/1');
+    const project = (await call('')).json.projects[0];
+    assert.equal(project.dsn, 'http://secret@code-akos:3000/1');
+    assert.equal(project.dockerDsn, null);
   });
 
   it('adds a project, clones its repo on the branch the user named, and never hands the token back', async () => {

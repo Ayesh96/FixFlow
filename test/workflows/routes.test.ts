@@ -25,6 +25,7 @@ const AUTH = { cookie: `${COOKIE_NAME}=${TOKEN}` };
 const errorsConfig = (overrides: Partial<ErrorsConfig> = {}): ErrorsConfig => ({
   ingestPort: 0,
   ingestHost: '127.0.0.1',
+  publicUrl: null,
   databasePath: ':memory:',
   dsnPublicKey: null,
   github: { apiUrl: 'https://api.github.com', labels: [] },

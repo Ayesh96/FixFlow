@@ -213,7 +213,21 @@ export const copy = {
     copied: 'Copied',
     copyFailed: "Couldn't copy it. Select the text instead.",
     noDsn: 'Error tracking is off for this dashboard, so there is no error address to give an app. Turn the errors workflow on and restart.',
-    localhostNote: 'This address uses localhost, so it works for apps on this computer. An app on another machine needs the ingest listener opened to it (ORCH_ERRORS_INGEST_HOST).',
+    localhostNote: 'This address works for apps that run directly on this computer. An app in a Docker container needs the address in "Running in Docker" below. An app on another machine needs the ingest listener opened to it (ORCH_ERRORS_INGEST_HOST).',
+    dockerBrowser: 'A browser app runs in the visitor\'s browser, not in a container, so it needs an address that browser can reach. Make Code Akos\'s ingest reachable there (ORCH_ERRORS_INGEST_HOST and ORCH_ERRORS_PUBLIC_URL).',
+    docker: {
+      title: 'Running in Docker',
+      intro: 'Inside a container, "localhost" is the container itself, so the address above will not work there. Use this address instead. It points to the computer that runs Code Akos.',
+      address: 'Error address for containers',
+      compose: 'Add this to your docker-compose.yml',
+      composeNote: 'Replace the service name with your own. Using docker run? Add --add-host=host.docker.internal:host-gateway and -e SENTRY_DSN=...',
+      check: 'Check the connection from a container',
+      checkNote: 'It should print {"status":"ok"}. If it hangs or fails, see the Linux note below.',
+      linux: 'On Linux, Code Akos only accepts reports from this computer at first, and a container counts as another machine. Open Settings and set "Accept reports from" (ORCH_ERRORS_INGEST_HOST) to any machine on the network. Then also set a key (ORCH_ERRORS_DSN_PUBLIC_KEY), because anyone who can reach the port can send errors. Docker Desktop on Mac and Windows needs neither.',
+      flush: 'Send the last errors before the container stops',
+      flushNote: 'When a container stops, the app gets a stop signal (SIGTERM). If it exits at once, errors from its last moments are lost. Catch the signal and flush first.',
+      sameNetwork: 'Is Code Akos in a container too, on the same Compose network? Then set ORCH_ERRORS_PUBLIC_URL to its service address, such as http://code-akos:3000. The address at the top then works for your other containers as it is.',
+    },
     steps: { address: 'This project\'s error address', install: 'Install the SDK', init: 'Add this where your app starts', test: 'Send a test' },
     initNote: {
       python: 'Put it at the top of your entry file, before the app is created. Unhandled exceptions are then reported on their own. FastAPI and Flask need nothing more.',
@@ -223,6 +237,21 @@ export const copy = {
     testNote: 'Sends one info message. It shows up on this project\'s card within a few seconds, is read by triage as a test, and is not filed on GitHub.',
     settingsTitle: 'What the settings do',
     typescriptNote: 'TypeScript and JavaScript use the same code. The SDK ships its own types, so there is nothing extra to install.',
+  },
+
+  refused: {
+    // Plain reasons for the statuses an SDK is most likely to be refused with; the raw status stays beside them.
+    reasons: {
+      400: 'the report was empty or could not be read',
+      401: 'wrong or missing key',
+      404: 'the address does not exist',
+      413: 'the report was too large',
+      415: 'the report was compressed in a way Code Akos does not read',
+    } as Record<number, string>,
+    other: 'the request was not accepted',
+    line: (reason: string, status: number, when: string) => `Code Akos refused the last report from this app: ${reason} (${status}), ${when}.`,
+    more: (n: number) => `${n.toLocaleString('en-US')} refused since it started.`,
+    hint: 'Check the error address the app uses against the one on this project.',
   },
 
   errors: {

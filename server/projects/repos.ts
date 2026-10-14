@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { mkdir, rename, rm, rmdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { buildRemoteUrl, cloneBare, fetchBranch } from '../workflows/resolver/git.ts';
 
@@ -72,7 +72,12 @@ export class RepoManager {
   }
 
   async remove(repo: string): Promise<void> {
-    await this.locked(repo, () => rm(this.pathFor(repo), { recursive: true, force: true }));
+    await this.locked(repo, async () => {
+      const path = this.pathFor(repo);
+      await rm(path, { recursive: true, force: true });
+      // The owner's folder too, once no other repo of theirs is cloned (rmdir refuses a folder that is not empty).
+      await rmdir(dirname(path)).catch(() => {});
+    });
   }
 
   private locked<T>(repo: string, task: () => Promise<T>): Promise<T> {

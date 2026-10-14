@@ -138,6 +138,12 @@ export class Store {
     );
   }
 
+  /** Forgets the attempts on these errors, for when their project is deleted. */
+  removeAttempts(fingerprintHashes: string[]): void {
+    const remove = this.db.prepare('DELETE FROM attempts WHERE fingerprint_hash = ?');
+    for (const hash of fingerprintHashes) remove.run(hash);
+  }
+
   listAttempts(limit: number, offset: number): AttemptRecord[] {
     const rows = this.stmtListAttempts.all(limit, offset) as unknown as Row[];
     return rows.map(toRecord);

@@ -49,6 +49,24 @@ describe('Store schema upgrade', () => {
   });
 });
 
+describe('Store.removeProject', () => {
+  it("forgets one project's errors and their events, leaves other projects' alone, and names what it removed", () => {
+    const store = new Store(':memory:');
+    try {
+      store.recordEvent(normalized(jsEvent({ event_id: '0000000000000000000000000000000a' })), 'fp-gone', 'title', '1');
+      store.recordEvent(normalized(jsEvent({ event_id: '0000000000000000000000000000000b' })), 'fp-kept', 'title', '2');
+
+      assert.deepEqual(store.removeProject('1'), ['fp-gone']);
+      assert.equal(store.getIssue('fp-gone'), null);
+      assert.equal(store.latestEventPayload('fp-gone'), null);
+      assert.notEqual(store.getIssue('fp-kept'), null);
+      assert.deepEqual(store.removeProject('1'), []);
+    } finally {
+      store.close();
+    }
+  });
+});
+
 describe('Store.setResolverStatus', () => {
   it('records status, PR details, and reason against an existing issue', () => {
     const store = new Store(':memory:');

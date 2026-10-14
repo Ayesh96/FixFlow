@@ -230,9 +230,15 @@ export class ProjectStore {
     this.db.close();
   }
 
+  /**
+   * Never hands out an id a deleted project had: apps may still report to its DSN, and errors stored
+   * under it would otherwise land in the new project, along with the GitHub issues they point at.
+   */
   private nextId(): string {
     const numeric = this.list().map((p) => Number(p.id)).filter(Number.isInteger);
-    return String(numeric.length === 0 ? 1 : Math.max(...numeric) + 1);
+    const id = Math.max(0, Number(this.getFlag('last_project_id') ?? 0), ...numeric) + 1;
+    this.setFlag('last_project_id', String(id));
+    return String(id);
   }
 
   private toProject(row: Row): Project {

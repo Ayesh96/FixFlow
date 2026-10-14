@@ -23,6 +23,15 @@ async function withAskpass<T>(token: string, fn: (env: NodeJS.ProcessEnv) => Pro
       GIT_ASKPASS: scriptPath,
       GIT_ASKPASS_TOKEN: token,
       GIT_TERMINAL_PROMPT: '0',
+      // Git asks credential helpers before GIT_ASKPASS, so a keychain or Git Credential Manager set up on this
+      // machine would push as whoever is signed in there (or pop up a sign-in) instead of using the project's
+      // token, and could save the token into it afterwards. The empty value drops every configured helper;
+      // the one after it answers with the token and never stores anything.
+      GIT_CONFIG_COUNT: '2',
+      GIT_CONFIG_KEY_0: 'credential.helper',
+      GIT_CONFIG_VALUE_0: '',
+      GIT_CONFIG_KEY_1: 'credential.helper',
+      GIT_CONFIG_VALUE_1: '!f() { test "$1" = get && echo username=x-access-token && echo "password=$GIT_ASKPASS_TOKEN"; }; f',
     };
     return await fn(env);
   } finally {

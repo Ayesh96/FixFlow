@@ -24,6 +24,8 @@ export interface ProjectsDeps {
   logger?: Logger;
   /** Told when a project or its clone changes, so the dashboard can update without asking. */
   events?: ChangeBus;
+  /** Called once a project is deleted, so the other workflows can forget what they kept for it. */
+  onRemoved?: (project: Project) => void;
 }
 
 const asText = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -118,6 +120,7 @@ export class ProjectsWorkflow implements Workflow {
       if (!project) throw new HttpError(404, 'No such project');
       this.deps.projects.remove(project.id);
       this.setups.delete(project.id);
+      this.deps.onRemoved?.(project);
       this.changed();
       // The clone is per repo, shared by every branch of it: only remove it when no other project needs it.
       if (this.deps.projects.findByRepo(project.repo).length === 0) await this.deps.repos.remove(project.repo);

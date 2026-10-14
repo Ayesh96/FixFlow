@@ -70,6 +70,11 @@ export class ResolverWorkflow implements Workflow {
     this.store.close();
   }
 
+  /** Forgets the attempts on these errors; called when the project they belonged to is deleted. */
+  forget(fingerprintHashes: string[]): void {
+    this.store.removeAttempts(fingerprintHashes);
+  }
+
   routes(router: Router): void {
     router.get('/status', (_req, res) => {
       res.json({ ...this.scheduler.status(), stats: this.store.stats() } satisfies ResolverStatus);

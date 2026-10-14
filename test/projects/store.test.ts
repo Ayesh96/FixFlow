@@ -130,6 +130,14 @@ describe('ProjectStore', () => {
     assert.deepEqual([store.add(input()).id, store.add(input({ repo: 'acme/api' })).id, store.add(input({ repo: 'acme/cli' })).id], ['1', '2', '3']);
   });
 
+  it("never gives a new project a deleted one's id, even after a restart, so its old errors cannot follow", () => {
+    const { open, store } = setup();
+    const first = store.add(input());
+    store.remove(first.id);
+    store.close();
+    assert.equal(open().add(input({ repo: 'acme/api' })).id, '2');
+  });
+
   it('keeps an explicit id (an imported project keeps the DSN apps already use) and numbers on from it', () => {
     const { store } = setup();
     assert.equal(store.add(input({ id: '37' })).id, '37');

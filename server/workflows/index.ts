@@ -31,18 +31,23 @@ export function loadWorkflows(config: Config): LoadedWorkflows {
   const repos = new RepoManager({ dir: config.reposDir, remoteUrl: (repo) => config.githubCloneUrl.replaceAll('{repo}', repo) });
 
   const events = new ChangeBus();
+  let errors: ErrorsWorkflow | null = null;
+  let resolver: ResolverWorkflow | null = null;
   const workflows: Workflow[] = [
     new ProjectsWorkflow({
       projects,
       events,
       repos,
+      // A deleted project's errors and fix attempts go with it, so nothing of it resurfaces in a later project.
+      onRemoved: (project) => resolver?.forget(errors?.store.removeProject(project.id) ?? []),
       githubApiUrl: config.errors?.github.apiUrl ?? config.resolver?.githubApiUrl ?? 'https://api.github.com',
       ingest: config.errors ? { host: config.errors.ingestHost, port: config.errors.ingestPort, dsnKey: config.errors.dsnPublicKey } : null,
     }),
   ];
-  const errors = config.errors ? new ErrorsWorkflow(config.errors, projects, { events }) : null;
+  errors = config.errors ? new ErrorsWorkflow(config.errors, projects, { events }) : null;
   if (errors) workflows.push(errors);
-  if (config.resolver) workflows.push(new ResolverWorkflow(config.resolver, errors?.store ?? null, projects, { repos, events }));
+  resolver = config.resolver ? new ResolverWorkflow(config.resolver, errors?.store ?? null, projects, { repos, events }) : null;
+  if (resolver) workflows.push(resolver);
 
   return { workflows, projects, repos, events };
 }

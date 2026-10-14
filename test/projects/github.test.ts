@@ -88,6 +88,27 @@ describe('inspectRepo', () => {
     assert.deepEqual(Object.keys(result.fields), ['branch'], 'shown under the branch field');
   });
 
+  it('blames the token, not the branch, when the token sees the repo but may not list its branches', async () => {
+    const result = await run({ ...good, 'GET /repos/acme/web/branches?per_page=100': { status: 403, body: { message: 'Resource not accessible by personal access token' } } }, 'main');
+    assert.equal(result.ok, false);
+    assert.match(result.problems[0] ?? '', /403: Resource not accessible by personal access token/, "GitHub's own reason, not a guess");
+    assert.deepEqual(Object.keys(result.fields), ['token'], 'shown under the token field');
+  });
+
+  it("passes on GitHub's reason when it will not say whether the branch exists, instead of calling it missing", async () => {
+    const result = await run({ ...good, 'GET /repos/acme/web/branches/main': { status: 403, body: { message: 'API rate limit exceeded' } } }, 'main');
+    assert.equal(result.ok, false);
+    assert.match(result.problems[0] ?? '', /API rate limit exceeded/);
+    assert.doesNotMatch(result.problems[0] ?? '', /has no branch/);
+  });
+
+  it('says so when the repo has no branches yet, instead of calling the branch a typo', async () => {
+    const result = await run({ ...good, 'GET /repos/acme/web/branches?per_page=100': { status: 200, body: [] } }, 'main');
+    assert.equal(result.ok, false);
+    assert.match(result.problems[0] ?? '', /no branches yet/);
+    assert.deepEqual(Object.keys(result.fields), ['repo']);
+  });
+
   it('looks up a branch with a slash in its name', async () => {
     const result = await run({ ...good, 'GET /repos/acme/web/branches/release/2': { status: 200, body: { name: 'release/2' } } }, 'release/2');
     assert.equal(result.ok, true);

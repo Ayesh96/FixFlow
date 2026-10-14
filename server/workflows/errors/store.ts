@@ -245,6 +245,18 @@ export class Store {
     return found;
   }
 
+  /** Forgets every error filed under a project, with its events; returns their fingerprints so the resolver can forget them too. */
+  removeProject(projectId: string): string[] {
+    const removed = transaction(this.db, (id: string) => {
+      const rows = this.db.prepare('SELECT fingerprint_hash FROM issues WHERE project_id = ?').all(id) as unknown as { fingerprint_hash: string }[];
+      this.db.prepare('DELETE FROM events WHERE fingerprint_hash IN (SELECT fingerprint_hash FROM issues WHERE project_id = ?)').run(id);
+      this.db.prepare('DELETE FROM issues WHERE project_id = ?').run(id);
+      return rows.map((row) => row.fingerprint_hash);
+    })(projectId);
+    if (removed.length > 0) this.onChange();
+    return removed;
+  }
+
   /** Most recently seen issues first. */
   listIssues(limit: number, offset: number): IssueRecord[] {
     return (this.listStmt.all(limit, offset) as unknown as IssueRow[]).map(toRecord);

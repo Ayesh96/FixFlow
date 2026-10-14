@@ -33,6 +33,15 @@ interface Reply {
   body: unknown;
 }
 
+const BRANCH_ACCESS_HINT =
+  'A fine-grained token needs Contents access to this repository; for a repository owned by an organization, the organization may also have to approve the token or authorize it for SSO.';
+
+/** GitHub's own reason, e.g. `403: Resource not accessible by personal access token`. It never contains the token. */
+function githubSays(reply: Reply): string {
+  const message = (reply.body as { message?: unknown } | null)?.message;
+  return typeof message === 'string' && message.trim() ? `${reply.status}: ${message.trim()}` : `HTTP ${reply.status}`;
+}
+
 /**
  * Asks GitHub whether a token can reach a repo and branch, so a typo is caught in the wizard instead of
  * on the first error that fails to open an issue. Never throws, and never puts the token in a message.
@@ -87,12 +96,26 @@ export async function inspectRepo({ token, apiUrl, repo, branch, timeoutMs = 10_
   if (listed?.status === 200 && Array.isArray(listed.body)) {
     result.branches = (listed.body as { name?: unknown }[]).flatMap((b) => (typeof b.name === 'string' ? [b.name] : []));
     result.branchesTruncated = result.branches.length >= GITHUB_BRANCH_LIST_SIZE;
+  } else {
+    // The repo answered but its branches did not. Saying "no such branch" then would send the user hunting for
+    // a typo that is not there, so this passes on what GitHub said: a token without Contents access, an
+    // organization's SSO or token approval, a rate limit, or the network.
+    fail('token', listed === null ? `GitHub found ${repo} but did not answer when asked for its branches. Check the network connection and try again.` : `GitHub found ${repo} but would not list its branches (${githubSays(listed)}). ${BRANCH_ACCESS_HINT}`);
+    return result;
+  }
+  if (result.branches.length === 0) {
+    fail('repo', `${repo} has no branches yet. Push a first commit to it, then check again.`);
+    return result;
   }
 
   if (branch !== undefined) {
     const path = branch.split('/').map(encodeURIComponent).join('/'); // a branch may contain slashes
     const exists = await get(`${base}/branches/${path}`);
-    result.branch = { found: exists?.status === 200 };
+    if (exists === null || (exists.status !== 200 && exists.status !== 404)) {
+      fail('branch', exists === null ? `GitHub did not answer when asked about the branch "${branch}". Check the network connection and try again.` : `GitHub would not say whether ${repo} has a branch called "${branch}" (${githubSays(exists)}).`);
+      return result;
+    }
+    result.branch = { found: exists.status === 200 };
     if (!result.branch.found) {
       const names = result.branches.slice(0, BRANCHES_SHOWN_IN_MESSAGE).join(', ');
       fail('branch', `${repo} has no branch called "${branch}".${names ? ` Branches that exist: ${names}.` : ''} Check the spelling.`);

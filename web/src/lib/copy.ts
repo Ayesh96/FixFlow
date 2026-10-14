@@ -79,7 +79,7 @@ export const copy = {
     },
     delete: {
       title: (repo: string, branch: string | null) => `Delete ${repo}${branch ? ` (${branch})` : ''}?`,
-      body: "This forgets the project, its saved token and its local clone. Your GitHub repository and your apps aren't touched, and issues already filed stay on GitHub. Errors still reported to it are stored, but no longer open issues. This can't be undone.",
+      body: "This forgets the project, its saved token, its local clone, and the errors and fix attempts recorded for it. Your GitHub repository and your apps aren't touched, and issues and pull requests already opened stay on GitHub. A new project gets a new address, so apps still reporting to this one won't land in it. This can't be undone.",
       confirm: 'Delete project',
       cancel: 'Keep project',
     },
@@ -123,7 +123,7 @@ export const copy = {
       token: {
         label: 'GitHub token',
         placeholder: 'ghp_… or github_pat_…',
-        help: 'Kept on this computer, encrypted. It needs to read the repository and create issues.',
+        help: 'Kept on this computer, encrypted, and used for everything: no GitHub sign-in is needed. A fine-grained token needs this repository with Contents, Issues and Pull requests set to Read and write; a classic token needs the repo scope.',
       },
       separate: {
         label: 'Use a different token for pull requests',

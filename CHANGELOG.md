@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- **Turns per attempt is a setting.** A fix attempt was capped at 20 model turns with no way to change it, so slower models failed with "exceeded the maximum number of turns". Set **Model turns per attempt** on the Resolver step of Settings, or `ORCH_RESOLVER_MAX_TURNS`. The error now says how many turns were allowed.
+- **The resolver keeps a log.** Every agent turn and tool result is appended to `logs/resolver.log` in the data folder (`ORCH_RESOLVER_LOG_FILE` to move it), so a failed attempt can be looked at afterwards. It rotates at 5 MB.
+- A step with a problem in the setup screen is marked in red instead of changing its name.
+
 ## 1.2.0
 
 - **Update check.** The desktop app looks for a newer release at startup and daily, and offers the file for your computer: Download, Later or Skip This Version. **Check for Updates…** and **Automatically Check for Updates** are in the app menu (Help on Windows and Linux). It never installs anything itself.

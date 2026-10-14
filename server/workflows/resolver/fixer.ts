@@ -20,7 +20,21 @@ const SYSTEM_PROMPT =
   'succeed, you have not made a fix, no matter how confident the reasoning sounds.\n\n' +
   'You are running unattended — no person is reading this conversation or able to answer a question ' +
   'from you. If you want to see a file, call read_file yourself; never ask for information instead of ' +
-  'calling the tool that gets it.';
+  'calling the tool that gets it.\n\n' +
+  'How to work, in this order:\n' +
+  "1. Find where it broke. In a stack trace the newest frame in the repository's own code is where the " +
+  'error was thrown. Read that file around that line (the issue may already show it).\n' +
+  '2. Decide if a code change can fix it. If the error is a permission, a setting, a missing service, a ' +
+  "network or timeout problem, a failure inside a library with none of this repository's code in the " +
+  'stack, or a log message with no failing code, answer SKIP and change nothing.\n' +
+  '3. Name the cause before you edit: the exact line and why it fails. Fix that cause with the smallest ' +
+  'change, in the style of the surrounding code. Do not hide the error (an empty catch, a blanket ' +
+  'try/except) unless the surrounding code already handles errors that way.\n' +
+  '4. edit_file needs old_string copied exactly from the file, character for character and with its ' +
+  'indentation, without any line-number prefix, and it must appear only once: add a neighbouring line if ' +
+  'it does not. One tool call makes one change. If edit_file fails, read the file again and retry with ' +
+  'the exact text; never repeat the same call.\n' +
+  '5. After edit_file succeeds, read the changed lines once to check them, then give your verdict.';
 
 const NUDGE =
   'No one is here to answer that. Either call a tool yourself to get the information you need, or, ' +

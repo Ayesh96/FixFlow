@@ -85,7 +85,10 @@ export function ResolverLogDialog({ fingerprintHash, working, onClose }: { finge
   }, [fingerprintHash, working]);
 
   // The latest step is what matters most, so keep it in view as lines arrive.
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [entries]);
+  // Braces matter: newer browsers return a Promise from scrollIntoView, and React takes a returned value for a cleanup function.
+  useEffect(() => {
+    void end.current?.scrollIntoView({ block: 'end' });
+  }, [entries]);
 
   const attempts = entries ? byAttempt(entries) : [];
   return (

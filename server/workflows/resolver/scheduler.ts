@@ -7,6 +7,7 @@ import type { Logger } from '../types.ts';
 import { formatRepo, parseRepo } from '../../shared/repo.ts';
 import type { Config } from './config.ts';
 import { attemptFix as defaultAttemptFix } from './fixer.ts';
+import { logFileFor, logLine } from './log.ts';
 import { formatPullRequestBody, formatPullRequestTitle, formatFixSummary } from './format.ts';
 import type { GitHubGateway } from './github.ts';
 import type { Store } from './store.ts';
@@ -294,6 +295,7 @@ export class Scheduler {
         head: outcome.branchName,
         base: outcome.baseBranch,
       });
+      logLine(logFileFor(this.config.logDir, repo, issue.number), `[resolver] Opened pull request #${pr.number}: ${pr.url}`);
       const opened = { prNumber: pr.number, prUrl: pr.url, reason: formatFixSummary(outcome.explanation, outcome.filesChanged, outcome.verifyRan, outcome.verified) };
       this.store.recordResult(repoStr, issue.number, 'PR_OPEN', opened);
       this.onChange();
@@ -301,6 +303,7 @@ export class Scheduler {
       this.logger.info({ repo: repoStr, issue: issue.number, pr: pr.url }, 'Opened pull request');
     } catch (err) {
       const message = this.failureReason(repoStr, issue.number, err instanceof Error ? err.message : String(err));
+      logLine(logFileFor(this.config.logDir, repo, issue.number), `[resolver] Failed: ${message}`);
       this.store.recordResult(repoStr, issue.number, 'FAILED', { reason: message });
       this.onChange();
       await this.reportToTracker(fingerprintHash, repoStr, issue.number, 'FAILED', { reason: message });

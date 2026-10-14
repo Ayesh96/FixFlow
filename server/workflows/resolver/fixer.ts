@@ -4,9 +4,8 @@ import * as git from './git.ts';
 import type { ChatClient, ChatMessage } from '../../llm/index.ts';
 import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
-import { appendFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { AGENT_MAX_TURNS, RESOLVER_LOG_MAX_BYTES, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
+import { logFileFor, logLine } from './log.ts';
+import { AGENT_MAX_TURNS, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
 export const BRANCH_PREFIX = 'code-akos/issue-';
 
@@ -107,24 +106,6 @@ export function parseVerdict(resultText: string): { kind: 'fix'; explanation: st
 
 export type AgentVerdict = { kind: 'fix'; explanation: string } | { kind: 'skip'; reason: string } | { kind: 'error'; message: string };
 
-/** Prints a resolver line and, when a log file is set, appends it there too. Logging never throws into the fix. */
-function logLine(logFile: string | undefined, message: string, detail?: unknown): void {
-  const text = detail === undefined ? message : `${message} ${JSON.stringify(detail)}`;
-  console.log(message, ...(detail === undefined ? [] : [JSON.stringify(detail)]));
-  if (!logFile) return;
-  try {
-    mkdirSync(dirname(logFile), { recursive: true });
-    try {
-      if (statSync(logFile).size > RESOLVER_LOG_MAX_BYTES) renameSync(logFile, `${logFile}.1`);
-    } catch {
-      // no log yet
-    }
-    appendFileSync(logFile, `${new Date().toISOString()} ${text}\n`);
-  } catch {
-    // a log that cannot be written must not fail the attempt
-  }
-}
-
 export interface RunFixAgentOptions {
   cwd: string;
   client: ChatClient;
@@ -152,14 +133,15 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
     edited.length > 0 ? { kind: 'fix', explanation: claimed ?? `Edited ${[...new Set(edited)].join(', ')} in response to the error.` } : null;
 
   const maxTurns = options.maxTurns ?? AGENT_MAX_TURNS;
-  logLine(options.logFile, `[resolver] ---- attempt started for issue #${issue.number} (up to ${maxTurns} turns${options.force ? ', forced' : ''}) ----`);
+  logLine(options.logFile, `[resolver] The agent is looking for the cause of issue #${issue.number} (up to ${maxTurns} turns)`);
   try {
     for (let turn = 0; turn < maxTurns; turn++) {
       const reply = await options.client.chat(messages, TOOL_DEFINITIONS);
       messages.push(reply);
       // Log every turn so a SKIP or FAILED can be traced to what the model actually did.
       logLine(options.logFile, `[resolver] agent turn ${turn + 1}/${maxTurns} for issue #${issue.number}`, {
-        tool_calls: (reply.tool_calls ?? []).map((call) => `${call.function.name}(${String(call.function.arguments).slice(0, 200)})`),
+        // An edit is kept whole (up to a point), so the log shows exactly what was changed; other calls only need their target.
+        tool_calls: (reply.tool_calls ?? []).map((call) => `${call.function.name}(${String(call.function.arguments).slice(0, call.function.name === 'edit_file' ? 4000 : 200)})`),
         content: (reply.content ?? '').slice(0, 1000),
       });
 
@@ -267,8 +249,12 @@ export async function attemptFix(
   // The project's own command is a line the user wrote (it may chain steps with &&), so it goes through a shell.
   const verifyCommand = input.verifyCommand ? { argv: ['sh', '-c', input.verifyCommand] } : undefined;
   const localRepoPath = input.localRepoPath ?? null;
+  const logFile = logFileFor(config.logDir, repo, issue.number);
+  const log = (message: string, detail?: unknown): void => logLine(logFile, `[resolver] ${message}`, detail);
 
+  log(`---- attempt started for issue #${issue.number}${input.force ? ' (asked for from the dashboard)' : ''} ----`);
   try {
+    log(`Preparing a working copy of the latest ${baseBranch} on a new branch ${branchName}`);
     if (localRepoPath) {
       // Worktree off the existing local clone: no network clone, and worktree add -b already
       // creates and checks out the branch, so createBranch below is skipped for this path.
@@ -278,13 +264,14 @@ export async function attemptFix(
       await deps.createBranch(workDir, branchName);
     }
 
+    if (input.verifyCommand) log(`Running the verify command before any change: ${input.verifyCommand}`);
     const before = await deps.runVerify(verifyCommand, workDir);
     if (before.ran && !before.passed) {
+      log('Skipped: the repository fails its own verify command before any change was made');
       return { kind: 'skipped', reason: 'the repository does not pass its own verify command before any change was made' };
     }
+    if (before.ran) log('The verify command passes before any change');
 
-    // One file per issue, so concurrent fixes never interleave and one error's whole history is in one place.
-    const logFile = config.logDir ? join(config.logDir, `${repo.owner}-${repo.repo}-issue-${issue.number}.log`) : undefined;
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
       force: input.force === true,
@@ -292,18 +279,31 @@ export async function attemptFix(
       logFile,
       client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
     });
-    if (verdict.kind === 'error') return { kind: 'failed', error: logFile ? `${verdict.message} (log: ${logFile})` : verdict.message };
-    if (verdict.kind === 'skip') return { kind: 'skipped', reason: verdict.reason };
+    if (verdict.kind === 'error') {
+      log(`Failed: ${verdict.message}`);
+      return { kind: 'failed', error: logFile ? `${verdict.message} (log: ${logFile})` : verdict.message };
+    }
+    if (verdict.kind === 'skip') {
+      log(`Skipped: ${verdict.reason}`);
+      return { kind: 'skipped', reason: verdict.reason };
+    }
+    log(`The agent's fix: ${verdict.explanation}`);
 
     if (!(await deps.hasChanges(workDir))) {
+      log('Skipped: the agent reported a fix but no file changed');
       return { kind: 'skipped', reason: 'agent reported a fix but made no file changes' };
     }
 
     const filesChanged = await deps.changedFiles(workDir);
+    log(`Changed ${filesChanged.length === 1 ? '1 file' : `${filesChanged.length} files`}: ${filesChanged.join(', ')}`);
+    if (input.verifyCommand) log('Running the verify command on the fix');
     const after = await deps.runVerify(verifyCommand, workDir);
+    if (after.ran) log(after.passed ? 'The verify command passes with the fix' : 'The verify command fails with the fix; the pull request will say so');
 
     await deps.commitAll(workDir, commitMessage(issue.title));
+    log(`Committed; pushing ${branchName}`);
     await deps.push(workDir, branchName, repo, token);
+    log(`Pushed ${branchName}`);
 
     return {
       kind: 'fixed',
@@ -315,6 +315,7 @@ export async function attemptFix(
       baseBranch,
     };
   } catch (err) {
+    log(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     return { kind: 'failed', error: err instanceof Error ? err.message : String(err) };
   } finally {
     if (localRepoPath) await deps.removeWorktree(localRepoPath, workDir, branchName);

@@ -1,7 +1,8 @@
-import { ChevronDown, CircleCheck, CircleDashed, GitPullRequest, LoaderCircle, Play, RotateCw } from 'lucide-react';
+import { ChevronDown, CircleCheck, CircleDashed, GitPullRequest, LoaderCircle, Play, RotateCw, ScrollText } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ExternalLink, When } from '@/components/Bits';
+import { ResolverLogDialog } from '@/components/errors/ResolverLogDialog';
 import { ResolverLabel, StateLabel, TagChips, TriageLabel } from '@/components/StatusLabel';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -91,6 +92,7 @@ const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm t
 export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | null; onClose: () => void; onChanged?: () => void }) {
   const [asking, setAsking] = useState(false);
   const [forcing, setForcing] = useState(false);
+  const [logsOf, setLogsOf] = useState<string | null>(null);
   const issue = item?.issue;
   const issueUrl = safeUrl(issue?.githubIssueUrl);
   const prUrl = safeUrl(issue?.resolverPrUrl);
@@ -223,11 +225,21 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
                 <Detail label={resolver === 'SKIPPED' ? stage.resolver.skippedWhy : stage.resolver.failedWhy}>{issue.resolverReason}</Detail>
               )}
               {resolver === null && <Muted>{filed ? stage.resolver.notTriedBody : `${stage.resolver.notTriedBody} ${stage.resolver.needsIssue}`}</Muted>}
-              {canRun && (
-                <Button variant="outline" size="sm" className="gap-1.5" disabled={forcing} onClick={() => void runResolver()}>
-                  {forcing ? <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> : <Play className="size-3.5" aria-hidden />}
-                  {resolver === null ? copy.resolver.runOne : copy.resolver.forceRun}
-                </Button>
+              {(canRun || resolver !== null) && (
+                <div className="flex flex-wrap gap-2">
+                  {canRun && (
+                    <Button variant="outline" size="sm" className="gap-1.5" disabled={forcing} onClick={() => void runResolver()}>
+                      {forcing ? <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> : <Play className="size-3.5" aria-hidden />}
+                      {resolver === null ? copy.resolver.runOne : copy.resolver.forceRun}
+                    </Button>
+                  )}
+                  {resolver !== null && (
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLogsOf(issue.fingerprintHash)}>
+                      <ScrollText className="size-3.5" aria-hidden />
+                      {stage.resolver.viewLogs}
+                    </Button>
+                  )}
+                </div>
               )}
             </Stage>
 
@@ -260,6 +272,7 @@ export function IssueDrawer({ item, onClose, onChanged }: { item: InboxItem | nu
           </>
         )}
       </SheetContent>
+      <ResolverLogDialog fingerprintHash={logsOf} working={resolver === 'IN_PROGRESS'} onClose={() => setLogsOf(null)} />
     </Sheet>
   );
 }

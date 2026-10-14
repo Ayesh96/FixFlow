@@ -1,6 +1,6 @@
-import type { ExtensionInfo, FieldErrors, TrackerProjectGroup, TrackerIssue, TrackerStatus, AttemptRecord, ResolverStatus, AttemptPage, AttemptStatus, ProjectList, ProjectView, RepoInspection } from '@server/types.ts';
+import type { ExtensionInfo, FieldErrors, TrackerProjectGroup, TrackerIssue, TrackerStatus, AttemptRecord, ResolverStatus, ResolverLogEntry, AttemptPage, AttemptStatus, ProjectList, ProjectView, RepoInspection } from '@server/types.ts';
 
-export type { ExtensionInfo, FieldErrors, TrackerProjectGroup, TrackerIssue, TrackerStatus, AttemptRecord, ResolverStatus, AttemptPage, AttemptStatus, ProjectList, ProjectView, RepoInspection, SetupStatus } from '@server/types.ts';
+export type { ExtensionInfo, FieldErrors, TrackerProjectGroup, TrackerIssue, TrackerStatus, AttemptRecord, ResolverStatus, ResolverLogEntry, AttemptPage, AttemptStatus, ProjectList, ProjectView, RepoInspection, SetupStatus } from '@server/types.ts';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -69,6 +69,8 @@ export const api = {
     run: () => request<{ run: 'started' }>('POST', '/api/ext/resolver/run', {}),
     /** Tries one error now even if it was skipped or failed before. Answers at once; the outcome follows. */
     runIssue: (fingerprintHash: string) => request<{ run: 'started' }>('POST', `/api/ext/resolver/issues/${encodeURIComponent(fingerprintHash)}/run`, {}),
+    /** What the resolver did on one error, step by step, oldest first. Empty until it has been attempted. */
+    log: (fingerprintHash: string) => request<{ entries: ResolverLogEntry[] }>('GET', `/api/ext/resolver/issues/${encodeURIComponent(fingerprintHash)}/log`),
     attempts: (limit: number = 50, offset: number = 0) =>
       request<AttemptPage>('GET', `/api/ext/resolver/attempts?limit=${limit}&offset=${offset}`),
   },

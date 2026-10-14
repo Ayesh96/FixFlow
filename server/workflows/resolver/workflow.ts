@@ -2,13 +2,15 @@ import type { Router } from 'express';
 import { HttpError } from '../../errors.ts';
 import type { ChangeBus } from '../../events.ts';
 import type { ProjectStore } from '../../projects/store.ts';
-import type { AttemptPage, ResolverStatus } from '../../types.ts';
+import type { AttemptPage, ResolverLogEntry, ResolverStatus } from '../../types.ts';
+import { parseRepo } from '../../shared/repo.ts';
 import type { Store as ErrorsStore } from '../errors/store.ts';
 import { prefixedLogger, type Logger, type Workflow } from '../types.ts';
 import type { Config } from './config.ts';
 import { GitHubClient } from './github.ts';
 import { StoreIssueSource, type IssueSource } from './issueSource.ts';
 import { Scheduler, type RepoSource } from './scheduler.ts';
+import { logFileFor, readLog, removeLog } from './log.ts';
 import { Store } from './store.ts';
 import { RESOLVER_DEFAULT_PAGE_SIZE, RESOLVER_MAX_PAGE_SIZE } from '../../constants.ts';
 
@@ -43,10 +45,12 @@ export class ResolverWorkflow implements Workflow {
   readonly title = 'Resolver';
   private readonly store: Store;
   private readonly scheduler: Scheduler;
+  private readonly logDir: string;
 
   constructor(config: Config, errors: ErrorsStore | null, projects: ProjectStore, deps: ResolverDeps = {}) {
     const logger = deps.logger ?? prefixedLogger('resolver');
     this.store = new Store(config.databasePath);
+    this.logDir = config.logDir;
     const issueSource = deps.issueSource ?? (errors ? new StoreIssueSource(errors) : emptyIssueSource);
     this.scheduler = new Scheduler({
       issueSource,
@@ -70,9 +74,20 @@ export class ResolverWorkflow implements Workflow {
     this.store.close();
   }
 
-  /** Forgets the attempts on these errors; called when the project they belonged to is deleted. */
+  /** Forgets the attempts on these errors, and their logs; called when the project they belonged to is deleted. */
   forget(fingerprintHashes: string[]): void {
+    for (const hash of fingerprintHashes) {
+      const file = this.logFileOf(hash);
+      if (file) void removeLog(file).catch(() => {});
+    }
     this.store.removeAttempts(fingerprintHashes);
+  }
+
+  /** The log of the resolver's attempts on an error; none until it has been attempted. */
+  private logFileOf(fingerprintHash: string): string | undefined {
+    const attempt = this.store.getAttemptByFingerprint(fingerprintHash);
+    const repo = attempt ? parseRepo(attempt.repo) : null;
+    return attempt && repo ? logFileFor(this.logDir, repo, attempt.issueNumber) : undefined;
   }
 
   routes(router: Router): void {
@@ -94,6 +109,12 @@ export class ResolverWorkflow implements Workflow {
       if (outcome === 'has-pr') throw new HttpError(409, 'This error already has a pull request open');
       if (outcome === 'unavailable') throw new HttpError(409, 'This error has no open GitHub issue to work from');
       res.status(202).json({ run: 'started' });
+    });
+
+    // What the resolver did on one error, step by step: every attempt, oldest first, read from its log file.
+    router.get('/issues/:fingerprint/log', async (req, res) => {
+      const file = this.logFileOf(req.params.fingerprint as string);
+      res.json({ entries: file ? await readLog(file) : [] } satisfies { entries: ResolverLogEntry[] });
     });
 
     router.get('/attempts', (req, res) => {

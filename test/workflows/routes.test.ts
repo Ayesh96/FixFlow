@@ -162,6 +162,12 @@ describe('workflow routes', () => {
     assert.deepEqual([page.limit, page.offset, page.attempts], [5, 0, []]);
   });
 
+  it('serves an empty log for an error the resolver has not attempted', async () => {
+    const res = await call('/api/ext/resolver/issues/never-attempted/log');
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { entries: [] });
+  });
+
   it('clamps the attempts page size and ignores malformed paging parameters', async () => {
     const page = (path: string) => call(path).then((r) => r.json() as Promise<{ limit: number; offset: number }>);
     assert.equal((await page('/api/ext/resolver/attempts?limit=9999')).limit, 200);

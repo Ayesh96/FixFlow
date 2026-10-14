@@ -82,6 +82,15 @@ export interface AttemptRecord {
   attemptedAt: string;
 }
 
+/** One line of the resolver's log for an error: a step it took, with what the model or a tool said when there is more. */
+export interface ResolverLogEntry {
+  /** Null for a line that could not be read; it is still shown, as written. */
+  at: string | null;
+  message: string;
+  /** For an agent turn: `tool_calls` and `content`. For a tool result: `result`. For an error: `error`. */
+  detail?: Record<string, unknown>;
+}
+
 /** Stats for the error resolver. */
 export interface ResolverStats {
   total: number;

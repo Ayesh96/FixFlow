@@ -102,6 +102,12 @@ export class Store {
     return rows.map(toRecord);
   }
 
+  /** The latest attempt on an error, whichever GitHub issue it was filed as. */
+  getAttemptByFingerprint(fingerprintHash: string): AttemptRecord | null {
+    const row = this.db.prepare('SELECT * FROM attempts WHERE fingerprint_hash = ? ORDER BY attempted_at DESC LIMIT 1').get(fingerprintHash) as unknown as Row | undefined;
+    return row ? toRecord(row) : null;
+  }
+
   getAttempt(repo: string, issueNumber: number): AttemptRecord | null {
     const row = this.stmtGetAttempt.get(repo, issueNumber) as unknown as Row | undefined;
     return row ? toRecord(row) : null;

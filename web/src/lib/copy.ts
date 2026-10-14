@@ -262,6 +262,7 @@ export const copy = {
           skippedWhy: 'Why it was skipped',
           failedWhy: 'What went wrong',
           changedWhat: 'What it changed',
+          viewLogs: 'View logs',
         },
         pr: { title: 'Pull request', open: 'Open', none: 'Not opened', aboutLabel: 'Where it is', about: 'Opened by the resolver with its fix. Review it on GitHub before merging.' },
       },
@@ -298,6 +299,19 @@ export const copy = {
     },
   },
 
+  resolverLog: {
+    title: 'Resolver log',
+    description: 'Every step the resolver took on this error, oldest first: what the model read, what it changed, and how the attempt ended.',
+    loading: 'Reading the log…',
+    empty: 'Nothing logged for this error yet.',
+    failed: "Couldn't read the log",
+    live: 'Updating while the resolver works',
+    attempt: 'Attempt',
+    toolCalls: 'Asked for',
+    said: 'Model said',
+    result: 'Result',
+    error: 'Error',
+  },
   resolver: {
     heading: 'Resolver',
     kpi: {

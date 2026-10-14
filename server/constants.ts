@@ -37,8 +37,10 @@ export const GIT_STDERR_PREVIEW_CHARS = 500;
 // Resolver
 export const VERIFY_TIMEOUT_MS = 5 * MINUTE;
 export const VERIFY_OUTPUT_MAX_CHARS = 4000;
-/** The most model turns one fix attempt may take. Each turn re-sends the whole history, so this is the cost ceiling per attempt. */
+/** The default for the most model turns one fix attempt may take (ORCH_RESOLVER_MAX_TURNS). Each turn re-sends the whole history, so this is the cost ceiling per attempt. */
 export const AGENT_MAX_TURNS = 20;
+/** The resolver's log is moved aside (replacing the previous one) once it passes this, so it cannot grow without end. */
+export const RESOLVER_LOG_MAX_BYTES = 5 * 1024 * 1024;
 /** How often one issue is attempted before the resolver stops on its own. A person can still run it from the dashboard. */
 export const RESOLVER_MAX_ATTEMPTS_PER_ISSUE = 3;
 /** The wait after a failed attempt, doubled for each further failure, so an outage does not spend every attempt within minutes. */

@@ -115,6 +115,7 @@ export function validateValues(v) {
     if (!isInt(intOr(v.pollInterval, 300000), MIN_POLL_INTERVAL_MS)) errors.pollInterval = 'Poll interval must be at least 30 seconds';
     if (!isInt(intOr(v.maxConcurrent, 3), 1)) errors.maxConcurrent = 'Max concurrent fixes must be a whole number, 1 or more';
     if (!isInt(intOr(v.maxAttempts, 3), 1)) errors.maxAttempts = 'Max attempts must be a whole number, 1 or more';
+    if (!isInt(intOr(v.maxTurns, 20), 1)) errors.maxTurns = 'Max turns must be a whole number, 1 or more';
   }
 
   const keyFor = { ollama: v.useOllama, deepseek: !isBlank(v.deepseekKey), anthropic: !isBlank(v.anthropicKey) };

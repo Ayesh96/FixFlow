@@ -46,6 +46,7 @@ export function parseEnvFile(text) {
     pollInterval: num('ORCH_RESOLVER_POLL_INTERVAL_MS', 300000),
     maxConcurrent: num('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', 3),
     maxAttempts: num('ORCH_RESOLVER_MAX_ATTEMPTS', 3),
+    maxTurns: num('ORCH_RESOLVER_MAX_TURNS', 20),
     retrySkipped: on('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS'),
   };
 }
@@ -92,6 +93,7 @@ export function buildEnvFile(v) {
     line('ORCH_RESOLVER_POLL_INTERVAL_MS', v.resolverEnabled ? v.pollInterval : '', '300000'),
     line('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', v.resolverEnabled ? v.maxConcurrent : '', '3'),
     line('ORCH_RESOLVER_MAX_ATTEMPTS', v.resolverEnabled ? v.maxAttempts : '', '3'),
+    line('ORCH_RESOLVER_MAX_TURNS', v.resolverEnabled ? v.maxTurns : '', '20'),
     line('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS', v.resolverEnabled && v.retrySkipped ? 1 : '', '0'),
     '',
   ].join('\n');

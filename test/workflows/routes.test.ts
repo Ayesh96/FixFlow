@@ -41,6 +41,8 @@ const resolverConfig = (overrides: Partial<ResolverConfig> = {}): ResolverConfig
   pollIntervalMs: 300_000,
   maxConcurrentFixes: 1,
   maxAttemptsPerIssue: 3,
+    maxAgentTurns: 20,
+    logFile: '',
     retrySkippedAttempts: false,
   databasePath: ':memory:',
   ...overrides,

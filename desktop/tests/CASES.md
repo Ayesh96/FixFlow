@@ -8,10 +8,10 @@ said in words next to the field (not colour alone).
 
 | ID | Case | Expected |
 |---|---|---|
-| A1 | Dashboard port empty | Error under the field; Continue disabled; stepper says "Basics (needs attention)" |
+| A1 | Dashboard port empty | Error under the field; Continue disabled; Basics turns red in the stepper (screen readers hear "Basics (needs attention)") |
 | A2 | Port `0`, `65536`, `-1`, `1.5`, `abc` (each) | Same as A1 |
 | A3 | Port held by another program (`occupyPort`) | "Another program is using this port…"; Continue disabled |
-| A4 | Fix the port after A1–A3 | Error and "needs attention" clear; Continue enabled |
+| A4 | Fix the port after A1–A3 | Error and the red step clear; Continue enabled |
 | A5 | Type into the data folder field | Nothing changes (read-only); only "Choose folder…" changes it |
 | A6 | Cancel the folder dialog | Field keeps its old value; no error |
 | A7 | Continue moves focus to the next step's heading | `document.activeElement` is the step 2 `h1` |

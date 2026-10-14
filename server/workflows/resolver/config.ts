@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import type { LlmGateway } from '../../llm/index.ts';
 import { parseDatabaseUrl } from '../../shared/database-url.ts';
 import { ConfigError } from '../../shared/errors.ts';
-import { RESOLVER_MAX_ATTEMPTS_PER_ISSUE, RESOLVER_MIN_POLL_INTERVAL_MS } from '../../constants.ts';
+import { AGENT_MAX_TURNS, RESOLVER_MAX_ATTEMPTS_PER_ISSUE, RESOLVER_MIN_POLL_INTERVAL_MS } from '../../constants.ts';
 
 export interface Config {
   /** The GitHub API address. Tokens belong to projects now (see server/projects). */
@@ -13,6 +13,10 @@ export interface Config {
   maxConcurrentFixes: number;
   /** How often one issue is attempted before the resolver leaves it alone; running it by hand still works. */
   maxAttemptsPerIssue: number;
+  /** The most model turns one fix attempt may take before it is given up as failed. */
+  maxAgentTurns: number;
+  /** Where each agent turn is logged, so a failed attempt can be looked at afterwards. */
+  logFile: string;
   /** Testing aid: re-attempt SKIPPED issues on every poll instead of remembering the skip. PR_OPEN is never retried. */
   retrySkippedAttempts: boolean;
   databasePath: string;
@@ -52,6 +56,8 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
   const maxConcurrentFixes = integer('ORCH_RESOLVER_MAX_CONCURRENT_FIXES', 3, 1);
   const maxAttemptsPerIssue = integer('ORCH_RESOLVER_MAX_ATTEMPTS', RESOLVER_MAX_ATTEMPTS_PER_ISSUE, 1);
 
+  const maxAgentTurns = integer('ORCH_RESOLVER_MAX_TURNS', AGENT_MAX_TURNS, 1);
+
   const databaseUrl = text('ORCH_RESOLVER_DB') || join(dataDir, 'resolver.db');
   const databasePath = parseDatabaseUrl(databaseUrl);
   if (!databasePath) problems.push('ORCH_RESOLVER_DB must be a SQLite location (e.g. file:./data/resolver.db)');
@@ -64,6 +70,8 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
     pollIntervalMs,
     maxConcurrentFixes,
     maxAttemptsPerIssue,
+    maxAgentTurns,
+    logFile: text('ORCH_RESOLVER_LOG_FILE') || join(dataDir, 'logs', 'resolver.log'),
     retrySkippedAttempts: /^(?:1|true|yes|on)$/i.test(text('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS')),
     databasePath: databasePath as string,
   };

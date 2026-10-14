@@ -20,6 +20,8 @@ function makeConfig(overrides: Partial<ConfigType> = {}): ConfigType {
     pollIntervalMs: 300_000,
     maxConcurrentFixes: 3,
     maxAttemptsPerIssue: 3,
+    maxAgentTurns: 20,
+    logFile: '',
     retrySkippedAttempts: false,
     databasePath: ':memory:',
     ...overrides,

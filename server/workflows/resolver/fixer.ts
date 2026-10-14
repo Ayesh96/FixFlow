@@ -4,7 +4,9 @@ import * as git from './git.ts';
 import type { ChatClient, ChatMessage } from '../../llm/index.ts';
 import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
-import { AGENT_MAX_TURNS, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
+import { appendFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { AGENT_MAX_TURNS, RESOLVER_LOG_MAX_BYTES, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
 export const BRANCH_PREFIX = 'code-akos/issue-';
 
@@ -105,9 +107,31 @@ export function parseVerdict(resultText: string): { kind: 'fix'; explanation: st
 
 export type AgentVerdict = { kind: 'fix'; explanation: string } | { kind: 'skip'; reason: string } | { kind: 'error'; message: string };
 
+/** Prints a resolver line and, when a log file is set, appends it there too. Logging never throws into the fix. */
+function logLine(logFile: string | undefined, message: string, detail?: unknown): void {
+  const text = detail === undefined ? message : `${message} ${JSON.stringify(detail)}`;
+  console.log(message, ...(detail === undefined ? [] : [JSON.stringify(detail)]));
+  if (!logFile) return;
+  try {
+    mkdirSync(dirname(logFile), { recursive: true });
+    try {
+      if (statSync(logFile).size > RESOLVER_LOG_MAX_BYTES) renameSync(logFile, `${logFile}.1`);
+    } catch {
+      // no log yet
+    }
+    appendFileSync(logFile, `${new Date().toISOString()} ${text}\n`);
+  } catch {
+    // a log that cannot be written must not fail the attempt
+  }
+}
+
 export interface RunFixAgentOptions {
   cwd: string;
   client: ChatClient;
+  /** The most model turns before the attempt fails; AGENT_MAX_TURNS when unset. */
+  maxTurns?: number;
+  /** Where each turn is also written. */
+  logFile?: string;
   /** A person asked for this attempt, so the model is told not to give up on a hard-to-place cause. */
   force?: boolean;
 }
@@ -127,15 +151,16 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
   const landedEdit = (): AgentVerdict | null =>
     edited.length > 0 ? { kind: 'fix', explanation: claimed ?? `Edited ${[...new Set(edited)].join(', ')} in response to the error.` } : null;
 
+  const maxTurns = options.maxTurns ?? AGENT_MAX_TURNS;
   try {
-    for (let turn = 0; turn < AGENT_MAX_TURNS; turn++) {
+    for (let turn = 0; turn < maxTurns; turn++) {
       const reply = await options.client.chat(messages, TOOL_DEFINITIONS);
       messages.push(reply);
       // Log every turn so a SKIP or FAILED can be traced to what the model actually did.
-      console.log(`[resolver] agent turn ${turn} for issue #${issue.number}`, JSON.stringify({
+      logLine(options.logFile, `[resolver] agent turn ${turn + 1}/${maxTurns} for issue #${issue.number}`, {
         tool_calls: (reply.tool_calls ?? []).map((call) => `${call.function.name}(${String(call.function.arguments).slice(0, 200)})`),
         content: (reply.content ?? '').slice(0, 1000),
-      }));
+      });
 
       if (!reply.tool_calls || reply.tool_calls.length === 0) {
         const verdict = parseVerdict(reply.content ?? '');
@@ -158,6 +183,7 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
       for (const call of reply.tool_calls) {
         const result = await executeTool({ id: call.id, name: call.function.name, arguments: call.function.arguments }, options.cwd);
         messages.push({ role: 'tool', tool_call_id: call.id, content: result });
+        logLine(options.logFile, `[resolver] tool result for issue #${issue.number}: ${call.function.name}`, { result: result.slice(0, 300) });
         if (call.function.name === 'edit_file' && result.startsWith('edited ')) edited.push(result.slice('edited '.length));
       }
       const announced = parseVerdict(reply.content ?? '');
@@ -166,8 +192,9 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
         if (edited.length > 0) return announced;
       }
     }
-    return { kind: 'error', message: 'agent exceeded the maximum number of turns without a FIX: or SKIP: verdict' };
+    return { kind: 'error', message: `agent exceeded the maximum number of turns (${maxTurns}) without a FIX: or SKIP: verdict` };
   } catch (err) {
+    logLine(options.logFile, `[resolver] agent for issue #${issue.number} threw`, { error: err instanceof Error ? err.message : String(err) });
     return { kind: 'error', message: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -258,6 +285,8 @@ export async function attemptFix(
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
       force: input.force === true,
+      maxTurns: config.maxAgentTurns,
+      logFile: config.logFile,
       client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
     });
     if (verdict.kind === 'error') return { kind: 'failed', error: verdict.message };

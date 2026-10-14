@@ -274,6 +274,7 @@ async function main() {
   const pollInterval = pollChoices[await pick('Poll interval:', pollChoices.map((p) => p.label), pollIndex)].ms;
   const maxConcurrent = await askInt('  Max fixes running at once', d.maxConcurrent, 1);
   const maxAttempts = await askInt('  Max attempts per issue before it stops on its own', d.maxAttempts, 1);
+  const maxTurns = await askInt('  Max model turns per fix attempt', d.maxTurns, 1);
   const retrySkipped = await askYesNo('  Retry SKIPPED issues every poll (testing aid)?', d.retrySkipped);
 
   const values = {
@@ -299,6 +300,7 @@ async function main() {
     pollInterval,
     maxConcurrent,
     maxAttempts,
+    maxTurns,
     retrySkipped,
   };
 

@@ -27,6 +27,8 @@ describe('resolver loadConfig', () => {
     assert.equal(c.pollIntervalMs, 300_000);
     assert.equal(c.maxConcurrentFixes, 3);
     assert.equal(c.maxAttemptsPerIssue, 3);
+    assert.equal(c.maxAgentTurns, 20);
+    assert.equal(c.logFile, `${DATA}/logs/resolver.log`);
     assert.equal(c.databasePath, `${DATA}/resolver.db`);
     assert.equal(c.githubApiUrl, 'https://api.github.com');
     assert.equal(c.retrySkippedAttempts, false);
@@ -46,6 +48,11 @@ describe('resolver loadConfig', () => {
 
   it('reads the attempt limit and rejects one below 1', () => {
     assert.equal(load({ ...valid, ORCH_RESOLVER_MAX_ATTEMPTS: '5' })?.maxAttemptsPerIssue, 5);
+    assert.equal(load({ ...valid, ORCH_RESOLVER_MAX_TURNS: '40' })?.maxAgentTurns, 40);
+    assert.throws(
+      () => load({ ...valid, ORCH_RESOLVER_MAX_TURNS: '0' }),
+      (err: unknown) => err instanceof ConfigError && err.problems.some((p) => p.includes('ORCH_RESOLVER_MAX_TURNS')),
+    );
     assert.throws(
       () => load({ ...valid, ORCH_RESOLVER_MAX_ATTEMPTS: '0' }),
       (err: unknown) => err instanceof ConfigError && err.problems.some((p) => p.includes('ORCH_RESOLVER_MAX_ATTEMPTS')),

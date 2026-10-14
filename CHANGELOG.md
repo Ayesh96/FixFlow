@@ -3,7 +3,7 @@
 ## 1.3.0
 
 - **Turns per attempt is a setting.** A fix attempt was capped at 20 model turns with no way to change it, so slower models failed with "exceeded the maximum number of turns". Set **Model turns per attempt** on the Resolver step of Settings, or `ORCH_RESOLVER_MAX_TURNS`. The error now says how many turns were allowed.
-- **The resolver keeps a log.** Every agent turn and tool result is appended to `logs/resolver.log` in the data folder (`ORCH_RESOLVER_LOG_FILE` to move it), so a failed attempt can be looked at afterwards. It rotates at 5 MB.
+- **The resolver keeps a log per issue.** Every agent turn and tool result is appended to `logs/<owner>-<repo>-issue-<n>.log` in the data folder (`ORCH_RESOLVER_LOG_DIR` to move it), so fixes running at once never mix and a failed attempt's error names its file. Each file rotates at 5 MB.
 - A step with a problem in the setup screen is marked in red instead of changing its name.
 
 ## 1.2.0

@@ -28,7 +28,7 @@ describe('resolver loadConfig', () => {
     assert.equal(c.maxConcurrentFixes, 3);
     assert.equal(c.maxAttemptsPerIssue, 3);
     assert.equal(c.maxAgentTurns, 20);
-    assert.equal(c.logFile, `${DATA}/logs/resolver.log`);
+    assert.equal(c.logDir, `${DATA}/logs`);
     assert.equal(c.databasePath, `${DATA}/resolver.db`);
     assert.equal(c.githubApiUrl, 'https://api.github.com');
     assert.equal(c.retrySkippedAttempts, false);

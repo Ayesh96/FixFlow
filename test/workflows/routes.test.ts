@@ -42,7 +42,7 @@ const resolverConfig = (overrides: Partial<ResolverConfig> = {}): ResolverConfig
   maxConcurrentFixes: 1,
   maxAttemptsPerIssue: 3,
     maxAgentTurns: 20,
-    logFile: '',
+    logDir: '',
     retrySkippedAttempts: false,
   databasePath: ':memory:',
   ...overrides,

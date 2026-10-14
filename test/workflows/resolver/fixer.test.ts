@@ -24,7 +24,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
     maxAttemptsPerIssue: 3,
     maxAgentTurns: 20,
-    logFile: '',
+    logDir: '',
     retrySkippedAttempts: false,
     githubApiUrl: 'https://api.github.com',
     llm: fakeLlm(),

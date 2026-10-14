@@ -101,7 +101,7 @@ With no provider set up for triage, new errors are triaged by built-in rules. Wh
 | `ORCH_RESOLVER_MAX_ATTEMPTS` | `3` | How many failed attempts one issue gets before the resolver stops on its own. A failed attempt waits 15 minutes before the next try, doubling each time. Running an issue from the dashboard ignores the limit. |
 | `ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS` | off | Testing aid: re-attempt `SKIPPED` issues each poll. `PR_OPEN` is never retried. |
 
-The resolver attempts every open GitHub issue Code Akos filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at `ORCH_RESOLVER_MAX_TURNS` model turns (20 by default). Every turn is also appended to `<data folder>/logs/resolver.log` (or `ORCH_RESOLVER_LOG_FILE`). It runs your check command as you, on your machine.
+The resolver attempts every open GitHub issue Code Akos filed for an existing project, whatever its triage tags, unless an earlier attempt opened a pull request or was skipped. A single attempt is capped at `ORCH_RESOLVER_MAX_TURNS` model turns (20 by default). Every turn is also appended to a file per issue, `<data folder>/logs/<owner>-<repo>-issue-<n>.log` (folder set by `ORCH_RESOLVER_LOG_DIR`), and a failed attempt's error names that file. It runs your check command as you, on your machine.
 
 ## Running from source
 

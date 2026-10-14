@@ -21,7 +21,7 @@ function makeConfig(overrides: Partial<ConfigType> = {}): ConfigType {
     maxConcurrentFixes: 3,
     maxAttemptsPerIssue: 3,
     maxAgentTurns: 20,
-    logFile: '',
+    logDir: '',
     retrySkippedAttempts: false,
     databasePath: ':memory:',
     ...overrides,

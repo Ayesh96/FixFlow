@@ -5,7 +5,7 @@ import type { ChatClient, ChatMessage } from '../../llm/index.ts';
 import { runVerify } from './verify.ts';
 import type { FixOutcome, GitHubIssue, RepoRef } from './types.ts';
 import { appendFileSync, mkdirSync, renameSync, statSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { AGENT_MAX_TURNS, RESOLVER_LOG_MAX_BYTES, AGENT_PREREAD_FILES, AGENT_PREREAD_WHOLE_FILE_LINES, AGENT_PREREAD_WINDOW_LINES, COMMIT_SUBJECT_MAX_CHARS } from '../../constants.ts';
 
 export const BRANCH_PREFIX = 'code-akos/issue-';
@@ -152,6 +152,7 @@ export async function runFixAgent(issue: GitHubIssue, options: RunFixAgentOption
     edited.length > 0 ? { kind: 'fix', explanation: claimed ?? `Edited ${[...new Set(edited)].join(', ')} in response to the error.` } : null;
 
   const maxTurns = options.maxTurns ?? AGENT_MAX_TURNS;
+  logLine(options.logFile, `[resolver] ---- attempt started for issue #${issue.number} (up to ${maxTurns} turns${options.force ? ', forced' : ''}) ----`);
   try {
     for (let turn = 0; turn < maxTurns; turn++) {
       const reply = await options.client.chat(messages, TOOL_DEFINITIONS);
@@ -282,14 +283,16 @@ export async function attemptFix(
       return { kind: 'skipped', reason: 'the repository does not pass its own verify command before any change was made' };
     }
 
+    // One file per issue, so concurrent fixes never interleave and one error's whole history is in one place.
+    const logFile = config.logDir ? join(config.logDir, `${repo.owner}-${repo.repo}-issue-${issue.number}.log`) : undefined;
     const verdict = await deps.runFixAgent(issue, {
       cwd: workDir,
       force: input.force === true,
       maxTurns: config.maxAgentTurns,
-      logFile: config.logFile,
+      logFile,
       client: config.llm.clientFor('resolver', (provider, err) => console.warn(`[resolver] ${provider} failed, trying the next model:`, err instanceof Error ? err.message : err)),
     });
-    if (verdict.kind === 'error') return { kind: 'failed', error: verdict.message };
+    if (verdict.kind === 'error') return { kind: 'failed', error: logFile ? `${verdict.message} (log: ${logFile})` : verdict.message };
     if (verdict.kind === 'skip') return { kind: 'skipped', reason: verdict.reason };
 
     if (!(await deps.hasChanges(workDir))) {

@@ -15,8 +15,8 @@ export interface Config {
   maxAttemptsPerIssue: number;
   /** The most model turns one fix attempt may take before it is given up as failed. */
   maxAgentTurns: number;
-  /** Where each agent turn is logged, so a failed attempt can be looked at afterwards. */
-  logFile: string;
+  /** Where each issue's agent turns are logged, one file per issue, so a failed attempt can be looked at afterwards. */
+  logDir: string;
   /** Testing aid: re-attempt SKIPPED issues on every poll instead of remembering the skip. PR_OPEN is never retried. */
   retrySkippedAttempts: boolean;
   databasePath: string;
@@ -71,7 +71,7 @@ export function loadConfig(env: Env, { dataDir, githubApiUrl, llm }: LoadOptions
     maxConcurrentFixes,
     maxAttemptsPerIssue,
     maxAgentTurns,
-    logFile: text('ORCH_RESOLVER_LOG_FILE') || join(dataDir, 'logs', 'resolver.log'),
+    logDir: text('ORCH_RESOLVER_LOG_DIR') || join(dataDir, 'logs'),
     retrySkippedAttempts: /^(?:1|true|yes|on)$/i.test(text('ORCH_RESOLVER_RETRY_SKIPPED_ATTEMPTS')),
     databasePath: databasePath as string,
   };

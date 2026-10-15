@@ -136,22 +136,49 @@ export function rulesTriage(event: NormalizedEvent): TriageResult {
   return result(['needs-human'], `${what}. Thrown from ${culprit?.text ?? 'your code'}. It is not an obvious small fix.`, 'Report it, and have a person look first. It is not a clear small fix for the resolver.');
 }
 
+/**
+ * The prompt is written for small local models: a fixed order of questions, one short example per outcome, and the
+ * free-text "message" asked for before the verdict so the model has said why before it decides. The checks in
+ * `modelTriager` still overrule it on facts, so this prompt only has to be right most of the time, not every time.
+ */
 const SYSTEM_PROMPT = `You triage production errors for a code-fixing bot.
-Reply with JSON only: {"small_fix": boolean, "message": string, "suggestion": string, "tags": string[]}
+Reply with JSON only, keys in this order: {"message": string, "suggestion": string, "small_fix": boolean, "tags": string[]}
 
-small_fix: true only if the error is a thrown exception that can be fixed with a change of about 2-5 lines in one
-place in the app's own code (a missing null check, a typo, a missing import, a wrong variable) or is a lint/formatting finding.
-false for log messages, permission or configuration problems, anything that depends on infrastructure or network
-conditions, anything that needs a design change or touches several files, or when you cannot tell. When unsure, false.
+First decide what the error is. Go through these questions in order and stop at the first "yes":
+1. A test message (sent on purpose, at level debug, info or warning, saying test / hello world / ignore me)? Then small_fix is false and tags is ["test-event"].
+2. A permission, a setting, a missing file or service, a network or timeout problem? Then small_fix is false and tags has "infrastructure" and "needs-human".
+3. A log message, not a thrown exception? Then small_fix is false and tags has "needs-human".
+4. A stack that never enters the app's own code (every frame is a library)? Then small_fix is false and tags has "third-party" and "needs-human".
+5. No stack trace at all? Then small_fix is false and tags has "no-stack-trace" and "needs-human".
+6. A thrown exception in the app's own code that a change of about 2-5 lines in one place fixes (a missing null check, a typo, a missing import, a wrong variable), or a lint/formatting finding? Then small_fix is true.
+7. Anything else, or you cannot tell: small_fix is false and tags has "needs-human". When unsure, false.
 
 message: 1-2 plain sentences. What this is, why it most likely happened, and who or what is the culprit
 (a function and file in the app, a library, the environment or infrastructure, or nobody: it is a test message).
-Use the locals and the request when they are given.
+Use the locals and the request when they are given. Only name files and functions that appear in the error.
 
 suggestion: one sentence on what to do. Say "Don't report it" ONLY for a test message or pure noise.
 A real failure is never "don't report it": if the fix is outside the code (a permission, a setting, a service), say what to fix instead.
 
-tags: any of ${TRIAGE_TAGS.filter((t) => t !== 'bot-safe').join(', ')}. Do not include bot-safe; it follows small_fix.`;
+tags: any of ${TRIAGE_TAGS.filter((t) => t !== 'bot-safe').join(', ')}. Do not include bot-safe; it follows small_fix. Use only the tags that apply.
+
+Examples (the errors are shortened; answer in your own words, not these):
+
+Error: TypeError: Cannot read properties of undefined (reading 'id')
+Stack (newest first):
+  at getUserId (static/main.js:42) [app]
+      locals: user=undefined
+{"message": "getUserId in main.js reads user.id while user is undefined, so a null check is missing.", "suggestion": "Report it: add a check before reading user.id.", "small_fix": true, "tags": []}
+
+Error: HTTPException: osascript is not allowed assistive access. (-1719)
+Stack (newest first):
+  at press_key (control.py:31) [app]
+{"message": "The app is not allowed to control the keyboard on this Mac, so the call in press_key was refused. No code is wrong.", "suggestion": "Grant Accessibility access to the app in System Settings, Privacy & Security.", "small_fix": false, "tags": ["infrastructure", "needs-human"]}
+
+Error: Message: Sentry test please ignore
+Level: info
+No stack trace: this was sent as a plain message.
+{"message": "This is a test message sent on purpose. Nothing failed and there is no culprit.", "suggestion": "Don't report it: it is a test.", "small_fix": false, "tags": ["test-event", "no-stack-trace"]}`;
 
 const text = (value: unknown): string | null => (typeof value === 'string' && value.trim() !== '' ? clip(value.trim()) : null);
 const DISMISSES = /^don'?t report it/i;

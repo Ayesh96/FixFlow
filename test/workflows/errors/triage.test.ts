@@ -39,6 +39,17 @@ describe('modelTriager over Ollama', () => {
     assert.deepEqual((await triage(normalized(pyEvent()))).tags, ['bot-safe']); // the rules alone would say no
   });
 
+  it('asks for the reason before the verdict, and shows the model one example per outcome', async () => {
+    const triage = triagerAt(await ready);
+    reply = () => content('{"message": "m", "suggestion": "s", "small_fix": false, "tags": []}');
+    await triage(normalized(jsEvent()));
+    const system = JSON.parse(seen).messages[0].content as string;
+    assert.ok(system.indexOf('"message": string') < system.indexOf('"small_fix": boolean'));
+    assert.match(system, /"small_fix": true/);
+    assert.match(system, /"test-event"/);
+    assert.match(system, /"infrastructure", "needs-human"/);
+  });
+
   it("never lets the rules' wording contradict the model when it leaves its own out", async () => {
     const triage = triagerAt(await ready);
     reply = () => content('{"small_fix": false}');
